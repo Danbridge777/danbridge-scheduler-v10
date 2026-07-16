@@ -1,7 +1,7 @@
 {
   "name": "Danbridge Scheduler Cloud",
   "short_name": "Danbridge",
-  "description": "Danbridge 雲端排課與課程回報系統",
+  "description": "Danbridge 雲端排課、老師課表與課程回報系統",
   "lang": "zh-TW",
   "start_url": "./",
   "scope": "./",
