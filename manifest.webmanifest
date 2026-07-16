@@ -1,0 +1,16 @@
+{
+  "name": "Danbridge Scheduler Cloud",
+  "short_name": "Danbridge",
+  "description": "Danbridge 雲端排課與課程回報系統",
+  "lang": "zh-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6f9",
+  "theme_color": "#0f4c81",
+  "icons": [
+    {"src":"./icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

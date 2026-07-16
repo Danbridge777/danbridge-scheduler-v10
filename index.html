@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0f4c81">
 <title>Danbridge Scheduler Cloud</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Danbridge">
 <style>
 :root{--bg:#f4f6f9;--card:#fff;--text:#172033;--muted:#6b7280;--line:#dfe5ec;--main:#0f4c81;--danger:#c62828;--ok:#18794e;--warn:#9a6700;--shadow:0 8px 24px rgba(15,23,42,.08)}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif}button,input,select,textarea{font:inherit}header{padding:18px 20px;background:linear-gradient(135deg,#0f3f6e,#1768aa);color:#fff}header h1{margin:0;font-size:24px}header p{margin:5px 0 0;opacity:.9;font-size:14px}nav{position:sticky;top:0;z-index:50;display:flex;gap:8px;overflow:auto;padding:10px 12px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}nav button,.btn{min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}nav button.active,.btn.primary{background:var(--main);border-color:var(--main);color:#fff}.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}main{max-width:1600px;margin:auto;padding:14px}section{display:none}section.active{display:block}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.col-4{grid-column:span 4}.col-8{grid-column:span 8}.col-6{grid-column:span 6}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}h2{margin:0 0 12px;font-size:21px}h3{margin:16px 0 10px}label{display:block;margin:9px 0 5px;color:var(--muted);font-size:13px}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}textarea{min-height:80px}.toolbar{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin-bottom:12px}.toolbar>div{min-width:150px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}.metric b{display:block;font-size:25px;margin-top:4px}.small{font-size:12px;color:var(--muted)}.hint{padding:11px;border-radius:12px;background:#fff7e8;border:1px solid #f2d19b;color:#6f4b00;margin:10px 0}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#f8fafc}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.table-wrap{overflow:auto}.calendar-shell{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}.month-grid{display:grid;grid-template-columns:repeat(7,minmax(145px,1fr));min-width:1015px}.day-head{padding:10px;text-align:center;font-weight:800;background:#f1f5f9;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.day-cell{min-height:155px;padding:7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}.day-cell.out{background:#f8fafc}.day-cell.drop-target{outline:3px solid #60a5fa;outline-offset:-3px;background:#eff6ff}.day-num{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:6px}.day-add{width:30px;min-height:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--main);font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:.72}.day-add:hover,.day-add:focus{opacity:1;background:var(--main2,#eaf3fb);outline:2px solid #93c5fd}@media(hover:none){.day-add{opacity:1}}.today .day-num span:first-child{background:var(--main);color:#fff;border-radius:999px;min-width:27px;height:27px;display:grid;place-items:center}.lesson{border-radius:10px;padding:7px;margin:5px 0;font-size:12px;line-height:1.35;border-left:5px solid var(--teacher,#2563eb);background:var(--location-bg,#eef5ff);touch-action:none;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.06)}.lesson.dragging{opacity:.45}.lesson b{display:block;font-size:13px}.lesson .meta{color:#4b5563}.week-grid{min-width:1120px;display:grid;grid-template-columns:82px repeat(7,minmax(145px,1fr));grid-template-rows:44px repeat(168,12px);position:relative;background:#fff}.week-head{background:#f8fafc;font-weight:800;text-align:center;border-right:1px solid var(--line);border-bottom:2px solid #94a3b8;padding:10px 6px;position:sticky;top:0;z-index:15}.time-label{background:#f8fafc;font-weight:700;text-align:right;border-right:1px solid var(--line);border-top:1px solid #eef2f7;padding:0 8px 0 2px;font-size:9px;color:#64748b;line-height:12px;overflow:visible;white-space:nowrap;z-index:3}.time-label.hour{border-top:2px solid #64748b}.time-label.half-hour{border-top:1px solid #94a3b8}.time-label.hour{font-weight:900;color:#172033;font-size:13px}.time-label.half-hour{font-weight:800;color:#334155;font-size:11px}.time-slot{min-height:12px;border-right:1px solid var(--line);border-top:1px solid #eef2f7;background:#fff;position:relative}.time-slot.half-hour{border-top:1px solid #94a3b8}.time-slot.full-hour{border-top:2px solid #64748b}.time-slot.drop-target{background:#dbeafe!important;outline:1px solid #2563eb;outline-offset:-1px}.week-event{margin:0 4px;border-radius:8px;padding:4px 6px;font-size:11px;line-height:1.2;border-left:5px solid var(--teacher,#2563eb);background:var(--location-bg,#eef5ff);z-index:8;touch-action:none;user-select:none;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,.14);min-height:10px}.week-event b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.week-event .week-event-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#475569}.week-event.teacher-overlap .week-event-meta{color:#fff!important}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}.modal-backdrop.show{display:flex}.modal{background:#fff;border-radius:20px;padding:18px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 30px 60px rgba(0,0,0,.25)}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal-head button{border:0;background:transparent;font-size:25px}.status-學生請假,.status-老師請假{color:var(--warn);font-weight:800}.status-取消,.status-停課{color:var(--danger);font-weight:800}.status-已上課{color:var(--ok);font-weight:800}@media(max-width:900px){.col-4,.col-8,.col-6{grid-column:span 12}.summary{grid-template-columns:1fr 1fr}main{padding:10px}.card{padding:13px}header{padding-top:max(18px,env(safe-area-inset-top))}}@media print{header,nav,.toolbar,.no-print{display:none!important}main{max-width:none;padding:0}.card{box-shadow:none;border:0}.calendar-shell{overflow:visible}}
 .searchbar{display:flex;gap:8px;align-items:center}.searchbar input{min-width:260px}.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:#eef2f7;font-size:12px}.pill.red{background:#feecec;color:#991b1b}.pill.green{background:#e9f8ef;color:#166534}.floating-actions{position:fixed;right:18px;bottom:18px;display:flex;gap:8px;z-index:60}.floating-actions .btn{box-shadow:0 8px 20px rgba(0,0,0,.15)}.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#172033;color:#fff;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:none;z-index:200}.toast.show{opacity:1}.status-unpaid{color:#b42318;font-weight:800}@media(max-width:700px){.searchbar{width:100%}.searchbar input{min-width:0}.floating-actions{right:10px;bottom:10px}.floating-actions .btn{min-width:48px;padding:8px}}
@@ -128,7 +133,7 @@ body.lesson-paste-mode #calendarCanvas [data-date].paste-click-target{
   </div>
 </div>
 
-<header><h1>Danbridge Scheduler Cloud</h1><p>Google 登入｜Firebase 雲端同步｜iPad 觸控拖曳｜教室防撞｜付款追蹤</p><div class="header-auth-actions"><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
+<header><h1>Danbridge Scheduler Cloud</h1><p>Google 登入｜Firebase 雲端同步｜iPad 觸控拖曳｜教室防撞｜付款追蹤</p><div class="header-auth-actions"><button type="button" class="btn" id="installPwaBtn" style="display:none">安裝 App</button><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
 <nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營</button><button data-tab="winterCamps">冬令營</button><button data-tab="settlement">月底結算</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
 <main><div id="draftBanner" class="draft-banner"><span>目前為草稿模式：修改尚未發布到正式課表。</span><span><button class="btn ok" onclick="publishDraft()">發布草稿</button> <button class="btn danger" onclick="cancelDraft()">放棄草稿</button></span></div>
 <section id="dashboard" class="active"><div class="summary"><div class="metric">學生數<b id="mStudents">0</b></div><div class="metric">老師數<b id="mTeachers">0</b></div><div class="metric">本月課程<b id="mLessons">0</b></div><div class="metric">本月預估營收<b id="mRevenue">$0</b></div><div class="metric">本月未收款<b id="mUnpaid">$0</b></div><div class="metric">本月老師薪資<b id="mPayroll">$0</b></div><div class="metric">待補課<b id="mMakeups">0</b></div><div class="metric">今日異動<b id="mChanges">0</b></div></div><div class="dashboard-main"><div class="card"><h2>今日課程</h2><div id="todayLessons"></div></div><div class="card"><h2>快速操作</h2><div class="searchbar"><input id="globalSearch" placeholder="搜尋學生、老師、課程、日期" oninput="renderGlobalSearch()"></div><div id="globalSearchResults" style="margin-top:8px"></div><div class="row-actions" style="margin-top:10px"><button class="btn primary" onclick="openLessonModal()">新增課程</button><button class="btn" onclick="switchTab('calendar')">開啟拖曳課表</button><button class="btn" onclick="switchTab('camps')">建立夏令營</button><button class="btn" onclick="switchTab('winterCamps')">建立冬令營</button></div><div class="hint">桌面／iPad 橫向模式會以寬表格顯示異動與營隊設定。</div></div><div class="card dashboard-changes"><h2>今日異動</h2><div id="todayChanges" class="change-table-wrap"></div></div></div></section>
@@ -915,6 +920,42 @@ onAuthStateChanged(auth,async user=>{
    if(profile.role==='owner'){subscribeOwner();setTimeout(renderCloudUserManager,0)}else if(profile.role==='teacher')subscribeTeacher();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();
  }catch(e){console.error(e);await signOut(auth);showCloudLogin();showCloudLoginError(e.message);cloudStatus(e.message,'error')}
 });
+</script>
+
+
+<script>
+(function(){
+  let deferredInstallPrompt=null;
+  const installBtn=()=>document.getElementById('installPwaBtn');
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();
+    deferredInstallPrompt=event;
+    const btn=installBtn();
+    if(btn)btn.style.display='inline-flex';
+  });
+  document.addEventListener('click',async event=>{
+    if(event.target?.id!=='installPwaBtn'||!deferredInstallPrompt)return;
+    event.target.disabled=true;
+    try{
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+    }finally{
+      deferredInstallPrompt=null;
+      event.target.style.display='none';
+      event.target.disabled=false;
+    }
+  });
+  window.addEventListener('appinstalled',()=>{
+    deferredInstallPrompt=null;
+    const btn=installBtn();
+    if(btn)btn.style.display='none';
+  });
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(err=>console.warn('Service worker registration failed:',err));
+    });
+  }
+})();
 </script>
 
 </body></html>
