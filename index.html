@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0f4c81">
-<title>Danbridge Scheduler V9.1.3</title>
+<title>Danbridge Scheduler V10 Secure</title>
 <style>
 :root{--bg:#f4f6f9;--card:#fff;--text:#172033;--muted:#6b7280;--line:#dfe5ec;--main:#0f4c81;--danger:#c62828;--ok:#18794e;--warn:#9a6700;--shadow:0 8px 24px rgba(15,23,42,.08)}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif}button,input,select,textarea{font:inherit}header{padding:18px 20px;background:linear-gradient(135deg,#0f3f6e,#1768aa);color:#fff}header h1{margin:0;font-size:24px}header p{margin:5px 0 0;opacity:.9;font-size:14px}nav{position:sticky;top:0;z-index:50;display:flex;gap:8px;overflow:auto;padding:10px 12px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}nav button,.btn{min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}nav button.active,.btn.primary{background:var(--main);border-color:var(--main);color:#fff}.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}main{max-width:1600px;margin:auto;padding:14px}section{display:none}section.active{display:block}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.col-4{grid-column:span 4}.col-8{grid-column:span 8}.col-6{grid-column:span 6}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}h2{margin:0 0 12px;font-size:21px}h3{margin:16px 0 10px}label{display:block;margin:9px 0 5px;color:var(--muted);font-size:13px}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}textarea{min-height:80px}.toolbar{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin-bottom:12px}.toolbar>div{min-width:150px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}.metric b{display:block;font-size:25px;margin-top:4px}.small{font-size:12px;color:var(--muted)}.hint{padding:11px;border-radius:12px;background:#fff7e8;border:1px solid #f2d19b;color:#6f4b00;margin:10px 0}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#f8fafc}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.table-wrap{overflow:auto}.calendar-shell{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}.month-grid{display:grid;grid-template-columns:repeat(7,minmax(145px,1fr));min-width:1015px}.day-head{padding:10px;text-align:center;font-weight:800;background:#f1f5f9;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.day-cell{min-height:155px;padding:7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}.day-cell.out{background:#f8fafc}.day-cell.drop-target{outline:3px solid #60a5fa;outline-offset:-3px;background:#eff6ff}.day-num{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:6px}.day-add{width:30px;min-height:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--main);font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:.72}.day-add:hover,.day-add:focus{opacity:1;background:var(--main2,#eaf3fb);outline:2px solid #93c5fd}@media(hover:none){.day-add{opacity:1}}.today .day-num span:first-child{background:var(--main);color:#fff;border-radius:999px;min-width:27px;height:27px;display:grid;place-items:center}.lesson{border-radius:10px;padding:7px;margin:5px 0;font-size:12px;line-height:1.35;border-left:5px solid var(--teacher,#2563eb);background:var(--location-bg,#eef5ff);touch-action:none;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.06)}.lesson.dragging{opacity:.45}.lesson b{display:block;font-size:13px}.lesson .meta{color:#4b5563}.week-grid{min-width:980px;display:grid;grid-template-columns:78px repeat(7,1fr)}.week-head,.time-label{background:#f8fafc;font-weight:800;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px}.time-slot{height:58px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);position:relative;background:#fff}.time-slot.drop-target{background:#eff6ff;outline:2px solid #60a5fa;outline-offset:-2px}.week-event{position:absolute;left:4px;right:4px;top:4px;border-radius:9px;padding:5px;font-size:11px;border-left:5px solid var(--teacher,#2563eb);background:var(--location-bg,#eef5ff);z-index:2;touch-action:none;user-select:none}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}.modal-backdrop.show{display:flex}.modal{background:#fff;border-radius:20px;padding:18px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 30px 60px rgba(0,0,0,.25)}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal-head button{border:0;background:transparent;font-size:25px}.status-學生請假,.status-老師請假{color:var(--warn);font-weight:800}.status-取消,.status-停課{color:var(--danger);font-weight:800}.status-已上課{color:var(--ok);font-weight:800}@media(max-width:900px){.col-4,.col-8,.col-6{grid-column:span 12}.summary{grid-template-columns:1fr 1fr}main{padding:10px}.card{padding:13px}header{padding-top:max(18px,env(safe-area-inset-top))}}@media print{header,nav,.toolbar,.no-print{display:none!important}main{max-width:none;padding:0}.card{box-shadow:none;border:0}.calendar-shell{overflow:visible}}
 .searchbar{display:flex;gap:8px;align-items:center}.searchbar input{min-width:260px}.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:#eef2f7;font-size:12px}.pill.red{background:#feecec;color:#991b1b}.pill.green{background:#e9f8ef;color:#166534}.floating-actions{position:fixed;right:18px;bottom:18px;display:flex;gap:8px;z-index:60}.floating-actions .btn{box-shadow:0 8px 20px rgba(0,0,0,.15)}.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#172033;color:#fff;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.2s;z-index:200}.toast.show{opacity:1}.status-unpaid{color:#b42318;font-weight:800}@media(max-width:700px){.searchbar{width:100%}.searchbar input{min-width:0}.floating-actions{right:10px;bottom:10px}.floating-actions .btn{min-width:48px;padding:8px}}
@@ -46,11 +46,42 @@
 .camp-preview-wide{max-height:360px;overflow:auto}
 @media(max-width:999px){.dashboard-main,.camp-layout{display:block}.dashboard-main>.card,.camp-layout>.card{margin-bottom:14px}.camp-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.camp-form-grid .span-2,.camp-form-grid .span-4{grid-column:1/-1}}
 .camp-class-list{display:grid;gap:8px;margin-top:10px}.camp-class-item{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}
+
+/* V10 登入與安全設定 */
+.auth-locked>header,.auth-locked>nav,.auth-locked>main,.auth-locked>.floating-actions,.auth-locked>.toast{display:none!important}
+.auth-screen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0f3f6e,#1768aa)}
+.auth-screen.hidden{display:none}.auth-card{width:min(440px,100%);background:#fff;border-radius:22px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+.auth-card h1{margin:0 0 6px;font-size:25px}.auth-card p{margin:0 0 18px;color:var(--muted)}
+.auth-error{display:none;margin:10px 0;padding:10px;border-radius:10px;background:#fff1f2;color:#991b1b;border:1px solid #fecaca;font-weight:700}.auth-error.show{display:block}
+.auth-row{display:flex;align-items:center;gap:8px;margin:10px 0}.auth-row input[type=checkbox]{width:auto;min-height:0}
+.auth-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.auth-actions .btn{flex:1}
+.header-auth-actions{display:flex;gap:8px;align-items:center;position:absolute;right:18px;top:15px}.header-auth-actions .btn{min-height:36px;padding:6px 10px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35)}
+header{position:relative}.password-strength{font-size:12px;color:var(--muted);margin-top:5px}.security-note{padding:11px;border-radius:12px;background:#fff7e8;border:1px solid #f2d19b;color:#6f4b00;margin:10px 0}
+@media(max-width:700px){.header-auth-actions{position:static;margin-top:10px}.header-auth-actions .btn{flex:0 0 auto}}
+
 </style>
 </head>
-<body>
-<header><h1>Danbridge Scheduler V9.1.3</h1><p>單機版｜iPad 觸控拖曳｜重複排課｜教室防撞｜付款追蹤｜一鍵復原</p></header>
-<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營</button><button data-tab="winterCamps">冬令營</button><button data-tab="settlement">月底結算</button><button data-tab="data">備份／iPad</button></nav>
+<body class="auth-locked">
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Danbridge Scheduler</h1>
+    <p>請登入後使用排課系統</p>
+    <label>帳號</label>
+    <input id="authUsername" autocomplete="username" inputmode="tel" placeholder="請輸入帳號">
+    <label>密碼</label>
+    <input id="authPassword" type="password" autocomplete="current-password" placeholder="請輸入密碼">
+    <label class="auth-row"><input id="authRemember" type="checkbox">在這台裝置保持登入 7 天</label>
+    <div id="authError" class="auth-error"></div>
+    <div class="auth-actions">
+      <button type="button" class="btn primary" onclick="authLogin()">登入</button>
+      <button type="button" class="btn" onclick="authResetToInitial()">以初始密碼重設</button>
+    </div>
+    <div class="small" style="margin-top:12px">連續輸入錯誤 5 次，系統會暫停登入 30 秒。</div>
+  </div>
+</div>
+
+<header><h1>Danbridge Scheduler V10 Secure</h1><p>單機版｜iPad 觸控拖曳｜重複排課｜教室防撞｜付款追蹤｜一鍵復原</p><div class="header-auth-actions"><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
+<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營</button><button data-tab="winterCamps">冬令營</button><button data-tab="settlement">月底結算</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
 <main><div id="draftBanner" class="draft-banner"><span>目前為草稿模式：修改尚未發布到正式課表。</span><span><button class="btn ok" onclick="publishDraft()">發布草稿</button> <button class="btn danger" onclick="cancelDraft()">放棄草稿</button></span></div>
 <section id="dashboard" class="active"><div class="summary"><div class="metric">學生數<b id="mStudents">0</b></div><div class="metric">老師數<b id="mTeachers">0</b></div><div class="metric">本月課程<b id="mLessons">0</b></div><div class="metric">本月預估營收<b id="mRevenue">$0</b></div><div class="metric">本月未收款<b id="mUnpaid">$0</b></div><div class="metric">本月老師薪資<b id="mPayroll">$0</b></div><div class="metric">待補課<b id="mMakeups">0</b></div><div class="metric">今日異動<b id="mChanges">0</b></div></div><div class="dashboard-main"><div class="card"><h2>今日課程</h2><div id="todayLessons"></div></div><div class="card"><h2>快速操作</h2><div class="searchbar"><input id="globalSearch" placeholder="搜尋學生、老師、課程、日期" oninput="renderGlobalSearch()"></div><div id="globalSearchResults" style="margin-top:8px"></div><div class="row-actions" style="margin-top:10px"><button class="btn primary" onclick="openLessonModal()">新增課程</button><button class="btn" onclick="switchTab('calendar')">開啟拖曳課表</button><button class="btn" onclick="switchTab('camps')">建立夏令營</button><button class="btn" onclick="switchTab('winterCamps')">建立冬令營</button></div><div class="hint">桌面／iPad 橫向模式會以寬表格顯示異動與營隊設定。</div></div><div class="card dashboard-changes"><h2>今日異動</h2><div id="todayChanges" class="change-table-wrap"></div></div></div></section>
 <section id="students"><div class="grid"><div class="card col-4"><h2>新增／修改學生</h2><div id="studentEditIndicator" class="hint" style="display:none;margin-top:0"></div><input type="hidden" id="studentId"><label>學生姓名</label><input id="studentName"><label>家長姓名</label><input id="parentName"><label>聯絡方式</label><input id="parentContact"><label>到府地址</label><input id="studentHomeAddress" placeholder="選擇到府課程時會自動帶入"><label>課程類型</label><select id="studentCourseType"><option>1對1</option><option>1對4</option><option>團班</option><option>安親</option></select><label>收費方式</label><select id="studentBilling"><option value="hour">每小時</option><option value="lesson">每堂</option><option value="month">月費</option></select><label>單價</label><input id="studentRate" type="number"><label>備註</label><textarea id="studentNote"></textarea><br><button class="btn primary" onclick="saveStudent()">儲存</button> <button class="btn" onclick="clearStudentForm()">清空</button></div><div class="card col-8"><h2>學生清單</h2><div class="table-wrap"><table><thead><tr><th>學生</th><th>家長</th><th>類型</th><th>收費</th><th>操作</th></tr></thead><tbody id="studentRows"></tbody></table></div></div></div></section>
@@ -61,6 +92,25 @@
 
 <section id="camps"><div class="camp-layout"><div class="card"><h2>夏令營班級</h2><input type="hidden" id="summerClassId"><label>班級名稱</label><input id="summerClassName" placeholder="例如：SC A班"><div class="camp-actions"><button class="btn primary" onclick="saveSummerCampClass()">儲存班級</button><button class="btn" onclick="clearSummerCampClassForm()">清空</button></div><div id="summerClassList" class="camp-class-list"></div><hr style="border:0;border-top:1px solid var(--line);margin:18px 0"><h2>夏令營教師群組</h2><input type="hidden" id="teacherGroupId"><label>群組名稱</label><input id="teacherGroupName" placeholder="例如：Camp 1 教師"><label>群組老師</label><div id="teacherGroupChecks" class="teacher-checks"></div><div class="camp-actions"><button class="btn primary" onclick="saveTeacherGroup()">儲存群組</button><button class="btn" onclick="clearTeacherGroupForm()">清空</button></div><div id="teacherGroupList" class="backup-list"></div></div><div class="card"><h2>快速建立整期營隊</h2><div class="camp-form-grid"><div><label>營隊／班級</label><select id="campStudent"></select></div><div><label>營隊名稱／班別</label><input id="campTitle" placeholder="例如：SC A班"></div><div><label>營隊代碼</label><input id="campCode" placeholder="例如：SC"></div><div><label>教師群組</label><select id="campTeacherGroup" onchange="renderCampTeacherPreview()"></select></div><div><label>開始日期</label><input id="campStart" type="date"></div><div><label>結束日期</label><input id="campEnd" type="date"></div><div><label>開始時間</label><input id="campTimeStart" type="time" value="09:00"></div><div><label>結束時間</label><input id="campTimeEnd" type="time" value="12:00"></div><div><label>上課地點</label><select id="campLocation"><option value="河西一路">河西一路</option><option value="美術東四路" selected>美術東四路</option><option value="到府">到府</option><option value="線上課">線上課</option></select></div><div><label>教室</label><input id="campRoom" placeholder="例如：大教室"></div><div class="span-2"><label>上課星期</label><div class="teacher-checks" id="campWeekdays"><label class="teacher-check"><input type="checkbox" value="1" checked>一</label><label class="teacher-check"><input type="checkbox" value="2" checked>二</label><label class="teacher-check"><input type="checkbox" value="3" checked>三</label><label class="teacher-check"><input type="checkbox" value="4" checked>四</label><label class="teacher-check"><input type="checkbox" value="5" checked>五</label><label class="teacher-check"><input type="checkbox" value="6">六</label><label class="teacher-check"><input type="checkbox" value="0">日</label></div></div><div class="span-4"><div id="campTeacherPreview" class="hint"></div></div></div><div class="camp-actions"><button class="btn" onclick="previewCamp()">預覽</button><button class="btn primary" onclick="createCampSeries()">建立整期營隊</button></div><div id="campPreview" class="preview-box camp-preview-wide" style="margin-top:12px">尚未預覽。</div></div></div></section><section id="winterCamps"><div class="camp-layout"><div class="card"><h2>冬令營班級</h2><input type="hidden" id="winterClassId"><label>班級名稱</label><input id="winterClassName" placeholder="例如：WC A班"><div class="camp-actions"><button class="btn primary" onclick="saveWinterCampClass()">儲存班級</button><button class="btn" onclick="clearWinterCampClassForm()">清空</button></div><div id="winterClassList" class="camp-class-list"></div><hr style="border:0;border-top:1px solid var(--line);margin:18px 0"><h2>冬令營教師群組</h2><input type="hidden" id="winterTeacherGroupId"><label>群組名稱</label><input id="winterTeacherGroupName" placeholder="例如：Camp 1 教師"><label>群組老師</label><div id="winterTeacherGroupChecks" class="teacher-checks"></div><div class="camp-actions"><button class="btn primary" onclick="saveWinterTeacherGroup()">儲存群組</button><button class="btn" onclick="clearWinterTeacherGroupForm()">清空</button></div><div id="winterTeacherGroupList" class="backup-list"></div></div><div class="card"><h2>快速建立整期冬令營</h2><div class="camp-form-grid"><div><label>營隊／班級</label><select id="winterCampStudent"></select></div><div><label>營隊名稱／班別</label><input id="winterCampTitle" placeholder="例如：WC A班"></div><div><label>營隊代碼</label><input id="winterCampCode" placeholder="例如：WC"></div><div><label>教師群組</label><select id="winterCampTeacherGroup" onchange="renderWinterCampTeacherPreview()"></select></div><div><label>開始日期</label><input id="winterCampStart" type="date"></div><div><label>結束日期</label><input id="winterCampEnd" type="date"></div><div><label>開始時間</label><input id="winterCampTimeStart" type="time" value="09:00"></div><div><label>結束時間</label><input id="winterCampTimeEnd" type="time" value="12:00"></div><div><label>上課地點</label><select id="winterCampLocation"><option value="河西一路">河西一路</option><option value="美術東四路" selected>美術東四路</option><option value="到府">到府</option><option value="線上課">線上課</option></select></div><div><label>教室</label><input id="winterCampRoom" placeholder="例如：大教室"></div><div class="span-2"><label>上課星期</label><div class="teacher-checks" id="winterCampWeekdays"><label class="teacher-check"><input type="checkbox" value="1" checked>一</label><label class="teacher-check"><input type="checkbox" value="2" checked>二</label><label class="teacher-check"><input type="checkbox" value="3" checked>三</label><label class="teacher-check"><input type="checkbox" value="4" checked>四</label><label class="teacher-check"><input type="checkbox" value="5" checked>五</label><label class="teacher-check"><input type="checkbox" value="6">六</label><label class="teacher-check"><input type="checkbox" value="0">日</label></div></div><div class="span-4"><div id="winterCampTeacherPreview" class="hint"></div></div></div><div class="camp-actions"><button class="btn" onclick="previewWinterCamp()">預覽</button><button class="btn primary" onclick="createWinterCampSeries()">建立整期冬令營</button></div><div id="winterCampPreview" class="preview-box camp-preview-wide" style="margin-top:12px">尚未預覽。</div></div></div></section>
 <section id="settlement"><div class="card"><h2>月底一鍵結算</h2><div class="toolbar"><div><label>月份</label><input type="month" id="settleMonth" onchange="renderSettlement()"></div><button class="btn primary" onclick="renderSettlement()">重新計算</button><button class="btn" onclick="copySettlementText()">複製文字</button><button class="btn" onclick="downloadCSV()">匯出 CSV</button></div><h3>學生應收與請假率</h3><div class="table-wrap"><table><thead><tr><th>學生</th><th>家長</th><th>原定</th><th>收費</th><th>請假</th><th>請假率</th><th>應收</th></tr></thead><tbody id="studentSettleRows"></tbody></table></div><h3>老師工時與薪資</h3><div class="hint">每位老師依自己的「每週最低工時＋固定工作日」計算本月最低工時。例：20 hr／週、週一至週五工作，則每日最低 4 hr；當月有 22 個工作日，本月最低為 88 hr。</div><div id="teacherPayCards" class="teacher-pay-cards"></div><div class="table-wrap"><table><thead><tr><th>老師</th><th>工作日</th><th>每週最低</th><th>本月最低</th><th>實際時數</th><th>多／少</th><th>時薪</th><th>應付</th></tr></thead><tbody id="teacherSettleRows"></tbody></table></div><textarea id="settlementText" readonly style="margin-top:14px;min-height:240px"></textarea></div></section>
+
+<section id="security"><div class="grid">
+  <div class="card col-6">
+    <h2>修改登入密碼</h2>
+    <label>目前密碼</label><input id="currentPassword" type="password" autocomplete="current-password">
+    <label>新密碼</label><input id="newPassword" type="password" autocomplete="new-password" oninput="updatePasswordStrength()">
+    <div id="passwordStrength" class="password-strength">至少 10 個字元，建議同時包含大小寫英文、數字與符號。</div>
+    <label>再次輸入新密碼</label><input id="confirmNewPassword" type="password" autocomplete="new-password">
+    <br><button type="button" class="btn primary" onclick="changeLoginPassword()">確認修改密碼</button>
+  </div>
+  <div class="card col-6">
+    <h2>登入安全</h2>
+    <div class="security-note">此版本部署在 GitHub Pages，登入驗證在瀏覽器端執行，可防止一般未授權使用，但不等同伺服器端身分驗證。</div>
+    <p><b>登入帳號：</b>0966626336</p>
+    <p><b>初始密碼重設：</b>忘記修改後的密碼時，可在登入畫面輸入帳號及初始密碼，按「以初始密碼重設」。</p>
+    <button type="button" class="btn danger" onclick="logoutAllSessions()">登出這台裝置</button>
+  </div>
+</div></section>
+
 <section id="data"><div class="grid">
 <div class="card col-6"><h2>iCloud 匯出／匯入</h2><p><span class="sync-badge">✓ 半自動跨裝置同步</span></p><p class="small">在 Mac 匯出 JSON 並存到 iCloud Drive；在 iPad 按「匯入 JSON」選取同一份檔案。匯入前系統會先建立本機安全版本。</p><button class="btn primary" onclick="downloadBackup()">匯出最新資料</button> <button class="btn" onclick="document.getElementById('importFile').click()">匯入 JSON</button><input hidden type="file" id="importFile" accept=".json,application/json" onchange="importBackup(event)"><button class="btn ok" onclick="exportICS()">匯出 Apple Calendar</button><p class="small" id="lastBackupInfo"></p></div>
 <div class="card col-6"><h2>本機版本紀錄</h2><p class="small">每次匯入、清空及重要變更前會自動留下版本。最多保留 20 份，可直接復原。</p><button class="btn" onclick="createManualVersion()">立即建立版本</button> <button class="btn" onclick="renderBackupHistory()">重新整理</button><div id="backupHistory" class="backup-list"></div></div>
@@ -305,4 +355,96 @@ function normalizeImported(x){if(!x||!Array.isArray(x.students)||!Array.isArray(
 function importBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const incoming=normalizeImported(JSON.parse(r.result));const exportedAt=JSON.parse(r.result)._meta?.exportedAt;const msg=`檔案：${f.name}\n${exportedAt?'匯出時間：'+new Date(exportedAt).toLocaleString('zh-TW')+'\n':''}內容：${versionStats(incoming)}\n\n確定以此檔案取代目前資料？`;if(!confirm(msg))return;createVersion('匯入前自動備份');db=incoming;saveDB();toast('匯入完成')}catch(err){alert('JSON 格式錯誤或不是 Danbridge 備份檔。')}finally{e.target.value=''}};r.readAsText(f)}
 function resetData(){if(confirm('確定清空全部資料？系統會先建立可復原版本。')){createVersion('清空前自動備份');db={students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[]};saveDB();toast('資料已清空')}}
 function downloadCSV(){const{sr,tr}=settleData();let csv='類型,姓名,工作日,每週最低,本月最低,實際時數,差額,堂數,金額\n';sr.forEach(x=>csv+=`學生,${x.s.name},,,,${x.h},,${x.charged},${Math.round(x.amount)}\n`);tr.forEach(x=>csv+=`老師,${x.t.name},"${workDayNames(x.t.workDays)}",${x.t.minWeeklyHours||0},${x.expected},${x.h},${x.diff},${x.count},${Math.round(x.amount)}\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`settlement-${$('settleMonth').value}.csv`;a.click()}function exportICS(){let out='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Danbridge//Scheduler//ZH-TW\r\nCALSCALE:GREGORIAN\r\n';for(const l of db.lessons){const d=l.date.replaceAll('-',''),s=l.start.replace(':','')+'00',e=l.end.replace(':','')+'00';out+=`BEGIN:VEVENT\r\nUID:${l.id}@danbridge\r\nDTSTART:${d}T${s}\r\nDTEND:${d}T${e}\r\nSUMMARY:${student(l.studentId).name||'課程'} - ${l.title||'Danbridge'}\r\nLOCATION:${l.location==='到府'?(l.address||'到府'):l.location==='線上課'?'線上課':locationLabel(l)+(l.room?' '+l.room:'')}\r\nDESCRIPTION:老師：${lessonTeacherNames(l)}｜狀態：${l.status||''}｜付款：${l.paymentStatus==='paid'?'已繳':'未繳'}\r\nEND:VEVENT\r\n`}out+='END:VCALENDAR\r\n';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/calendar;charset=utf-8'}));a.download='danbridge-calendar.ics';a.click()}function renderAll(){setDefaults();renderSelects();renderStudents();renderTeachers();renderDashboard();renderLessons();renderSettlement();renderMakeups();renderSummerCampClasses();renderTeacherGroups();renderCampSelectors();renderWinterCampClasses();renderWinterTeacherGroups();renderWinterCampSelectors();renderBackupHistory();updateLastBackupInfo();$('draftBanner')?.classList.toggle('show',draftMode);if($('calendar').classList.contains('active'))renderCalendar()}$('lessonModal').addEventListener('click',e=>{if(e.target===$('lessonModal'))closeLessonModal()});$('batchModal').addEventListener('click',e=>{if(e.target===$('batchModal'))closeBatchModal()});ensureV81Migration();renderAll();
-</script></body></html>
+</script>
+<script>
+/* V10 前端登入模組：不改動排課資料 danbridge_scheduler_v1 */
+const AUTH_USER='0966626336';
+const AUTH_DEFAULT_PASSWORD='Danbridge315080!';
+const AUTH_HASH_KEY='danbridge_auth_password_hash_v1';
+const AUTH_REMEMBER_KEY='danbridge_auth_remember_until_v1';
+const AUTH_SESSION_KEY='danbridge_auth_session_v1';
+const AUTH_FAIL_KEY='danbridge_auth_fail_v1';
+const AUTH_LOCK_KEY='danbridge_auth_lock_until_v1';
+
+async function authHash(text){
+  const bytes=new TextEncoder().encode(String(text));
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function ensureAuthDefaults(){
+  if(!localStorage.getItem(AUTH_HASH_KEY))localStorage.setItem(AUTH_HASH_KEY,await authHash(AUTH_DEFAULT_PASSWORD));
+}
+function authError(message){const el=document.getElementById('authError');el.textContent=message;el.classList.add('show')}
+function clearAuthError(){const el=document.getElementById('authError');el.textContent='';el.classList.remove('show')}
+function authIsActive(){
+  if(sessionStorage.getItem(AUTH_SESSION_KEY)==='1')return true;
+  const until=Number(localStorage.getItem(AUTH_REMEMBER_KEY)||0);
+  return until>Date.now();
+}
+function showAuthenticatedApp(){
+  document.body.classList.remove('auth-locked');
+  document.getElementById('authScreen').classList.add('hidden');
+}
+function showLoginScreen(){
+  document.body.classList.add('auth-locked');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('authPassword').value='';
+}
+function authLockRemaining(){return Math.max(0,Number(localStorage.getItem(AUTH_LOCK_KEY)||0)-Date.now())}
+async function authLogin(){
+  clearAuthError();
+  const remain=authLockRemaining();
+  if(remain>0)return authError(`登入暫時鎖定，請 ${Math.ceil(remain/1000)} 秒後再試。`);
+  const user=document.getElementById('authUsername').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const expected=localStorage.getItem(AUTH_HASH_KEY);
+  const valid=user===AUTH_USER&&(await authHash(password))===expected;
+  if(!valid){
+    const fails=Number(localStorage.getItem(AUTH_FAIL_KEY)||0)+1;
+    if(fails>=5){localStorage.setItem(AUTH_FAIL_KEY,'0');localStorage.setItem(AUTH_LOCK_KEY,String(Date.now()+30000));return authError('已連續輸入錯誤 5 次，暫停登入 30 秒。')}
+    localStorage.setItem(AUTH_FAIL_KEY,String(fails));
+    return authError(`帳號或密碼錯誤，還可嘗試 ${5-fails} 次。`);
+  }
+  localStorage.setItem(AUTH_FAIL_KEY,'0');localStorage.removeItem(AUTH_LOCK_KEY);
+  if(document.getElementById('authRemember').checked){localStorage.setItem(AUTH_REMEMBER_KEY,String(Date.now()+7*24*60*60*1000));sessionStorage.removeItem(AUTH_SESSION_KEY)}
+  else{sessionStorage.setItem(AUTH_SESSION_KEY,'1');localStorage.removeItem(AUTH_REMEMBER_KEY)}
+  showAuthenticatedApp();
+}
+function authLogout(){
+  sessionStorage.removeItem(AUTH_SESSION_KEY);localStorage.removeItem(AUTH_REMEMBER_KEY);showLoginScreen();
+}
+function logoutAllSessions(){authLogout()}
+async function authResetToInitial(){
+  clearAuthError();
+  const user=document.getElementById('authUsername').value.trim();
+  const entered=document.getElementById('authPassword').value;
+  if(user!==AUTH_USER||entered!==AUTH_DEFAULT_PASSWORD)return authError('請輸入正確帳號與初始密碼後再重設。');
+  if(!confirm('確定將登入密碼重設為初始密碼？'))return;
+  localStorage.setItem(AUTH_HASH_KEY,await authHash(AUTH_DEFAULT_PASSWORD));
+  localStorage.setItem(AUTH_FAIL_KEY,'0');localStorage.removeItem(AUTH_LOCK_KEY);
+  authError('密碼已重設為初始密碼，請按「登入」。');
+}
+function passwordQuality(p){let score=0;if(p.length>=10)score++;if(/[a-z]/.test(p)&&/[A-Z]/.test(p))score++;if(/\d/.test(p))score++;if(/[^A-Za-z0-9]/.test(p))score++;return score}
+function updatePasswordStrength(){
+  const p=document.getElementById('newPassword').value,el=document.getElementById('passwordStrength'),q=passwordQuality(p);
+  el.textContent=!p?'至少 10 個字元，建議同時包含大小寫英文、數字與符號。':q<=1?'密碼強度：弱':q===2?'密碼強度：普通':q===3?'密碼強度：良好':'密碼強度：強';
+}
+async function changeLoginPassword(){
+  const current=document.getElementById('currentPassword').value;
+  const next=document.getElementById('newPassword').value;
+  const confirmNext=document.getElementById('confirmNewPassword').value;
+  if((await authHash(current))!==localStorage.getItem(AUTH_HASH_KEY))return alert('目前密碼不正確。');
+  if(next.length<10)return alert('新密碼至少需要 10 個字元。');
+  if(passwordQuality(next)<3)return alert('新密碼需至少包含三類：大小寫英文、數字、符號。');
+  if(next!==confirmNext)return alert('兩次輸入的新密碼不一致。');
+  if(next===current)return alert('新密碼不能與目前密碼相同。');
+  localStorage.setItem(AUTH_HASH_KEY,await authHash(next));
+  document.getElementById('currentPassword').value='';document.getElementById('newPassword').value='';document.getElementById('confirmNewPassword').value='';updatePasswordStrength();
+  alert('密碼已修改。下次登入請使用新密碼。');
+}
+
+document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')authLogin()});
+(async()=>{await ensureAuthDefaults();document.getElementById('authUsername').value=AUTH_USER;if(authIsActive())showAuthenticatedApp();else showLoginScreen()})();
+</script>
+
+</body></html>
