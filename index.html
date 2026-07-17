@@ -2362,6 +2362,14 @@ textarea::placeholder{text-align:center!important}
 @media(max-width:700px){#calendar .toolbar.ipad-real-width-fix{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 </style>
 
+
+<style id="danbridge-v1310-sidebar-click-guard">
+@media (min-width:1100px){
+  body:not(.auth-locked)>nav{pointer-events:auto!important;z-index:2000!important}
+  body:not(.auth-locked)>nav button{pointer-events:auto!important}
+  body:not(.auth-locked)>main,body:not(.auth-locked)>header{position:relative;z-index:auto}
+}
+</style>
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -3101,6 +3109,7 @@ function importBackup(e){const f=e.target.files[0];if(!f)return;const r=new File
 function resetData(){if(confirm('確定清空全部資料？系統會先建立可復原版本。')){createVersion('清空前自動備份');db={students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};saveDB();toast('資料已清空')}}
 function excelSafe(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}function downloadSettlementExcel(){const{sr,tr}=settleData(),month=$('settleMonth').value,totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0);const studentRows=sr.map(x=>`<tr><td>${excelSafe(x.s.name)}</td><td>${excelSafe(x.s.parent||'')}</td><td>${x.total}</td><td>${x.charged}</td><td>${x.h}</td><td>${x.abs}</td><td>${x.rate.toFixed(1)}%</td><td>${Math.round(x.amount)}</td></tr>`).join('');const teacherRows=tr.map(x=>`<tr><td>${excelSafe(x.t.name)}</td><td>${excelSafe(workDayNames(x.t.workDays))}</td><td>${x.t.minWeeklyHours||0}</td><td>${x.expected}</td><td>${x.h}</td><td>${x.diff}</td><td>${x.t.rate||0}</td><td>${Math.round(x.amount)}</td></tr>`).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,"Microsoft JhengHei"}table{border-collapse:collapse;margin-bottom:24px}th,td{border:1px solid #999;padding:7px 10px}th{background:#dceaf7}.money{mso-number-format:"#,##0"}</style></head><body><h1>Danbridge ${month} 月底結算</h1><table><tr><th>本月應收</th><th>老師薪資</th><th>預估差額</th></tr><tr><td class="money">${Math.round(totalRevenue)}</td><td class="money">${Math.round(totalPayroll)}</td><td class="money">${Math.round(totalRevenue-totalPayroll)}</td></tr></table><h2>學生應收</h2><table><tr><th>學生</th><th>家長</th><th>原定堂數</th><th>收費堂數</th><th>收費時數</th><th>請假</th><th>請假率</th><th>應收</th></tr>${studentRows}</table><h2>老師工時與薪資</h2><table><tr><th>老師</th><th>固定工作日</th><th>每週最低</th><th>本月最低</th><th>實際時數</th><th>差額</th><th>時薪</th><th>應付</th></tr>${teacherRows}</table>
 
+
 </body></html>`;const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Danbridge-${month}-月底結算.xls`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Excel 結算報表已匯出')}function printSettlementReport(){renderSettlement();const old=document.title;document.title=`Danbridge-${$('settleMonth').value}-月底結算`;window.print();document.title=old}
 function downloadCSV(){const{sr,tr}=settleData();let csv='類型,姓名,工作日,每週最低,本月最低,實際時數,差額,堂數,金額\n';sr.forEach(x=>csv+=`學生,${x.s.name},,,,${x.h},,${x.charged},${Math.round(x.amount)}\n`);tr.forEach(x=>csv+=`老師,${x.t.name},"${workDayNames(x.t.workDays)}",${x.t.minWeeklyHours||0},${x.expected},${x.h},${x.diff},${x.count},${Math.round(x.amount)}\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`settlement-${$('settleMonth').value}.csv`;a.click()}function exportICS(){let out='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Danbridge//Scheduler//ZH-TW\r\nCALSCALE:GREGORIAN\r\n';for(const l of db.lessons.filter(x=>!x.isDraft)){const d=l.date.replaceAll('-',''),s=l.start.replace(':','')+'00',e=l.end.replace(':','')+'00';out+=`BEGIN:VEVENT\r\nUID:${l.id}@danbridge\r\nDTSTART:${d}T${s}\r\nDTEND:${d}T${e}\r\nSUMMARY:${student(l.studentId).name||'課程'} - ${l.title||'Danbridge'}\r\nLOCATION:${l.location==='到府'?(l.address||'到府'):l.location==='線上課'?'線上課':locationLabel(l)+(l.room?' '+l.room:'')}\r\nDESCRIPTION:老師：${lessonTeacherNames(l)}｜狀態：${l.status||''}｜付款：${l.paymentStatus==='paid'?'已繳':'未繳'}\r\nEND:VEVENT\r\n`}out+='END:VCALENDAR\r\n';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/calendar;charset=utf-8'}));a.download='danbridge-calendar.ics';a.click()}function renderAll(){setDefaults();renderSelects();renderStudents();renderTeachers();renderDashboard();renderLessons();renderSettlement();renderFinance();renderMakeups();renderSummerCampClasses();renderTeacherGroups();renderCampSelectors();renderWinterCampClasses();renderWinterTeacherGroups();renderWinterCampSelectors();renderBackupHistory();updateLastBackupInfo();if($('calendar').classList.contains('active'))renderCalendar()}
 function parseStudentAvailability(text){const dayMap={'日':0,'天':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};const out=[];String(text||'').split(/\n|；|;/).forEach(line=>{const m=line.trim().match(/(?:週|星期)?([日天一二三四五六]).*?(\d{1,2}:\d{2})\s*[-～~至]\s*(\d{1,2}:\d{2})/);if(m&&dayMap[m[1]]!==undefined&&m[3]>m[2])out.push({day:dayMap[m[1]],start:m[2].padStart(5,'0'),end:m[3].padStart(5,'0')})});return out}function minutesToTime(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}function dateRange(a,b){const out=[],d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00');while(d<=e&&out.length<62){out.push(localDate(d));d.setDate(d.getDate()+1)}return out}function slotFree(candidate){return !db.lessons.some(l=>l.date===candidate.date&&l.id!==candidate.id&&candidate.start<l.end&&candidate.end>l.start&&(l.studentId===candidate.studentId||lessonTeacherIds(l).includes(candidate.teacherId)||(candidate.room&&l.room===candidate.room&&l.location===candidate.location)))}function openSmartScheduler(studentId=''){renderSelects();$('smartStudent').value=studentId||$('studentId')?.value||'';$('smartDateFrom').value=todayStr();$('smartDateTo').value=shiftDate(todayStr(),14);$('smartDuration').value='60';$('smartStep').value='30';$('smartLocation').value='美術東四路';$('smartRoom').value='';$('smartTitle').value='補課';syncSmartStudent();$('smartResults').innerHTML='<span class="small">請設定條件後按「尋找可排時段」。</span>';$('smartSchedulerModal').classList.add('show')}function closeSmartScheduler(){$('smartSchedulerModal').classList.remove('show')}function syncSmartStudent(){const s=studentDefaults(db.students.find(x=>x.id===$('smartStudent').value)||{});$('smartTeacher').value=s.preferredTeacherId||'';$('smartAvailabilityHint').textContent=s.availability?'學生可上課時段：'+s.availability.replace(/\n/g,'；'):'未設定可上課時段，將以每日 09:00–21:00 搜尋。'}function findSmartSlots(){const sid=$('smartStudent').value,from=$('smartDateFrom').value,to=$('smartDateTo').value,duration=+$('smartDuration').value,step=+$('smartStep').value;if(!sid||!from||!to)return alert('請選擇學生與日期範圍');if(to<from)return alert('截止日期不能早於起始日期');const s=studentDefaults(db.students.find(x=>x.id===sid)||{}),avail=parseStudentAvailability(s.availability),teacherIds=$('smartTeacher').value?[$('smartTeacher').value]:db.teachers.map(t=>t.id),slots=[];for(const date of dateRange(from,to)){const dow=new Date(date+'T00:00:00').getDay(),windows=avail.length?avail.filter(a=>a.day===dow):[{start:'09:00',end:'21:00'}];for(const w of windows){let start=+w.start.slice(0,2)*60 + +w.start.slice(3),end=+w.end.slice(0,2)*60 + +w.end.slice(3);for(let n=start;n+duration<=end;n+=step){for(const tid of teacherIds){const candidate={date,start:minutesToTime(n),end:minutesToTime(n+duration),studentId:sid,teacherId:tid,teacherIds:[tid],room:$('smartRoom').value.trim(),location:$('smartLocation').value};if(slotFree(candidate)){const adjacent=db.lessons.some(l=>l.date===date&&lessonTeacherIds(l).includes(tid)&&(l.end===candidate.start||l.start===candidate.end));slots.push({...candidate,adjacent});break}}if(slots.length>=80)break}if(slots.length>=80)break}if(slots.length>=80)break}slots.sort((a,b)=>(b.adjacent-a.adjacent)||(a.date+a.start).localeCompare(b.date+b.start));$('smartResults').innerHTML=slots.slice(0,40).map((x,i)=>`<div class="smart-slot ${i<3?'best':''}"><div><b>${x.date}（週${'日一二三四五六'[new Date(x.date+'T00:00:00').getDay()]}） ${x.start}–${x.end}</b><span class="small">${esc(teacher(x.teacherId).name||'未指定老師')}｜${esc(x.location)}${x.room?'｜'+esc(x.room):''}${x.adjacent?'｜相鄰既有課程':''}</span></div><button class="btn primary" onclick="useSmartSlot('${x.date}','${x.start}','${x.end}','${x.teacherId}')">選擇</button></div>`).join('')||'<div class="hint">找不到完全無衝堂的時段。請放寬日期、調整老師或清空教室欄位。</div>'}function useSmartSlot(date,start,end,teacherId){const sid=$('smartStudent').value,title=$('smartTitle').value.trim(),loc=$('smartLocation').value,room=$('smartRoom').value.trim();closeSmartScheduler();openLessonModal(date,start);$('endTime').value=end;$('lessonStudent').value=sid;$('lessonTeacher').value=teacherId;$('lessonTitle').value=title;$('lessonLocation').value=loc;$('lessonRoom').value=room;handleLessonStudentChange();handleLocationChange();syncCoTeacherOptions();toast('已帶入建議時段，請確認後儲存')}$('smartSchedulerModal')?.addEventListener('click',e=>{if(e.target===$('smartSchedulerModal'))closeSmartScheduler()});
@@ -3166,6 +3175,33 @@ function enhanceDashboardV33(){
 const __renderDashboardV32Original=renderDashboard;
 renderDashboard=function(){__renderDashboardV32Original();enhanceDashboardV32();enhanceDashboardV33()};
 ensureV81Migration();renderAll();
+</script>
+
+<script id="danbridge-v137-ipad-toolbar-runtime-js">
+(function(){
+  function isIPadLike(){
+    return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function applyCalendarToolbarLayout(){
+    const toolbar=document.querySelector('#calendar .toolbar');
+    if(!toolbar) return;
+    const usable=toolbar.getBoundingClientRect().width;
+    const shouldFix=isIPadLike() || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    toolbar.classList.toggle('ipad-real-width-fix', shouldFix && usable < 1280 && window.innerWidth > 700);
+    toolbar.classList.toggle('ipad-real-width-narrow', shouldFix && usable < 760 && window.innerWidth > 700);
+  }
+  function init(){
+    applyCalendarToolbarLayout();
+    const toolbar=document.querySelector('#calendar .toolbar');
+    if(toolbar && 'ResizeObserver' in window){
+      new ResizeObserver(applyCalendarToolbarLayout).observe(toolbar);
+    }
+    window.addEventListener('resize',applyCalendarToolbarLayout,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(applyCalendarToolbarLayout,150),{passive:true});
+    document.addEventListener('click',e=>{if(e.target.closest('[data-tab="calendar"]'))setTimeout(applyCalendarToolbarLayout,30)});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
 
 
@@ -3670,33 +3706,6 @@ onAuthStateChanged(auth,async user=>{
 });
 </script>
 
-
-<script id="danbridge-v137-ipad-toolbar-runtime-js">
-(function(){
-  function isIPadLike(){
-    return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }
-  function applyCalendarToolbarLayout(){
-    const toolbar=document.querySelector('#calendar .toolbar');
-    if(!toolbar) return;
-    const usable=toolbar.getBoundingClientRect().width;
-    const shouldFix=isIPadLike() || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    toolbar.classList.toggle('ipad-real-width-fix', shouldFix && usable < 1280 && window.innerWidth > 700);
-    toolbar.classList.toggle('ipad-real-width-narrow', shouldFix && usable < 760 && window.innerWidth > 700);
-  }
-  function init(){
-    applyCalendarToolbarLayout();
-    const toolbar=document.querySelector('#calendar .toolbar');
-    if(toolbar && 'ResizeObserver' in window){
-      new ResizeObserver(applyCalendarToolbarLayout).observe(toolbar);
-    }
-    window.addEventListener('resize',applyCalendarToolbarLayout,{passive:true});
-    window.addEventListener('orientationchange',()=>setTimeout(applyCalendarToolbarLayout,150),{passive:true});
-    document.addEventListener('click',e=>{if(e.target.closest('[data-tab="calendar"]'))setTimeout(applyCalendarToolbarLayout,30)});
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
 
 <script>
 /* PWA 安裝與更新：不影響 Firebase、老師權限及課程回報功能。 */
