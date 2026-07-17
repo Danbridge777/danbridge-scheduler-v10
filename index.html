@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0f4c81">
-<title>Danbridge Scheduler Cloud V3.2</title>
+<title>Danbridge Scheduler Cloud V3.3</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1276,6 +1276,21 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
 }
 </style>
 
+
+<style id="danbridge-v33-operations">
+/* V3.3 Operations dashboard — additive UI only */
+.v33-ops-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.v33-ops-mini{background:rgba(255,255,255,.96);border:1px solid #dfe7f0;border-radius:18px;padding:15px 16px;box-shadow:0 8px 24px rgba(15,23,42,.055)}
+.v33-ops-mini span{display:block;font-size:11px;font-weight:850;color:#748195;letter-spacing:.04em}.v33-ops-mini b{display:block;margin-top:7px;font-size:22px;color:#13243b;letter-spacing:-.035em}.v33-ops-mini small{display:block;margin-top:4px;color:#8a96a8;font-size:11px}
+.v33-room-card,.v33-week-card,.v33-teacher-card{border-radius:24px!important}
+.v33-room-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.v33-room{display:flex;gap:10px;align-items:center;padding:11px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc}.v33-room-dot{width:10px;height:10px;border-radius:50%;background:#94a3b8;box-shadow:0 0 0 4px rgba(148,163,184,.13);flex:0 0 auto}.v33-room.live .v33-room-dot{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.13)}.v33-room.soon .v33-room-dot{background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.13)}.v33-room b{display:block;font-size:13px;color:#24344c}.v33-room span{display:block;margin-top:2px;font-size:11px;color:#718096;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v33-week-bars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;min-height:155px;padding-top:8px}.v33-week-day{display:grid;gap:6px;text-align:center;align-items:end}.v33-week-bar-wrap{height:112px;display:flex;align-items:flex-end;justify-content:center}.v33-week-bar{width:min(34px,72%);min-height:4px;border-radius:10px 10px 5px 5px;background:linear-gradient(180deg,#2b7fba,#14558b);box-shadow:0 5px 14px rgba(20,85,139,.18)}.v33-week-day b{font-size:11px;color:#35455c}.v33-week-day span{font-size:10px;color:#7b8798}
+.v33-teacher-next{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;border-radius:18px;background:linear-gradient(135deg,#0f4c81,#1670b5);color:#fff;box-shadow:0 14px 34px rgba(15,76,129,.22)}.v33-teacher-next h3{margin:0;color:#fff;font-size:18px}.v33-teacher-next p{margin:5px 0 0;color:rgba(255,255,255,.78);font-size:12px}.v33-teacher-next .btn{background:#fff!important;color:#123f68!important;border-color:#fff!important;flex:0 0 auto}
+body.teacher-cloud-role .owner-v33-only{display:none!important}body:not(.teacher-cloud-role) .teacher-v33-only{display:none!important}
+@media(min-width:1181px){.v33-room-card{grid-column:1}.v33-week-card{grid-column:2}.v33-teacher-card{grid-column:1/-1}}
+@media(max-width:1180px){.v33-ops-strip{grid-template-columns:repeat(2,1fr)}.v33-room-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.v33-ops-strip{display:flex;overflow-x:auto;gap:10px}.v33-ops-mini{flex:0 0 178px}.v33-room-grid{grid-template-columns:1fr 1fr}.v33-week-bars{gap:4px}.v33-teacher-next{align-items:flex-start;flex-direction:column}.v33-teacher-next .btn{width:100%}}
+</style>
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -1287,13 +1302,19 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
   </div>
 </div>
 
-<header><h1>Danbridge Scheduler Cloud</h1><p>Google 登入｜Firebase 雲端同步｜iPad 觸控拖曳｜教室防撞｜付款追蹤</p><div class="header-auth-actions"><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
+<header><h1>Danbridge Scheduler Cloud V3.3</h1><p>Google 登入｜Firebase 雲端同步｜iPad 觸控拖曳｜教室防撞｜付款追蹤</p><div class="header-auth-actions"><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
 <nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營</button><button data-tab="winterCamps">冬令營</button><button data-tab="settlement">月底結算</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
 <main><div id="draftBanner" class="draft-banner"><span>目前為草稿模式：修改尚未發布到正式課表。</span><span><button class="btn ok" onclick="publishDraft()">發布草稿</button> <button class="btn danger" onclick="cancelDraft()">放棄草稿</button></span></div>
 <section id="dashboard" class="active">
   <div class="v32-welcome">
     <div><div class="v32-eyebrow">DANBRIDGE OPERATIONS</div><h2 id="v32Greeting">今日營運總覽</h2><p id="v32DateText">正在整理今天的課程與營運資料。</p></div>
     <div class="v32-header-actions"><button class="btn" onclick="switchTab('calendar')">查看完整課表</button><button class="btn primary owner-only-action" onclick="openLessonModal()">＋ 新增課程</button></div>
+  </div>
+  <div class="v33-ops-strip owner-v33-only">
+    <div class="v33-ops-mini"><span>今日課程</span><b id="v33TodayLessons">0</b><small id="v33TodayHours">0 小時</small></div>
+    <div class="v33-ops-mini"><span>今日預估營收</span><b id="v33TodayRevenue">NT$0</b><small>依收費設定估算</small></div>
+    <div class="v33-ops-mini"><span>今日授課老師</span><b id="v33TodayTeachers">0</b><small>不重複計算</small></div>
+    <div class="v33-ops-mini"><span>使用中教室</span><b id="v33LiveRooms">0</b><small id="v33RoomTotal">共 0 間排課</small></div>
   </div>
   <div class="summary v32-kpis">
     <div class="metric"><span>學生數</span><b id="mStudents">0</b><small>目前資料庫</small></div>
@@ -1314,6 +1335,9 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
       <div class="card v32-insight-card"><div class="v32-card-head"><div><span class="v32-section-icon purple">AI</span><div><h2>智慧提醒</h2><p>依目前資料自動整理</p></div></div></div><div id="v32Insights" class="v32-insights"></div></div>
       <div class="card v32-quick-card"><div class="v32-card-head"><div><span class="v32-section-icon green">快</span><div><h2>快速操作</h2><p>常用功能捷徑</p></div></div></div><div class="searchbar"><input id="globalSearch" placeholder="搜尋學生、老師、課程、日期" oninput="renderGlobalSearch()"></div><div id="globalSearchResults" style="margin-top:8px"></div><div class="row-actions"><button class="btn primary" onclick="openLessonModal()">新增課程</button><button class="btn" onclick="switchTab('calendar')">拖曳課表</button><button class="btn" onclick="switchTab('lessons')">課程紀錄</button><button class="btn" onclick="switchTab('makeups')">補課中心</button></div></div>
     </div>
+    <div class="card v33-room-card owner-v33-only"><div class="v32-card-head"><div><span class="v32-section-icon green">室</span><div><h2>教室即時狀態</h2><p>依今天課表與目前時間判斷</p></div></div></div><div id="v33RoomStatus" class="v33-room-grid"></div></div>
+    <div class="card v33-week-card owner-v33-only"><div class="v32-card-head"><div><span class="v32-section-icon">週</span><div><h2>未來七天課程量</h2><p>快速掌握每日負載</p></div></div></div><div id="v33WeekBars" class="v33-week-bars"></div></div>
+    <div class="card v33-teacher-card teacher-v33-only"><div id="v33TeacherNext"></div></div>
     <div class="card dashboard-changes v32-changes"><div class="v32-card-head"><div><span class="v32-section-icon orange">動</span><div><h2>今日異動</h2><p>追蹤今日課表變更</p></div></div></div><div id="todayChanges" class="change-table-wrap"></div></div>
   </div>
 </section>
@@ -1914,8 +1938,41 @@ function enhanceDashboardV32(){
  if(!insights.length)insights.push({type:'good',title:'目前沒有急迫事項',text:'今日課表與回報狀態看起來正常。'});
  if($('v32Insights'))$('v32Insights').innerHTML=insights.slice(0,4).map(x=>`<div class="v32-insight ${x.type}"><span class="v32-insight-dot"></span><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div></div>`).join('');
 }
+function enhanceDashboardV33(){
+ const now=new Date(),today=todayStr(),todayLs=db.lessons.filter(l=>l.date===today&&!['取消','停課'].includes(l.status)).sort((a,b)=>a.start.localeCompare(b.start));
+ const activeTeacherIds=new Set(todayLs.flatMap(lessonTeacherIds));
+ if($('v33TodayLessons'))$('v33TodayLessons').textContent=todayLs.length;
+ if($('v33TodayHours'))$('v33TodayHours').textContent=`${todayLs.reduce((sum,l)=>sum+hours(l.start,l.end),0).toFixed(1)} 小時`;
+ if($('v33TodayRevenue'))$('v33TodayRevenue').textContent=money(todayLs.reduce((sum,l)=>sum+lessonCharge(l),0));
+ if($('v33TodayTeachers'))$('v33TodayTeachers').textContent=activeTeacherIds.size;
+ const currentTime=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+ const roomLessons=todayLs.filter(l=>l.room&&l.location!=='線上課'&&l.location!=='到府');
+ const roomNames=[...new Set(roomLessons.map(l=>`${locationLabel(l)}｜${l.room}`))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+ const liveRooms=roomNames.filter(name=>roomLessons.some(l=>`${locationLabel(l)}｜${l.room}`===name&&l.start<=currentTime&&l.end>currentTime));
+ if($('v33LiveRooms'))$('v33LiveRooms').textContent=liveRooms.length;
+ if($('v33RoomTotal'))$('v33RoomTotal').textContent=`共 ${roomNames.length} 間排課`;
+ if($('v33RoomStatus'))$('v33RoomStatus').innerHTML=roomNames.length?roomNames.slice(0,10).map(name=>{
+   const lessons=roomLessons.filter(l=>`${locationLabel(l)}｜${l.room}`===name).sort((a,b)=>a.start.localeCompare(b.start));
+   const live=lessons.find(l=>l.start<=currentTime&&l.end>currentTime);
+   const soon=lessons.find(l=>l.start>currentTime);
+   const state=live?'live':soon?'soon':'';
+   const text=live?`${student(live.studentId).name||live.title||'課程'}・${live.end} 下課`:soon?`${soon.start} ${student(soon.studentId).name||soon.title||'課程'}`:'今日課程已結束';
+   return `<div class="v33-room ${state}"><span class="v33-room-dot"></span><div style="min-width:0"><b>${esc(name.replace('｜','・'))}</b><span>${esc(text)}</span></div></div>`;
+ }).join(''):'<div class="small">今天沒有設定教室的課程。</div>';
+ const days=[];for(let i=0;i<7;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i),ds=localDate(d),count=db.lessons.filter(l=>l.date===ds&&!['取消','停課'].includes(l.status)).length;days.push({d,ds,count})}
+ const max=Math.max(1,...days.map(x=>x.count));
+ if($('v33WeekBars'))$('v33WeekBars').innerHTML=days.map(x=>`<div class="v33-week-day"><div class="v33-week-bar-wrap"><div class="v33-week-bar" style="height:${Math.max(4,Math.round(x.count/max*100))}%"></div></div><b>${['日','一','二','三','四','五','六'][x.d.getDay()]}</b><span>${x.count}堂</span></div>`).join('');
+ const teacherMode=document.body.classList.contains('teacher-cloud-role');
+ if(teacherMode&&$('v33TeacherNext')){
+   const myName=(document.querySelector('.header-auth-actions span')?.textContent.split('｜')[1]||'').trim();
+   const myTeacher=db.teachers.find(t=>myName&&((t.name||'').includes(myName)||myName.includes(t.name||'')));
+   const mine=todayLs.filter(l=>!myTeacher||lessonTeacherIds(l).includes(myTeacher.id));
+   const next=mine.find(l=>l.end>currentTime)||mine[0];
+   $('v33TeacherNext').innerHTML=next?`<div class="v33-teacher-next"><div><h3>${next.start<=currentTime&&next.end>currentTime?'正在上課':'下一堂課'}｜${esc(student(next.studentId).name||next.title||'課程')}</h3><p>${esc(next.start)}–${esc(next.end)}・${esc(next.title||'一般課程')}・${esc(locationLabel(next))}${next.room?'・'+esc(next.room):''}</p></div><button class="btn" onclick="editLesson('${next.id}')">${next.start<=currentTime&&next.end>currentTime?'開啟課程':'查看／回報'}</button></div>`:'<div class="v33-teacher-next"><div><h3>今天沒有課程</h3><p>目前沒有需要回報的今日課程。</p></div></div>';
+ }
+}
 const __renderDashboardV32Original=renderDashboard;
-renderDashboard=function(){__renderDashboardV32Original();enhanceDashboardV32()};
+renderDashboard=function(){__renderDashboardV32Original();enhanceDashboardV32();enhanceDashboardV33()};
 ensureV81Migration();renderAll();
 </script>
 
