@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v3-2-ai-dashboard';
+const CACHE_NAME='danbridge-ui-v2-5-kpi-pro-20260717';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
