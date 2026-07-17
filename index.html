@@ -1215,6 +1215,48 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
 }
 </style>
 
+
+<style id="teacher-layout-hotfix-v311">
+/* V3.1.1 — teacher account layout and contrast hotfix */
+@media (min-width:1100px){
+  body.teacher-cloud-role > nav{
+    position:sticky!important;left:auto!important;top:0!important;bottom:auto!important;width:auto!important;
+    z-index:80!important;display:flex!important;flex-direction:row!important;align-items:center!important;
+    gap:8px!important;padding:10px 18px!important;overflow-x:auto!important;overflow-y:hidden!important;
+    background:rgba(255,255,255,.96)!important;border-bottom:1px solid #dbe5ef!important;
+    border-right:0!important;box-shadow:0 6px 20px rgba(15,23,42,.06)!important;
+  }
+  body.teacher-cloud-role > nav::before,body.teacher-cloud-role > nav::after{display:none!important;content:none!important}
+  body.teacher-cloud-role > nav button{
+    width:auto!important;min-width:0!important;min-height:42px!important;padding:9px 15px!important;
+    color:#334155!important;background:#fff!important;border:1px solid #d8e2ec!important;
+    border-radius:12px!important;box-shadow:none!important;transform:none!important;
+  }
+  body.teacher-cloud-role > nav button::before{display:none!important;content:none!important}
+  body.teacher-cloud-role > nav button:hover{color:#155c98!important;background:#eff6ff!important;border-color:#93c5fd!important;transform:none!important}
+  body.teacher-cloud-role > nav button.active{color:#fff!important;background:#155c98!important;border-color:#155c98!important;box-shadow:0 7px 16px rgba(21,92,152,.18)!important}
+  body.teacher-cloud-role > header{
+    margin-left:0!important;position:relative!important;top:auto!important;min-height:0!important;
+    padding:20px 28px!important;background:linear-gradient(120deg,#0f4c81,#1265a8)!important;color:#fff!important;
+    border-bottom:0!important;box-shadow:0 8px 26px rgba(15,76,129,.18)!important;
+  }
+  body.teacher-cloud-role > header h1,body.teacher-cloud-role > header p{color:#fff!important}
+  body.teacher-cloud-role > main{margin-left:0!important;max-width:1480px!important;margin-right:auto!important;margin-inline:auto!important;padding:24px 28px 92px!important}
+  body.teacher-cloud-role > .floating-actions{right:24px!important}
+}
+body.teacher-cloud-role .header-auth-actions,body.teacher-cloud-role .header-auth-actions span{color:#fff!important}
+body.teacher-cloud-role .header-auth-actions .btn,body.teacher-cloud-role #firebaseLogoutBtn{
+  color:#fff!important;background:rgba(255,255,255,.14)!important;border-color:rgba(255,255,255,.38)!important;box-shadow:none!important;
+}
+body.teacher-cloud-role .header-auth-actions .btn:hover,body.teacher-cloud-role #firebaseLogoutBtn:hover{
+  color:#fff!important;background:rgba(255,255,255,.24)!important;border-color:rgba(255,255,255,.58)!important;
+}
+body.teacher-cloud-role #dashboard .metric{background:#fff!important;color:#172033!important}
+body.teacher-cloud-role #dashboard .metric .small{color:#64748b!important}
+body.teacher-cloud-role #calendar,body.teacher-cloud-role #lessons{min-width:0!important}
+body.teacher-cloud-role #calendarCanvas{background:#fff!important;min-height:260px}
+</style>
+
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -1839,6 +1881,7 @@ try{await setPersistence(auth,browserLocalPersistence)}catch(e){console.warn(e)}
 try{await enableIndexedDbPersistence(cloud)}catch(e){console.warn('Firestore offline persistence:',e?.code||e)}
 
 let cloudRole='';
+let cloudTeacherName='';
 let cloudTeacherId='';
 let cloudUid='';
 let cloudEmailKey='';
@@ -1883,10 +1926,18 @@ async function ensureProfile(user){
  if(p.companyId!==COMPANY_ID)throw new Error('此帳號不屬於 Danbridge。');
  return p;
 }
-function filteredTeacherDB(source,teacherId){
- const lessons=(source.lessons||[]).filter(l=>(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).includes(teacherId));
+function filteredTeacherDB(source,teacherId,teacherName=''){
+ const norm=v=>(v||'').toString().trim().toLowerCase();
+ const teachers=source.teachers||[];
+ const matchedTeacher=teachers.find(t=>t.id===teacherId)||teachers.find(t=>teacherName&&norm(t.name)===norm(teacherName));
+ const effectiveTeacherId=matchedTeacher?.id||teacherId;
+ const candidateIds=new Set([teacherId,effectiveTeacherId].filter(Boolean));
+ const lessons=(source.lessons||[]).filter(l=>{
+   const ids=(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).filter(Boolean);
+   return ids.some(id=>candidateIds.has(id));
+ });
  const studentIds=new Set(lessons.map(l=>l.studentId));
- return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:(source.teachers||[]).filter(t=>t.id===teacherId),lessons,makeups:(source.makeups||[]).filter(m=>m.teacherId===teacherId),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};
+ return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:teachers.filter(t=>candidateIds.has(t.id)),lessons,makeups:(source.makeups||[]).filter(m=>candidateIds.has(m.teacherId)),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};
 }
 
 async function renderCloudUserManager(){
@@ -1903,7 +1954,7 @@ async function renderCloudUserManager(){
    await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:t?.name||'',active:true,updatedAt:serverTimestamp()},{merge:true});
    // 立即以 Gmail 為索引建立老師專屬檢視，不必等老師先登入取得 UID。
    await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{
-     db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),
+     db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId,t?.name||''),
      updatedAt:serverTimestamp(),
      teacherId,
      email
@@ -2057,7 +2108,7 @@ function subscribeLessonReports(){
 }
 
 function applyRoleUI(profile,user){
- cloudRole=profile.role;cloudTeacherId=profile.teacherId||'';cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
+ cloudRole=profile.role;cloudTeacherId=profile.teacherId||'';cloudTeacherName=profile.teacherName||'';cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
  const header=document.querySelector('.header-auth-actions');
  if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${profile.role==='owner'?'老闆':'老師'}｜${(user.displayName||user.email||'')}</span><button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
@@ -2110,7 +2161,7 @@ async function publishTeacherViews(){
      const email=(p.email||d.id||'').trim().toLowerCase();
      if(p.role!=='teacher'||p.active===false||!p.teacherId||!email)return Promise.resolve();
      return setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{
-       db:filteredTeacherDB(window.__danbridgeGetDB(),p.teacherId),
+       db:filteredTeacherDB(window.__danbridgeGetDB(),p.teacherId,p.teacherName||''),
        updatedAt:serverTimestamp(),
        teacherId:p.teacherId,
        email
@@ -2171,9 +2222,14 @@ async function subscribeTeacher(){
      cloudStatus('尚未建立這位老師的課表檢視；請老闆登入並等待雲端同步完成。','error');
      return;
    }
-   const raw=snap.data()?.db||emptyDB();
-   // 前端再次依 teacherId 過濾，防止舊檢視夾帶其他老師資料。
-   const incoming=filteredTeacherDB(raw,cloudTeacherId);
+   const viewData=snap.data()||{};
+   const raw=viewData.db||emptyDB();
+   // 同時接受帳號綁定 ID 與檢視內 ID，避免老師重建後因舊 teacherId 導致整份課表被二次過濾成空白。
+   const viewTeacherId=viewData.teacherId||cloudTeacherId;
+   let incoming=filteredTeacherDB(raw,viewTeacherId,cloudTeacherName);
+   if(!incoming.lessons.length&&(raw.lessons||[]).length){
+     incoming=filteredTeacherDB(raw,cloudTeacherId,cloudTeacherName);
+   }
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    window.renderAll?.();
@@ -2191,7 +2247,7 @@ installTeacherReportUI();
 installClassFocusMode();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;
- if(!user){cloudRole='';cloudTeacherId='';cloudUid='';cloudEmailKey='';showCloudLogin();cloudStatus('尚未登入');return}
+ if(!user){cloudRole='';cloudTeacherId='';cloudTeacherName='';cloudUid='';cloudEmailKey='';showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
    if(profile.role==='owner'){subscribeOwner();setTimeout(renderCloudUserManager,0)}else if(profile.role==='teacher')subscribeTeacher();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();
