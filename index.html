@@ -3832,13 +3832,26 @@ onAuthStateChanged(auth,async user=>{
 <script id="danbridge-v1311-selection-recovery">
 (()=>{
   let boxState=null;
+  let suppressNextBlankClick=false;
   document.addEventListener('click',e=>{
     const item=e.target.closest?.('#calendarCanvas [data-id]');
-    if(!item||!(e.ctrlKey||e.metaKey))return;
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    selectionMode=true;
-    if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);else selectedLessonIds.add(item.dataset.id);
-    updateSelectionCount();renderCalendar();
+    if(item&&(e.ctrlKey||e.metaKey)){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      selectionMode=true;
+      if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);else selectedLessonIds.add(item.dataset.id);
+      updateSelectionCount();renderCalendar();
+      return;
+    }
+    const canvas=e.target.closest?.('#calendarCanvas');
+    const isBlankCalendarClick=canvas&&!e.target.closest?.('[data-id],button,input,select,textarea,a');
+    if(isBlankCalendarClick&&(selectionMode||selectedLessonIds.size)){
+      if(suppressNextBlankClick){suppressNextBlankClick=false;return;}
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      selectedLessonIds.clear();
+      selectionMode=false;
+      updateSelectionCount();
+      renderCalendar();
+    }
   },true);
   document.addEventListener('pointerdown',e=>{
     const canvas=e.target.closest?.('#calendarCanvas');
@@ -3868,7 +3881,11 @@ onAuthStateChanged(auth,async user=>{
     const box=document.getElementById('marqueeBox');if(box)box.style.display='none';
     document.getElementById('calendarCanvas')?.classList.remove('marquee-active');
     const moved=boxState.moved;boxState=null;
-    if(moved){updateSelectionCount();renderCalendar()}
+    if(moved){
+      suppressNextBlankClick=true;
+      setTimeout(()=>{suppressNextBlankClick=false},0);
+      updateSelectionCount();renderCalendar();
+    }
   },true);
 })();
 </script>
