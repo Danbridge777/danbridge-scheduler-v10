@@ -1994,7 +1994,34 @@ ensureV81Migration();renderAll();
 
 <script>
 window.__danbridgeGetDB=()=>db;
-window.__danbridgeSetDB=(value)=>{db=value&&typeof value==='object'?value:{students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};db.students=Array.isArray(db.students)?db.students:[];db.teachers=Array.isArray(db.teachers)?db.teachers:[];db.lessons=Array.isArray(db.lessons)?db.lessons:[];db.lessons=db.lessons.map(l=>({...l,date:normalizedLessonDate(l.date)||l.date}));};
+window.__danbridgeEmptyDB=()=>({students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]});
+window.__danbridgeDBCount=(value)=>{
+  const x=value&&typeof value==='object'?value:{};
+  return ['students','teachers','lessons','makeups','changes','teacherGroups','winterTeacherGroups','summerCampClasses','winterCampClasses','settlementRecords','fixedExpenses','oneTimeExpenses']
+    .reduce((sum,key)=>sum+(Array.isArray(x[key])?x[key].length:0),0);
+};
+window.__danbridgeSetDB=(value)=>{
+  const fallback=window.__danbridgeEmptyDB();
+  const source=value&&typeof value==='object'?value:fallback;
+  db={...fallback,...source};
+  Object.keys(fallback).forEach(key=>{db[key]=Array.isArray(db[key])?db[key]:[]});
+  db.students=db.students.map(st=>studentDefaults({...st,homeAddress:st.homeAddress||''}));
+  db.teachers=db.teachers.map(t=>({...t,minWeeklyHours:+t.minWeeklyHours||0,workDays:Array.isArray(t.workDays)&&t.workDays.length?[...new Set(t.workDays.map(Number))]:[1,2,3,4,5]}));
+  db.lessons=db.lessons.map(l=>({...l,date:normalizedLessonDate(l.date)||l.date,room:l.room||'',paymentStatus:l.paymentStatus||'unpaid',chargeStudent:l.chargeStudent||'yes',payTeacher:l.payTeacher||'yes',seriesId:l.seriesId||'',location:l.location||'美術東四路',address:l.address||'',campId:normalizeCampCode(l.campId||''),teacherIds:Array.isArray(l.teacherIds)&&l.teacherIds.length?[...new Set(l.teacherIds)]:[l.teacherId].filter(Boolean)}));
+  return db;
+};
+window.__danbridgeRecoverLocalDB=()=>{
+  const candidates=[];
+  const add=(raw,label,createdAt='')=>{try{const x=typeof raw==='string'?JSON.parse(raw):raw;if(window.__danbridgeDBCount(x)>0)candidates.push({db:x,label,createdAt})}catch{}};
+  add(localStorage.getItem('danbridge_scheduler_draft_v8'),'草稿資料');
+  add(localStorage.getItem('danbridge_scheduler_v1'),'本機資料');
+  try{
+    const versions=JSON.parse(localStorage.getItem('danbridge_scheduler_versions_v4')||'[]');
+    if(Array.isArray(versions))versions.forEach(v=>add(v?.data,'本機版本：'+(v?.reason||'未命名'),v?.createdAt||''));
+  }catch{}
+  candidates.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  return candidates[0]||null;
+};
 window.__danbridgeIsDraft=()=>draftMode;
 window.teacherReportLabel=v=>({completed:'已完成',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'}[v]||'尚未回報');
 </script>
@@ -2332,13 +2359,31 @@ function subscribeOwner(){
      else await uploadOwnerState();
      return;
    }
-   const incoming=snap.data()?.db;if(!incoming)return;
+   const incoming=snap.data()?.db;if(!incoming){cloudStatus('雲端資料格式不完整，已停止覆蓋本機資料','error');return;}
+   const incomingCount=window.__danbridgeDBCount?.(incoming)||0;
+   const current=window.__danbridgeGetDB();
+   const currentCount=window.__danbridgeDBCount?.(current)||0;
+   // 防止空白雲端文件把正常資料庫整份清空。若雲端是空的，優先保留目前資料或本機版本紀錄。
+   if(incomingCount===0){
+     let recovery=currentCount>0?{db:current,label:'目前本機資料'}:window.__danbridgeRecoverLocalDB?.();
+     if(recovery&&window.__danbridgeDBCount(recovery.db)>0){
+       applyingCloud=true;
+       window.__danbridgeSetDB(deepCopy(recovery.db));
+       try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
+       window.renderAll?.();
+       applyingCloud=false;
+       cloudStatus(`偵測到空白雲端資料，已保留／還原${recovery.label}，正在修復雲端…`,'error');
+       await uploadOwnerState();
+       return;
+     }
+     cloudStatus('雲端資料是空的，且找不到可還原的本機版本。系統未再自動覆蓋資料。','error');
+     return;
+   }
    applyingCloud=true;window.__danbridgeSetDB(deepCopy(incoming));try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
    window.renderAll?.();
-   // Firestore onSnapshot 完成後再次強制重算總覽。使用兩個 animation frame，確保角色樣式與 DOM 都已完成更新。
    requestAnimationFrame(()=>requestAnimationFrame(()=>window.__danbridgeRefreshDashboard?.()));
    setTimeout(()=>window.__danbridgeRefreshDashboard?.(),250);
-   applyingCloud=false;cloudStatus('雲端資料已更新','ok');
+   applyingCloud=false;cloudStatus(`雲端資料已更新（學生 ${incoming.students?.length||0}、老師 ${incoming.teachers?.length||0}、課程 ${incoming.lessons?.length||0}）`,'ok');
    // 老闆只要登入並載入主資料，就自動重建所有已登入老師的專屬課表檢視，
    // 不必再手動修改或儲存一筆資料。
    publishTeacherViews();
@@ -2353,15 +2398,15 @@ async function subscribeTeacher(){
 
  unsubscribeState=onSnapshot(ref,snap=>{
    if(!snap.exists()){
-     applyingCloud=true;
-     window.__danbridgeSetDB(emptyDB());
-     window.renderAll?.();
-     requestAnimationFrame(()=>window.__danbridgeRefreshDashboard?.());
-     applyingCloud=false;
-     cloudStatus('尚未建立這位老師的課表檢視；請老闆登入並等待雲端同步完成。','error');
+     // 不再用空資料覆蓋老師裝置上最後一次成功同步的課表。
+     cloudStatus('尚未建立這位老師的課表檢視；已保留裝置上最後一次成功同步的資料。請老闆登入等待同步。','error');
      return;
    }
    const raw=snap.data()?.db||emptyDB();
+   if((window.__danbridgeDBCount?.(raw)||0)===0){
+     cloudStatus('老師雲端檢視目前是空的；已保留裝置上的既有資料，請老闆登入重新發布。','error');
+     return;
+   }
    // 前端再次依 teacherId 過濾，防止舊檢視夾帶其他老師資料。
    const incoming=filteredTeacherDB(raw,cloudTeacherId);
    applyingCloud=true;
