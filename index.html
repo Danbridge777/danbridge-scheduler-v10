@@ -234,6 +234,35 @@ body.lesson-paste-mode #calendarCanvas [data-date].paste-click-target{
 body.course-drawer-open{overflow:hidden}
 @media(max-width:640px){.course-drawer{top:auto;bottom:0;width:100%;height:min(86dvh,760px);border-radius:24px 24px 0 0;transform:translateY(104%)}.course-drawer.show{transform:translateY(0)}.course-drawer-head{padding:21px 18px 16px}.course-drawer-body{padding:17px 18px 24px}.course-drawer-footer{padding-left:18px;padding-right:18px}.course-detail-grid{grid-template-columns:1fr}.course-detail-item.wide{grid-column:auto}.course-drawer-title{font-size:24px}}
 
+
+
+/* ===== Danbridge V3.1 — Teacher Class Focus Mode ===== */
+.class-focus{position:fixed;inset:0;z-index:1500;background:#f4f7fb;display:none;flex-direction:column;color:#172033}
+.class-focus.show{display:flex}
+.class-focus-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 22px;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid #dce6f0;box-shadow:0 8px 30px rgba(15,23,42,.06)}
+.class-focus-brand{font-size:12px;font-weight:900;letter-spacing:.13em;color:#64748b;text-transform:uppercase}
+.class-focus-title{font-size:24px;font-weight:900;margin-top:3px;color:#0f172a}
+.class-focus-meta{font-size:13px;color:#64748b;font-weight:700;margin-top:4px}
+.class-focus-timer{text-align:center;min-width:160px;padding:10px 16px;border-radius:18px;background:#eff6ff;border:1px solid #bfdbfe}
+.class-focus-timer-label{font-size:11px;font-weight:900;letter-spacing:.1em;color:#2563eb;text-transform:uppercase}
+.class-focus-timer-value{font-size:30px;line-height:1.1;font-weight:950;font-variant-numeric:tabular-nums;color:#0f4c81;margin-top:3px}
+.class-focus-timer.overtime{background:#fff1f2;border-color:#fecdd3}.class-focus-timer.overtime .class-focus-timer-label,.class-focus-timer.overtime .class-focus-timer-value{color:#be123c}
+.class-focus-body{width:min(1040px,100%);margin:0 auto;padding:24px;overflow:auto;flex:1}
+.class-focus-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+.class-focus-card{background:#fff;border:1px solid #dce6f0;border-radius:22px;padding:20px;box-shadow:0 14px 40px rgba(15,23,42,.06)}
+.class-focus-card h3{margin:0 0 14px;font-size:17px;color:#0f172a}
+.class-focus-card label{font-size:12px;font-weight:850;letter-spacing:.04em;color:#53657a;margin-top:14px}
+.class-focus-card textarea{min-height:126px;background:#fbfdff;border-color:#d7e2ed;resize:vertical}
+.class-focus-card textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 4px rgba(59,130,246,.11)}
+.class-focus-status{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.class-focus-status label{margin:0;display:flex;align-items:center;gap:8px;padding:12px;border:1px solid #dce6f0;border-radius:14px;background:#fff;cursor:pointer;font-size:13px;color:#334155}
+.class-focus-status label:has(input:checked){border-color:#60a5fa;background:#eff6ff;color:#0f4c81;box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+.class-focus-status input{width:auto;min-height:auto}
+.class-focus-note{font-size:12px;color:#64748b;line-height:1.6;margin-top:12px;padding:11px 12px;border-radius:13px;background:#f8fafc;border:1px solid #e2e8f0}
+.class-focus-footer{display:flex;justify-content:flex-end;gap:10px;padding:15px 22px calc(15px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid #dce6f0}
+.class-focus-footer .btn{min-width:126px}
+body.class-focus-open{overflow:hidden}
+@media(max-width:760px){.class-focus-top{align-items:flex-start;padding:15px 16px}.class-focus-title{font-size:20px}.class-focus-timer{min-width:128px;padding:9px 11px}.class-focus-timer-value{font-size:24px}.class-focus-body{padding:14px}.class-focus-grid{grid-template-columns:1fr}.class-focus-card{padding:16px;border-radius:18px}.class-focus-footer{display:grid;grid-template-columns:1fr 1fr;padding-left:14px;padding-right:14px}.class-focus-footer .btn{min-width:0}.class-focus-footer .btn.primary{grid-column:1/-1;grid-row:1}.class-focus-status{grid-template-columns:1fr}}
 </style>
 
 <!-- Danbridge UI V2.1 — visual-only override; application logic unchanged -->
@@ -1246,7 +1275,51 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
 
 <div class="modal-backdrop" id="lessonModal"><div class="modal"><div class="modal-head"><h2>新增／修改課程</h2><button onclick="closeLessonModal()">×</button></div><input type="hidden" id="lessonId"><label>日期</label><input id="lessonDate" type="date"><div class="grid"><div class="col-6"><label>開始時間</label><input id="startTime" type="time" step="300"></div><div class="col-6"><label>結束時間</label><input id="endTime" type="time" step="300"></div></div><label>學生</label><div class="student-select-row"><select id="lessonStudent" onchange="handleLessonStudentChange()"></select><button type="button" class="btn" onclick="toggleQuickStudent(true)">＋ 新增學生</button></div><div id="quickStudentBox" class="quick-student-box hidden"><b>快速新增學生</b><div class="grid"><div class="col-6"><label>學生姓名 *</label><input id="quickStudentName" placeholder="必填"></div><div class="col-6"><label>家長姓名</label><input id="quickParentName"></div><div class="col-6"><label>聯絡方式</label><input id="quickParentContact"></div><div class="col-6"><label>到府地址</label><input id="quickHomeAddress" placeholder="選到府時自動帶入"></div><div class="col-6"><label>課程類型</label><select id="quickCourseType"><option>1對1</option><option>1對4</option><option>團班</option><option>安親</option></select></div><div class="col-6"><label>收費方式</label><select id="quickBilling"><option value="hour">每小時</option><option value="lesson">每堂</option><option value="month">月費</option></select></div><div class="col-6"><label>單價</label><input id="quickRate" type="number" inputmode="numeric"></div></div><div class="quick-student-actions"><button type="button" class="btn primary" onclick="saveQuickStudent()">儲存並選取</button><button type="button" class="btn" onclick="toggleQuickStudent(false)">取消</button></div></div><label>主要老師</label><select id="lessonTeacher" onchange="syncCoTeacherOptions()"></select><div id="coTeacherWrap" class="co-teacher-wrap hidden"><b>共同授課老師（僅限團班）</b><div class="small" style="margin:4px 0 8px">夏令營或團班可勾選多位老師；主要老師也會自動計入。</div><div id="coTeacherChecks" class="teacher-checks"></div></div><label>課程名稱／班別</label><input id="lessonTitle" placeholder="例如：SC A班"><div id="lessonCampIdWrap" class="hidden"><label>營隊代碼（同一營隊不同班請填完全相同，例如 SC）</label><input id="lessonCampId" placeholder="例如：SC"><div class="small">只有團班使用；相同營隊代碼、日期與時段可共用老師；每位老師各自正常計薪，同一位老師跨多班不重複累加。</div></div><div class="grid"><div class="col-6"><label>上課地點</label><select id="lessonLocation" onchange="handleLocationChange()"><option value="河西一路">河西一路</option><option value="美術東四路">美術東四路</option><option value="到府">到府</option><option value="線上課">線上課</option></select></div><div class="col-6"><label>教室</label><input id="lessonRoom" placeholder="例如：教室 1"></div></div><div id="lessonAddressWrap" class="address-wrap hidden"><label>到府地址</label><input id="lessonAddress" placeholder="可自動帶入學生資料的地址"><div id="lessonMapLinkWrap" class="small" style="margin-top:6px"></div></div><div class="grid"><div class="col-6"><label>付款狀態</label><select id="paymentStatus"><option value="unpaid">未繳</option><option value="paid">已繳</option><option value="waived">免收</option></select></div></div><label>狀態</label><select id="lessonStatus"><option>已上課</option><option>未上課</option><option>學生請假</option><option>老師請假</option><option>補課</option><option>取消</option><option>停課</option></select><label>是否向學生收費</label><select id="chargeStudent"><option value="yes">是</option><option value="no">否</option></select><label>是否計入老師薪資</label><select id="payTeacher"><option value="yes">是</option><option value="no">否</option></select><label>備註</label><textarea id="lessonNote"></textarea><div class="grid"><div class="col-6"><label>重複排課</label><select id="repeatMode"><option value="none">不重複</option><option value="weekly">每週</option></select></div><div class="col-6"><label>重複到</label><input id="repeatUntil" type="date"></div></div><div id="seriesScopeWrap" style="display:none"><label>系列課程修改範圍</label><select id="seriesScope"><option value="one">只修改這一堂</option><option value="future">修改這堂及之後</option><option value="all">修改整個系列</option></select></div><br><button class="btn primary" onclick="saveLesson()">儲存課程</button> <button class="btn danger" id="modalDeleteBtn" onclick="deleteCurrentLesson()" style="display:none">刪除</button></div></div>
 
-<div class="modal-backdrop" id="teacherReportModal"><div class="modal"><div class="modal-head"><h2>課程回報</h2><button type="button" id="closeTeacherReportModal">×</button></div><input type="hidden" id="teacherReportLessonId"><div id="teacherReportLessonInfo" class="hint"></div><label>上課狀態</label><div class="report-status-grid"><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="completed">已完成</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="student_leave">學生請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="teacher_leave">老師請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="no_show">缺席（No Show）</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="makeup_completed">補課完成</label></div><label>今日上課內容</label><textarea id="teacherReportContent" placeholder="例如：Flyers Unit 8、過去式、Speaking practice"></textarea><label>家庭作業</label><textarea id="teacherReportHomework" placeholder="例如：Workbook P.42、背 Unit 8 單字"></textarea><label>其他備註</label><textarea id="teacherReportNote" placeholder="例如：學生今天專注度、需要加強的內容"></textarea><br><button type="button" class="btn primary" id="saveTeacherReportBtn">儲存回報</button> <button type="button" class="btn" id="cancelTeacherReportBtn">取消</button><div class="small" style="margin-top:10px">系統會自動記錄回報時間與登入老師。</div></div></div>
+
+<div id="classFocusMode" class="class-focus" aria-hidden="true" aria-label="老師上課模式">
+  <div class="class-focus-top">
+    <div>
+      <div class="class-focus-brand">Danbridge Class Mode</div>
+      <div id="classFocusTitle" class="class-focus-title">課程</div>
+      <div id="classFocusMeta" class="class-focus-meta"></div>
+    </div>
+    <div id="classFocusTimer" class="class-focus-timer">
+      <div id="classFocusTimerLabel" class="class-focus-timer-label">距離下課</div>
+      <div id="classFocusTimerValue" class="class-focus-timer-value">00:00</div>
+    </div>
+  </div>
+  <div class="class-focus-body">
+    <div class="class-focus-grid">
+      <div class="class-focus-card">
+        <h3>📝 課堂紀錄</h3>
+        <label>今日上課內容</label>
+        <textarea id="classFocusContent" placeholder="例如：Flyers Unit 8、過去式、Speaking practice"></textarea>
+        <label>家庭作業</label>
+        <textarea id="classFocusHomework" placeholder="例如：Workbook P.42、背 Unit 8 單字"></textarea>
+        <label>其他備註</label>
+        <textarea id="classFocusNote" placeholder="例如：學生今天專注度、需要加強的內容"></textarea>
+      </div>
+      <div class="class-focus-card">
+        <h3>✅ 課程狀態</h3>
+        <div class="class-focus-status">
+          <label><input type="radio" name="classFocusStatus" value="completed">已完成</label>
+          <label><input type="radio" name="classFocusStatus" value="student_leave">學生請假</label>
+          <label><input type="radio" name="classFocusStatus" value="teacher_leave">老師請假</label>
+          <label><input type="radio" name="classFocusStatus" value="no_show">缺席</label>
+          <label><input type="radio" name="classFocusStatus" value="makeup_completed">補課完成</label>
+        </div>
+        <div class="class-focus-note">內容會先自動暫存在這台裝置。按「完成並儲存」後，才會正式同步到雲端課程回報。</div>
+      </div>
+    </div>
+  </div>
+  <div class="class-focus-footer">
+    <button type="button" class="btn" id="classFocusExitBtn">暫存並離開</button>
+    <button type="button" class="btn danger" id="classFocusDiscardBtn">放棄本次輸入</button>
+    <button type="button" class="btn primary" id="classFocusCompleteBtn">完成並儲存</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="teacherReportModal"><div class="modal"><div class="modal-head"><h2>課程回報</h2><button type="button" id="closeTeacherReportModal">×</button></div><input type="hidden" id="teacherReportLessonId"><div id="teacherReportLessonInfo" class="hint"></div><label>上課狀態</label><div class="report-status-grid"><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="completed">已完成</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="student_leave">學生請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="teacher_leave">老師請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="no_show">缺席（No Show）</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="makeup_completed">補課完成</label></div><label>今日上課內容</label><textarea id="teacherReportContent" placeholder="例如：Flyers Unit 8、過去式、Speaking practice"></textarea><label>家庭作業</label><textarea id="teacherReportHomework" placeholder="例如：Workbook P.42、背 Unit 8 單字"></textarea><label>其他備註</label><textarea id="teacherReportNote" placeholder="例如：學生今天專注度、需要加強的內容"></textarea><br><button type="button" class="btn ok" id="startClassFocusBtn">開始上課</button> <button type="button" class="btn primary" id="saveTeacherReportBtn">儲存回報</button> <button type="button" class="btn" id="cancelTeacherReportBtn">取消</button><div class="small" style="margin-top:10px">系統會自動記錄回報時間與登入老師。</div></div></div>
 <div class="modal-backdrop" id="batchModal"><div class="modal wide"><div class="modal-head"><h2>批次調整</h2><button onclick="closeBatchModal()">×</button></div><p class="small">只會處理目前選取的課程。先預覽，再正式套用。</p><div class="grid"><div class="col-6"><label>日期位移</label><select id="batchDateShift"><option value="0">不變</option><option value="1">往後 1 天</option><option value="7">往後 1 週</option><option value="14">往後 2 週</option><option value="-1">往前 1 天</option><option value="-7">往前 1 週</option></select></div><div class="col-6"><label>時間位移</label><select id="batchTimeShift"><option value="0">不變</option><option value="30">延後 30 分鐘</option><option value="60">延後 60 分鐘</option><option value="-30">提前 30 分鐘</option><option value="-60">提前 60 分鐘</option></select></div><div class="col-6"><label>更換老師</label><select id="batchTeacher"><option value="">不變</option></select></div><div class="col-6"><label>更換教室</label><input id="batchRoom" placeholder="留白代表不變"></div><div class="col-6"><label>狀態</label><select id="batchStatus"><option value="">不變</option><option>已上課</option><option>未上課</option><option>學生請假</option><option>老師請假</option><option>補課</option><option>取消</option><option>停課</option></select></div><div class="col-6"><label>付款狀態</label><select id="batchPayment"><option value="">不變</option><option value="unpaid">未繳</option><option value="paid">已繳</option><option value="waived">免收</option></select></div></div><br><button class="btn" onclick="previewBatch()">預覽</button> <button class="btn primary" onclick="applyBatch()">確認套用</button><div id="batchPreview" class="preview-box" style="margin-top:12px">尚未預覽。</div></div></div>
 <script>
 const LS_KEY='danbridge_scheduler_v1', VERSION_KEY='danbridge_scheduler_versions_v4', LAST_EXPORT_KEY='danbridge_scheduler_last_export', DRAFT_KEY='danbridge_scheduler_draft_v8', MIGRATION_KEY='danbridge_scheduler_v81_location_migrated';let draftMode=!!localStorage.getItem(DRAFT_KEY),db=loadDB(),dragState=null,touchTimer=null,historyStack=[],selectionMode=false,selectedLessonIds=new Set(),batchPreviewCache=null,lessonClipboard=[],contextPasteTarget=null,marqueeState=null,pasteClickMode=false;const $=id=>document.getElementById(id);function loadDB(){try{const raw=draftMode?localStorage.getItem(DRAFT_KEY):localStorage.getItem(LS_KEY);const x=JSON.parse(raw||'{"students":[],"teachers":[],"lessons":[],"makeups":[],"changes":[],"teacherGroups":[],"winterTeacherGroups":[],"summerCampClasses":[],"winterCampClasses":[],"settlementRecords":[],"fixedExpenses":[],"oneTimeExpenses":[]}');x.students||=[];x.teachers||=[];x.lessons||=[];x.makeups||=[];x.changes||=[];x.teacherGroups||=[];x.winterTeacherGroups||=[];x.summerCampClasses||=[];x.winterCampClasses||=[];x.settlementRecords||=[];x.fixedExpenses||=[];x.oneTimeExpenses||=[];x.students=x.students.map(st=>({...st,homeAddress:st.homeAddress||''}));x.teachers=x.teachers.map(t=>({...t,minWeeklyHours:+t.minWeeklyHours||0,workDays:Array.isArray(t.workDays)&&t.workDays.length?[...new Set(t.workDays.map(Number))]:[1,2,3,4,5]}));x.lessons=x.lessons.map(l=>({...l,room:l.room||'',paymentStatus:l.paymentStatus||'unpaid',chargeStudent:l.chargeStudent||'yes',payTeacher:l.payTeacher||'yes',seriesId:l.seriesId||'',location:l.location||'美術東四路',address:l.address||'',campId:normalizeCampCode(l.campId||''),teacherIds:Array.isArray(l.teacherIds)&&l.teacherIds.length?[...new Set(l.teacherIds)]:[l.teacherId].filter(Boolean)}));return x}catch{return{students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]}}}function saveDB(){localStorage.setItem(draftMode?DRAFT_KEY:LS_KEY,JSON.stringify(db));renderAll();updateLastBackupInfo()}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}function todayStr(){return localDate(new Date())}function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}function monthNow(){return todayStr().slice(0,7)}function money(n){return 'NT$'+Math.round(n||0).toLocaleString('zh-TW')}function snapshot(){historyStack.push(JSON.stringify(db));if(historyStack.length>30)historyStack.shift()}function toast(msg){const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600)}function undoLast(){const x=historyStack.pop();if(!x)return toast('沒有可復原的操作');db=JSON.parse(x);saveDB();toast('已復原上一個操作')}function hours(a,b){if(!a||!b)return 0;const[ah,am]=a.split(':').map(Number),[bh,bm]=b.split(':').map(Number);return Math.max(0,(bh*60+bm-ah*60-am)/60)}function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function student(id){return db.students.find(x=>x.id===id)||{}}function teacher(id){return db.teachers.find(x=>x.id===id)||{}}function lessonTeacherIds(l){return [...new Set((Array.isArray(l.teacherIds)&&l.teacherIds.length?l.teacherIds:[l.teacherId]).filter(Boolean))]}function lessonTeacherNames(l){return lessonTeacherIds(l).map(id=>teacher(id).name).filter(Boolean).join('、')}function isGroupStudentId(id){return student(id).courseType==='團班'}function normalizeCampCode(v){return String(v||'').trim().replace(/\s+/g,'').toUpperCase()}function effectiveCampId(l){return normalizeCampCode(l?.campId)}function legacyCampAliases(l){return new Set([normalizeCampCode(l?.title),normalizeCampCode(student(l?.studentId).name)].filter(Boolean))}function sameCampIdentity(a,b){const ca=effectiveCampId(a),cb=effectiveCampId(b);if(ca&&cb)return ca===cb;if(ca&&!cb)return legacyCampAliases(b).has(ca);if(!ca&&cb)return legacyCampAliases(a).has(cb);return false}function sameCampSlot(a,b){
@@ -1882,10 +1955,86 @@ async function saveTeacherReport(){
  const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent='儲存中…';
  try{
    await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
-   applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();cloudStatus('課程回報已儲存','ok');
- }catch(e){console.error(e);alert('課程回報儲存失敗：'+e.message);cloudStatus('回報儲存失敗','error')}
+   applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();cloudStatus('課程回報已儲存','ok');return true;
+ }catch(e){console.error(e);alert('課程回報儲存失敗：'+e.message);cloudStatus('回報儲存失敗','error');return false}
  finally{btn.disabled=false;btn.textContent='儲存回報'}
 }
+
+
+let classFocusLessonId='';
+let classFocusTimerHandle=null;
+const CLASS_FOCUS_DRAFT_PREFIX='danbridge_class_focus_v31_';
+function classFocusDraftKey(id){return CLASS_FOCUS_DRAFT_PREFIX+id}
+function getClassFocusDraft(id){try{return JSON.parse(localStorage.getItem(classFocusDraftKey(id))||'null')}catch{return null}}
+function saveClassFocusDraft(){
+ if(!classFocusLessonId)return;
+ const status=document.querySelector('input[name="classFocusStatus"]:checked')?.value||'';
+ const draft={content:document.getElementById('classFocusContent')?.value||'',homework:document.getElementById('classFocusHomework')?.value||'',note:document.getElementById('classFocusNote')?.value||'',status,updatedAt:new Date().toISOString()};
+ try{localStorage.setItem(classFocusDraftKey(classFocusLessonId),JSON.stringify(draft))}catch{}
+}
+function clearClassFocusDraft(id){try{localStorage.removeItem(classFocusDraftKey(id))}catch{}}
+function classFocusEndTime(lesson){
+ const [y,m,d]=(lesson.date||'').split('-').map(Number),[h,mi]=(lesson.end||'00:00').split(':').map(Number);
+ return new Date(y,m-1,d,h,mi,0,0);
+}
+function updateClassFocusTimer(){
+ const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===classFocusLessonId),box=document.getElementById('classFocusTimer'),label=document.getElementById('classFocusTimerLabel'),value=document.getElementById('classFocusTimerValue');
+ if(!lesson||!box||!label||!value)return;
+ const diff=classFocusEndTime(lesson)-new Date(),over=diff<0,total=Math.floor(Math.abs(diff)/1000),hh=Math.floor(total/3600),mm=Math.floor((total%3600)/60),ss=total%60;
+ value.textContent=(hh?String(hh).padStart(2,'0')+':':'')+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+ label.textContent=over?'已超過下課時間':'距離下課';box.classList.toggle('overtime',over);
+}
+function openClassFocusMode(){
+ if(cloudRole!=='teacher')return;
+ const lessonId=document.getElementById('teacherReportLessonId')?.value||'';
+ const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===lessonId);
+ if(!lesson||!lessonBelongsToTeacher(lesson,cloudTeacherId))return alert('找不到可開始的課程。');
+ const student=window.__danbridgeGetDB().students.find(x=>x.id===lesson.studentId)||{},draft=getClassFocusDraft(lessonId);
+ classFocusLessonId=lessonId;
+ document.getElementById('classFocusTitle').textContent=student.name||lesson.title||'課程';
+ document.getElementById('classFocusMeta').textContent=`${lesson.date} ${lesson.start}–${lesson.end}｜${lesson.title||'課程'}｜${lesson.location||''} ${lesson.room||''}`.trim();
+ document.getElementById('classFocusContent').value=draft?.content ?? document.getElementById('teacherReportContent').value;
+ document.getElementById('classFocusHomework').value=draft?.homework ?? document.getElementById('teacherReportHomework').value;
+ document.getElementById('classFocusNote').value=draft?.note ?? document.getElementById('teacherReportNote').value;
+ const selected=draft?.status||document.querySelector('input[name="teacherReportStatus"]:checked')?.value||'completed';
+ document.querySelectorAll('input[name="classFocusStatus"]').forEach(r=>r.checked=r.value===selected);
+ closeTeacherReportModal();
+ document.getElementById('classFocusMode').classList.add('show');document.getElementById('classFocusMode').setAttribute('aria-hidden','false');document.body.classList.add('class-focus-open');
+ clearInterval(classFocusTimerHandle);updateClassFocusTimer();classFocusTimerHandle=setInterval(updateClassFocusTimer,1000);
+ setTimeout(()=>document.getElementById('classFocusContent')?.focus(),80);
+}
+function closeClassFocusMode({discard=false,reopen=false}={}){
+ if(!classFocusLessonId)return;
+ const id=classFocusLessonId;
+ if(discard)clearClassFocusDraft(id);else saveClassFocusDraft();
+ clearInterval(classFocusTimerHandle);classFocusTimerHandle=null;
+ document.getElementById('classFocusMode')?.classList.remove('show');document.getElementById('classFocusMode')?.setAttribute('aria-hidden','true');document.body.classList.remove('class-focus-open');
+ classFocusLessonId='';
+ if(reopen)openTeacherReportModal(id);
+}
+async function completeClassFocusMode(){
+ if(!classFocusLessonId)return;
+ const id=classFocusLessonId,status=document.querySelector('input[name="classFocusStatus"]:checked')?.value||'';
+ if(!status)return alert('請先選擇課程狀態。');
+ document.getElementById('teacherReportLessonId').value=id;
+ document.getElementById('teacherReportContent').value=document.getElementById('classFocusContent').value;
+ document.getElementById('teacherReportHomework').value=document.getElementById('classFocusHomework').value;
+ document.getElementById('teacherReportNote').value=document.getElementById('classFocusNote').value;
+ document.querySelectorAll('input[name="teacherReportStatus"]').forEach(r=>r.checked=r.value===status);
+ const btn=document.getElementById('classFocusCompleteBtn');btn.disabled=true;btn.textContent='同步中…';
+ try{const saved=await saveTeacherReport();if(saved){clearClassFocusDraft(id);closeClassFocusMode({discard:true,reopen:false})}}
+ finally{btn.disabled=false;btn.textContent='完成並儲存'}
+}
+function installClassFocusMode(){
+ document.getElementById('startClassFocusBtn')?.addEventListener('click',openClassFocusMode);
+ document.getElementById('classFocusExitBtn')?.addEventListener('click',()=>closeClassFocusMode({reopen:true}));
+ document.getElementById('classFocusDiscardBtn')?.addEventListener('click',()=>{if(confirm('確定放棄這次尚未同步的輸入？'))closeClassFocusMode({discard:true,reopen:true})});
+ document.getElementById('classFocusCompleteBtn')?.addEventListener('click',completeClassFocusMode);
+ ['classFocusContent','classFocusHomework','classFocusNote'].forEach(id=>document.getElementById(id)?.addEventListener('input',saveClassFocusDraft));
+ document.querySelectorAll('input[name="classFocusStatus"]').forEach(r=>r.addEventListener('change',saveClassFocusDraft));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('classFocusMode')?.classList.contains('show')){e.preventDefault();closeClassFocusMode({reopen:true})}},true);
+}
+
 function installTeacherReportUI(){
  window.editLesson=(id)=>cloudRole==='teacher'?openTeacherReportModal(id):originalEditLesson?.(id);
  document.getElementById('closeTeacherReportModal')?.addEventListener('click',closeTeacherReportModal);
@@ -2039,6 +2188,7 @@ async function subscribeTeacher(){
 setAuthCard();
 installCloudSave();
 installTeacherReportUI();
+installClassFocusMode();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;
  if(!user){cloudRole='';cloudTeacherId='';cloudUid='';cloudEmailKey='';showCloudLogin();cloudStatus('尚未登入');return}
