@@ -1976,7 +1976,17 @@ function enhanceDashboardV33(){
  }
 }
 const __renderDashboardV32Original=renderDashboard;
-renderDashboard=function(){__renderDashboardV32Original();enhanceDashboardV32();enhanceDashboardV33()};
+renderDashboard=function(){
+  __renderDashboardV32Original();
+  enhanceDashboardV32();
+  enhanceDashboardV33();
+};
+// 明確公開渲染函式給 Firebase module 使用，避免雲端資料更新後只更新課表、總覽未重算。
+window.renderDashboard=renderDashboard;
+window.renderAll=renderAll;
+window.__danbridgeRefreshDashboard=function(){
+  try{ renderDashboard(); }catch(err){ console.error('Dashboard refresh failed',err); }
+};
 ensureV81Migration();renderAll();
 </script>
 
@@ -2324,7 +2334,11 @@ function subscribeOwner(){
    }
    const incoming=snap.data()?.db;if(!incoming)return;
    applyingCloud=true;window.__danbridgeSetDB(deepCopy(incoming));try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
-   window.renderAll?.();applyingCloud=false;cloudStatus('雲端資料已更新','ok');
+   window.renderAll?.();
+   // Firestore onSnapshot 完成後再次強制重算總覽。使用兩個 animation frame，確保角色樣式與 DOM 都已完成更新。
+   requestAnimationFrame(()=>requestAnimationFrame(()=>window.__danbridgeRefreshDashboard?.()));
+   setTimeout(()=>window.__danbridgeRefreshDashboard?.(),250);
+   applyingCloud=false;cloudStatus('雲端資料已更新','ok');
    // 老闆只要登入並載入主資料，就自動重建所有已登入老師的專屬課表檢視，
    // 不必再手動修改或儲存一筆資料。
    publishTeacherViews();
@@ -2342,6 +2356,7 @@ async function subscribeTeacher(){
      applyingCloud=true;
      window.__danbridgeSetDB(emptyDB());
      window.renderAll?.();
+     requestAnimationFrame(()=>window.__danbridgeRefreshDashboard?.());
      applyingCloud=false;
      cloudStatus('尚未建立這位老師的課表檢視；請老闆登入並等待雲端同步完成。','error');
      return;
@@ -2352,6 +2367,8 @@ async function subscribeTeacher(){
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    window.renderAll?.();
+   requestAnimationFrame(()=>requestAnimationFrame(()=>window.__danbridgeRefreshDashboard?.()));
+   setTimeout(()=>window.__danbridgeRefreshDashboard?.(),250);
    applyingCloud=false;
    cloudStatus('老師課表已同步','ok');
  },err=>{
