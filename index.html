@@ -1446,6 +1446,24 @@ body.teacher-cloud-role #finance,
 body.teacher-cloud-role #data,
 body.teacher-cloud-role #security{display:none!important}
 </style>
+
+<style id="danbridge-v38-drag-ux">
+/* V3.8 課表拖曳優化：觸控長按、誤觸防護、清楚的放置回饋 */
+.lesson.drag-arming,.week-event.drag-arming{
+  outline:3px solid rgba(37,99,235,.38)!important;outline-offset:2px!important;
+  filter:saturate(1.06);
+}
+.lesson.dragging,.week-event.dragging{
+  opacity:.62!important;transform:scale(.985)!important;
+  box-shadow:0 14px 30px rgba(15,23,42,.22)!important;
+}
+#calendarCanvas [data-date].drop-target{
+  background:#dbeafe!important;outline:3px solid #2563eb!important;outline-offset:-3px!important;
+}
+body.touch-drag-active{user-select:none!important;-webkit-user-select:none!important;overscroll-behavior:none}
+body.touch-drag-active #calendarCanvas{touch-action:none!important}
+@media(hover:none){.lesson,.week-event{touch-action:pan-x pan-y}.lesson.dragging,.week-event.dragging{touch-action:none!important}}
+</style>
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -1927,18 +1945,67 @@ document.addEventListener('copy',e=>{
   if(Date.now()-lastSelectionCopyAt>120)copyCurrentSelection();
 });
 
-function attachDragHandlers(){document.querySelectorAll('[data-id]').forEach(el=>{el.addEventListener('click',e=>{e.stopPropagation();if(e.ctrlKey||e.metaKey){e.preventDefault();selectionMode=true;if($('selectionModeBtn'))$('selectionModeBtn').textContent='多選中';toggleLessonSelection(el.dataset.id);return}if(selectionMode){toggleLessonSelection(el.dataset.id);return}editLesson(el.dataset.id)});if(selectionMode)return;el.addEventListener('dragstart',e=>{dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.setData('text/plain',dragState)});el.addEventListener('dragend',()=>el.classList.remove('dragging'));el.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;touchTimer=setTimeout(()=>{dragState=el.dataset.id;el.setPointerCapture(e.pointerId);el.classList.add('dragging')},400)});el.addEventListener('pointermove',e=>{if(!dragState)return;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-date]');if(target)target.classList.add('drop-target')});el.addEventListener('pointerup',e=>{clearTimeout(touchTimer);if(!dragState)return;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-date]');el.classList.remove('dragging');document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));if(target)moveLessonTo(dragState,target.dataset.date,target.dataset.time);dragState=null})});if(selectionMode)return;document.querySelectorAll('[data-date]').forEach(c=>{c.addEventListener('dragover',e=>{e.preventDefault();c.classList.add('drop-target')});c.addEventListener('dragleave',()=>c.classList.remove('drop-target'));c.addEventListener('drop',e=>{e.preventDefault();c.classList.remove('drop-target');moveLessonTo(e.dataTransfer.getData('text/plain'),c.dataset.date,c.dataset.time)})})}
-function toggleSelectionMode(force){selectionMode=typeof force==='boolean'?force:!selectionMode;if(!selectionMode)selectedLessonIds.clear();const btn=$('selectionModeBtn');if(btn)btn.textContent=selectionMode?'多選中':'部分選取';updateSelectionCount();renderCalendar()}
-function toggleLessonSelection(id){selectedLessonIds.has(id)?selectedLessonIds.delete(id):selectedLessonIds.add(id);updateSelectionCount();renderCalendar()}
-function updateSelectionCount(){const count=selectedLessonIds.size,el=$('selectionCount'),bar=$('selectionBar');if(el)el.textContent=`已選 ${count} 堂`;bar?.classList.toggle('hidden',count===0)}
-function visibleLessonIds(){return [...document.querySelectorAll('#calendarCanvas [data-id]')].map(el=>el.dataset.id)}
-function selectVisibleLessons(){selectionMode=true;visibleLessonIds().forEach(id=>selectedLessonIds.add(id));if($('selectionModeBtn'))$('selectionModeBtn').textContent='多選中';updateSelectionCount();renderCalendar()}
-function clearLessonSelection(){selectedLessonIds.clear();selectionMode=false;if($('selectionModeBtn'))$('selectionModeBtn').textContent='部分選取';updateSelectionCount();renderCalendar()}
-function nextMonthStr(monthStr){const[y,m]=monthStr.split('-').map(Number),d=new Date(y,m,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-function monthGridStart(monthStr){const[y,m]=monthStr.split('-').map(Number),first=new Date(y,m-1,1),offset=(first.getDay()+6)%7;first.setDate(first.getDate()-offset);return first}
-function mapDateByCalendarWeek(dateStr,sourceMonth,targetMonth){const sourceDate=new Date(dateStr+'T00:00:00'),sourceStart=monthGridStart(sourceMonth),targetStart=monthGridStart(targetMonth),days=Math.round((sourceDate-sourceStart)/86400000);if(days<0||days>=42)return '';const target=new Date(targetStart);target.setDate(target.getDate()+days);return localDate(target)}
-function copySelectedLessons(){const picked=db.lessons.filter(l=>selectedLessonIds.has(l.id));if(!picked.length)return alert('請先選取要複製的課程。');const base=new Date($('calendarDate').value+'T00:00:00'),sourceMonth=`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}`,targetMonth=nextMonthStr(sourceMonth);snapshot();const existingKeys=new Set(db.lessons.map(l=>[l.date,l.start,l.end,l.studentId,lessonTeacherIds(l).slice().sort().join(','),l.title||'',l.room||'',l.location||'',l.address||''].join('|')));let added=0,skipped=0;for(const lesson of picked){const newDate=mapDateByCalendarWeek(lesson.date,sourceMonth,targetMonth);if(!newDate){skipped++;continue}const key=[newDate,lesson.start,lesson.end,lesson.studentId,lessonTeacherIds(lesson).slice().sort().join(','),lesson.title||'',lesson.room||'',lesson.location||'',lesson.address||''].join('|');if(existingKeys.has(key)){skipped++;continue}db.lessons.push({...lesson,id:uid(),date:newDate,status:'未上課',paymentStatus:'unpaid'});existingKeys.add(key);added++}selectedLessonIds.clear();saveDB();updateSelectionCount();alert(`已依照月曆週次複製 ${added} 堂到 ${targetMonth} 的課表畫面，跳過 ${skipped} 堂重複或無法對應的課程。`)}
-function deleteSelectedLessons(){const count=selectedLessonIds.size;if(!count)return alert('請先選取要刪除的課程。');if(!confirm(`確定刪除選取的 ${count} 堂課？可使用左下角「復原」恢復。`))return;snapshot();db.lessons=db.lessons.filter(l=>!selectedLessonIds.has(l.id));cancelSelectionAndPaste(false);saveDB();toast(`已刪除 ${count} 堂課`)}
+function attachDragHandlers(){
+  const DRAG_HOLD_MS=550, MOVE_CANCEL_PX=12;
+  document.querySelectorAll('[data-id]').forEach(el=>{
+    let pointerId=null,startX=0,startY=0,dragStarted=false,suppressClick=false;
+    const clearTouchDrag=()=>{
+      clearTimeout(touchTimer);touchTimer=null;
+      el.classList.remove('drag-arming');
+      if(!dragStarted)el.classList.remove('dragging');
+      document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+      if(!dragStarted){dragState=null;document.body.classList.remove('touch-drag-active')}
+    };
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(suppressClick){e.preventDefault();suppressClick=false;return}
+      if(e.ctrlKey||e.metaKey){e.preventDefault();selectionMode=true;if($('selectionModeBtn'))$('selectionModeBtn').textContent='多選中';toggleLessonSelection(el.dataset.id);return}
+      if(selectionMode){toggleLessonSelection(el.dataset.id);return}
+      editLesson(el.dataset.id)
+    });
+    if(selectionMode)return;
+    el.addEventListener('dragstart',e=>{dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
+    el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragState=null;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))});
+    el.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse'||selectionMode)return;
+      pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragStarted=false;suppressClick=false;
+      el.classList.add('drag-arming');
+      touchTimer=setTimeout(()=>{
+        dragStarted=true;suppressClick=true;dragState=el.dataset.id;
+        try{el.setPointerCapture(pointerId)}catch{}
+        el.classList.remove('drag-arming');el.classList.add('dragging');document.body.classList.add('touch-drag-active');
+        if(navigator.vibrate)navigator.vibrate(18);
+      },DRAG_HOLD_MS)
+    },{passive:true});
+    el.addEventListener('pointermove',e=>{
+      if(pointerId!==e.pointerId)return;
+      const moved=Math.hypot(e.clientX-startX,e.clientY-startY);
+      if(!dragStarted&&moved>MOVE_CANCEL_PX){clearTouchDrag();pointerId=null;return}
+      if(!dragStarted||!dragState)return;
+      e.preventDefault();
+      document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-date]');
+      if(target)target.classList.add('drop-target')
+    },{passive:false});
+    const finishPointer=e=>{
+      if(pointerId!==e.pointerId)return;
+      clearTimeout(touchTimer);touchTimer=null;el.classList.remove('drag-arming');
+      const wasDragging=dragStarted&&!!dragState;
+      const target=wasDragging?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-date]'):null;
+      el.classList.remove('dragging');document.body.classList.remove('touch-drag-active');document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+      if(target)moveLessonTo(dragState,target.dataset.date,target.dataset.time);
+      dragState=null;dragStarted=false;pointerId=null
+    };
+    el.addEventListener('pointerup',finishPointer);
+    el.addEventListener('pointercancel',e=>{if(pointerId!==e.pointerId)return;clearTouchDrag();el.classList.remove('dragging');document.body.classList.remove('touch-drag-active');dragStarted=false;pointerId=null;suppressClick=true});
+  });
+  if(selectionMode)return;
+  document.querySelectorAll('[data-date]').forEach(c=>{
+    c.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';c.classList.add('drop-target')});
+    c.addEventListener('dragleave',()=>c.classList.remove('drop-target'));
+    c.addEventListener('drop',e=>{e.preventDefault();c.classList.remove('drop-target');moveLessonTo(e.dataTransfer.getData('text/plain'),c.dataset.date,c.dataset.time)})
+  })
+}
 function moveLessonTo(id,date,time){const l=db.lessons.find(x=>x.id===id);if(!l)return;const oldDur=Math.round(hours(l.start,l.end)*60),n={...l,date};if(time){n.start=time;n.end=addMinutes(time,oldDur)}const c=hasConflict(n,id);if(c)return alert(`拖曳後會造成${c}撞課，已取消。`);const tw=teacherConflictDetail(n,id);if(tw&&!confirm(`拖曳後老師 ${tw.name} 會時間重複。仍要移動嗎？重複課程會顯示亮紅色。`))return;snapshot();const before={...l};Object.assign(l,n);logChange('移動課程',l,before);saveDB();toast('課程已移動')}
 function openBatchModal(){if(!selectedLessonIds.size)return alert('請先選取課程。');renderSelects();batchPreviewCache=null;$('batchPreview').textContent='尚未預覽。';$('batchModal').classList.add('show')}function closeBatchModal(){$('batchModal').classList.remove('show')}function buildBatchCandidates(){const dd=+$('batchDateShift').value,tm=+$('batchTimeShift').value,tid=$('batchTeacher').value,room=$('batchRoom').value.trim(),status=$('batchStatus').value,pay=$('batchPayment').value;return db.lessons.filter(l=>selectedLessonIds.has(l.id)).map(l=>{const start=shiftTime(l.start,tm),end=shiftTime(l.end,tm),n={...l,date:shiftDate(l.date,dd),start,end,teacherId:tid||l.teacherId,teacherIds:tid?[tid]:lessonTeacherIds(l),room:room||l.room,status:status||l.status,paymentStatus:pay||l.paymentStatus};let error='',warning='';if(!start||!end)error='時間超出當日範圍';else{const c=hasConflict(n,l.id);if(c)error=`${c}撞課`;const tw=teacherConflictDetail(n,l.id);if(tw)warning=`老師時間重複：${tw.name}`}return{old:l,next:n,error,warning}})}function previewBatch(){const rows=buildBatchCandidates();batchPreviewCache=rows;const ok=rows.filter(x=>!x.error).length,bad=rows.length-ok;$('batchPreview').innerHTML=`<p><span class="ok-text">可套用 ${ok} 堂</span>｜<span class="danger-text">衝突／無效 ${bad} 堂</span></p>`+rows.map(x=>`<div>${esc(student(x.old.studentId).name)}：${x.old.date} ${x.old.start} → ${x.next.date} ${x.next.start} ${x.error?`<span class="danger-text">（${x.error}）</span>`:x.warning?`<span class="danger-text">（${x.warning}，允許套用）</span>`:''}</div>`).join('')}function applyBatch(){const rows=batchPreviewCache||buildBatchCandidates();if(rows.some(x=>x.error)&&!confirm('部分課程有衝突，系統將略過衝突課程，只套用其餘課程。繼續？'))return;snapshot();let done=0;for(const x of rows){if(x.error)continue;const before={...x.old};Object.assign(x.old,x.next);logChange('批次調整',x.old,before);if(x.old.status==='學生請假')addMakeupForLesson(x.old);done++}selectedLessonIds.clear();closeBatchModal();saveDB();toast(`已批次更新 ${done} 堂課`)}
 function renderMakeups(){const f=$('makeupFilter')?.value||'pending',rows=(db.makeups||[]).filter(m=>f==='all'||m.status===f);$('makeupRows').innerHTML=rows.map(m=>`<tr class="${m.status==='pending'?'makeup-pending':''}"><td><b>${esc(student(m.studentId).name)}</b></td><td>${m.originalDate} ${m.originalStart}–${m.originalEnd}</td><td>${m.hours} hr</td><td>${esc(m.reason)}</td><td>${m.status==='pending'?'待安排':m.status==='scheduled'?'已安排':'已完成'}</td><td class="row-actions">${m.status==='pending'?`<button class="btn primary" onclick="scheduleMakeup('${m.id}')">安排補課</button>`:''}${m.status!=='done'?`<button class="btn ok" onclick="finishMakeup('${m.id}')">完成</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="small">目前沒有符合條件的補課。</td></tr>'}function scheduleMakeup(id){const m=db.makeups.find(x=>x.id===id);if(!m)return;openLessonModal(todayStr(),m.originalStart);$('lessonStudent').value=m.studentId;$('lessonTeacher').value=m.teacherId;$('lessonTitle').value='補課';$('lessonStatus').value='補課';$('lessonNote').value=`補 ${m.originalDate} 的課程｜MAKEUP:${m.id}`;m.status='scheduled';saveDB()}function finishMakeup(id){const m=db.makeups.find(x=>x.id===id);if(!m)return;m.status='done';saveDB();toast('補課已標記完成')}
