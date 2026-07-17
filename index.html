@@ -2314,7 +2314,7 @@ window.teacherReportLabel=v=>({completed:'已完成',student_leave:'學生請假
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4tID5Dl1c_6MCev1OZxMSpiYFq3t3_EU",
@@ -2408,6 +2408,11 @@ async function renderCloudUserManager(){
    if(!teacherId||!email)return alert('請選老師並輸入 Gmail');
    const t=window.__danbridgeGetDB().teachers.find(x=>x.id===teacherId);
    await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:t?.name||'',active:true,updatedAt:serverTimestamp()},{merge:true});
+   // 若此 Gmail 曾被停用，重新啟用既有登入帳號。
+   try{
+     const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
+     await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:t?.name||'',updatedAt:serverTimestamp()},{merge:true})));
+   }catch(e){console.warn('重新啟用老師帳號失敗：',e)}
    // 立即以 Gmail 為索引建立老師專屬檢視，不必等老師先登入取得 UID。
    await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{
      db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),
@@ -2421,7 +2426,34 @@ async function renderCloudUserManager(){
  };
  await listCloudTeacherAccess();
 }
-async function listCloudTeacherAccess(){const box=document.getElementById('cloudTeacherAccessList');if(!box||cloudRole!=='owner')return;const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID)));box.innerHTML=qs.docs.map(d=>{const x=d.data();return `<div class="backup-item"><div class="info"><b>${x.teacherName||'老師'}</b><div class="small">${x.email}</div></div><span class="pill ${x.active===false?'red':'green'}">${x.active===false?'停用':'啟用'}</span></div>`}).join('')||'<span class="small">尚未建立老師 Gmail 權限。</span>'}
+async function removeCloudTeacherAccess(email,teacherName='老師'){
+ if(cloudRole!=='owner')return;
+ email=String(email||'').trim().toLowerCase();
+ if(!email)return;
+ if(!confirm(`確定要刪除 ${teacherName}（${email}）的登入權限嗎？\n刪除後該帳號將無法再登入。`))return;
+ try{
+   cloudStatus('正在刪除老師權限…','pending');
+   // 先停用已建立的 users 登入資料，避免只刪 companyAccess 後仍可登入。
+   const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
+   await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:false,updatedAt:serverTimestamp()},{merge:true})));
+   await Promise.all([
+     deleteDoc(doc(cloud,'companyAccess',email)),
+     deleteDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email))
+   ]);
+   await listCloudTeacherAccess();
+   cloudStatus('老師權限已刪除','ok');
+ }catch(e){
+   console.error(e);
+   cloudStatus('刪除權限失敗','error');
+   alert('刪除失敗：'+(e?.message||e));
+ }
+}
+async function listCloudTeacherAccess(){
+ const box=document.getElementById('cloudTeacherAccessList');if(!box||cloudRole!=='owner')return;
+ const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID)));
+ box.innerHTML=qs.docs.map(d=>{const x=d.data();const email=String(x.email||d.id).toLowerCase();return `<div class="backup-item"><div class="info"><b>${x.teacherName||'老師'}</b><div class="small">${email}</div></div><div class="row-actions"><span class="pill ${x.active===false?'red':'green'}">${x.active===false?'停用':'啟用'}</span><button type="button" class="btn danger cloud-access-delete" data-email="${email.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" data-name="${String(x.teacherName||'老師').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}">刪除權限</button></div></div>`}).join('')||'<span class="small">尚未建立老師 Gmail 權限。</span>';
+ box.querySelectorAll('.cloud-access-delete').forEach(btn=>btn.onclick=()=>removeCloudTeacherAccess(btn.dataset.email,btn.dataset.name));
+}
 
 
 const REPORT_STATUS_LABELS={completed:'已完成',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'};
