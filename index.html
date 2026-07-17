@@ -2307,6 +2307,61 @@ textarea::placeholder{text-align:center!important}
 }
 </style>
 
+
+<!-- Danbridge V13.7 — actual-width iPad toolbar fix -->
+<style id="danbridge-v137-ipad-toolbar-runtime-fix">
+/* Applied by ResizeObserver using the toolbar's real usable width, not the full iPad viewport. */
+#calendar .toolbar.ipad-real-width-fix{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-flow:row!important;
+  gap:10px 12px!important;
+  align-items:end!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+#calendar .toolbar.ipad-real-width-fix>div{
+  grid-column:span 1!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+#calendar .toolbar.ipad-real-width-fix>div:has(#calendarSearch),
+#calendar .toolbar.ipad-real-width-fix>div[style*="min-width:230px"]{
+  grid-column:1/-1!important;
+}
+#calendar .toolbar.ipad-real-width-fix label{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  min-height:20px!important;margin:0 0 5px!important;text-align:center!important;line-height:1.2!important;
+}
+#calendar .toolbar.ipad-real-width-fix input,
+#calendar .toolbar.ipad-real-width-fix select{
+  display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  height:46px!important;min-height:46px!important;margin:0!important;padding:0 10px!important;
+  box-sizing:border-box!important;text-align:center!important;text-align-last:center!important;overflow:hidden!important;
+}
+#calendar .toolbar.ipad-real-width-fix input[type="date"]{
+  -webkit-appearance:auto!important;appearance:auto!important;font-size:15px!important;line-height:normal!important;
+}
+#calendar .toolbar.ipad-real-width-fix input[type="date"]::-webkit-date-and-time-value{
+  width:100%!important;min-width:0!important;text-align:center!important;
+}
+#calendar .toolbar.ipad-real-width-fix>.btn{
+  grid-column:span 1!important;width:100%!important;min-width:0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
+}
+#calendar .toolbar.ipad-real-width-fix.ipad-real-width-narrow{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+#calendar .toolbar.ipad-real-width-fix.ipad-real-width-narrow>div:has(#calendarDate),
+#calendar .toolbar.ipad-real-width-fix.ipad-real-width-narrow>div:has(#calendarTeacherFilter),
+#calendar .toolbar.ipad-real-width-fix.ipad-real-width-narrow>div:has(#calendarSearch),
+#calendar .toolbar.ipad-real-width-fix.ipad-real-width-narrow>div[style*="min-width:230px"]{grid-column:1/-1!important}
+@media(max-width:700px){#calendar .toolbar.ipad-real-width-fix{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -2605,7 +2660,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('courseDrawer')?.
 
 function editLesson(id){openCourseDrawer(id)}function addMinutes(t,m){let[h,mi]=t.split(':').map(Number),n=h*60+mi+m;return `${String(Math.floor(n/60)%24).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}function snapTimeTo5(t){if(!t)return t;const[h,m]=t.split(':').map(Number),n=Math.max(0,Math.min(1435,Math.round((h*60+m)/5)*5));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
 function renderDashboard(){const m=monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));$('mStudents').textContent=db.students.length;$('mTeachers').textContent=db.teachers.length;$('mLessons').textContent=ls.length;if($('mTeacherHours')){const completedTeacherLessons=ls.filter(l=>l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed');$('mTeacherHours').textContent=`${completedTeacherLessons.reduce((sum,l)=>sum+hours(l.start,l.end),0).toFixed(1)} 小時`;const note=$('mTeacherHours').closest('.metric')?.querySelector('small');if(note)note.textContent=`${completedTeacherLessons.length} 堂已完成`;};$('mRevenue').textContent=money(ls.reduce((a,l)=>a+lessonCharge(l),0));$('mUnpaid').textContent=money(ls.filter(l=>(l.paymentStatus||'unpaid')==='unpaid').reduce((a,l)=>a+lessonCharge(l),0));$('mPayroll').textContent=money(ls.reduce((a,l)=>a+lessonPay(l),0));$('mMakeups').textContent=(db.makeups||[]).filter(x=>x.status==='pending').length;const tod=todayStr(),changes=(db.changes||[]).filter(c=>localDate(new Date(c.at))===tod);$('mChanges').textContent=changes.length;$('todayChanges').innerHTML=changes.length?`<table class="change-table"><thead><tr><th>時間</th><th>類型</th><th>學生／班級</th><th>原日期</th><th>原時間</th><th>新日期</th><th>新時間</th></tr></thead><tbody>${changes.slice(0,100).map(c=>`<tr><td>${new Date(c.at).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</td><td><b>${esc(c.type)}</b></td><td class="student-cell">${esc(student(c.studentId).name)}</td><td class="muted-cell">${esc(c.before?.date||'—')}</td><td>${esc(c.before?.start||'—')}</td><td class="muted-cell">${esc(c.after?.date||'—')}</td><td>${esc(c.after?.start||'—')}</td></tr>`).join('')}</tbody></table>`:'<div class="small" style="padding:12px">今天尚無課表異動。</div>'; $('todayLessons').innerHTML=db.lessons.filter(l=>!l.isDraft&&l.date===tod).sort((a,b)=>a.start.localeCompare(b.start)).map(l=>`<div class="lesson ${hasTeacherOverlap(l)?'teacher-overlap':''}" style="--teacher:${teacher(l.teacherId).color||'#2563eb'};--location-bg:${locationBg(l.location)}" onclick="editLesson('${l.id}')"><b>${l.start}–${l.end}｜${esc(student(l.studentId).name)}</b><span class="meta">${esc(lessonTeacherNames(l))}｜${esc(l.title)}｜📍${esc(locationLabel(l))}${l.location==='到府'&&l.address?' '+esc(l.address):''}｜${esc(l.room||'未指定教室')}｜${l.paymentStatus==='paid'?'已繳':'未繳'}</span></div>`).join('')||'<span class="small">今天沒有課程。</span>'}
-function ensureTeacherHoursMetric(){
+window.ensureTeacherHoursMetric=function(){
  const summary=document.querySelector('#dashboard .summary');
  if(!summary)return;
  let metric=document.querySelector('#dashboard .teacher-hours-metric');
@@ -2617,9 +2672,9 @@ function ensureTeacherHoursMetric(){
    if(lessonMetric)lessonMetric.insertAdjacentElement('afterend',metric);else summary.appendChild(metric);
  }
  metric.style.setProperty('display',document.body.classList.contains('teacher-cloud-role')?'flex':'none','important');
-}
+};
 const __originalRenderDashboardForHours=renderDashboard;
-renderDashboard=function(){ensureTeacherHoursMetric();__originalRenderDashboardForHours();ensureTeacherHoursMetric();};
+renderDashboard=function(){window.ensureTeacherHoursMetric?.();__originalRenderDashboardForHours();window.ensureTeacherHoursMetric?.();};
 function renderGlobalSearch(){const q=$('globalSearch').value.trim().toLowerCase();if(!q){$('globalSearchResults').innerHTML='';return}const rows=[];db.lessons.filter(l=>[l.date,l.title,l.room,l.location,l.address,student(l.studentId).name,lessonTeacherNames(l)].join(' ').toLowerCase().includes(q)).slice(0,8).forEach(l=>rows.push(`<button class="btn" style="width:100%;text-align:left;margin:3px 0" onclick="editLesson('${l.id}')">${l.date} ${l.start}｜${esc(student(l.studentId).name)}｜${esc(lessonTeacherNames(l))}</button>`));$('globalSearchResults').innerHTML=rows.join('')||'<span class="small">找不到相符課程</span>'}function lessonCharge(l){const s=student(l.studentId);if(l.chargeStudent!=='yes')return 0;return s.billing==='hour'?s.rate*hours(l.start,l.end):s.rate}function lessonTeacherPay(l,tid){if(l.payTeacher==='no'||!lessonTeacherIds(l).includes(tid))return 0;const camp=effectiveCampId(l);if(camp){const idx=db.lessons.indexOf(l);/* 同一老師若同時掛在同營隊多個班，只計一次該時段；不同老師仍各自完整計薪。 */const duplicate=db.lessons.some((x,i)=>i<idx&&x.payTeacher==='yes'&&sameCampSlot(l,x)&&lessonTeacherIds(x).includes(tid));if(duplicate)return 0}return(+teacher(tid).rate||0)*hours(l.start,l.end)}function lessonPay(l){return lessonTeacherIds(l).reduce((sum,id)=>sum+lessonTeacherPay(l,id),0)}function filteredLessons(){const m=$('lessonMonth').value||monthNow(),s=$('filterStudent').value,t=$('filterTeacher').value;return db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m)&&(!s||l.studentId===s)&&(!t||lessonTeacherIds(l).includes(t))).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start))}function markMonthLessonsCompleted(){const month=$('lessonMonth').value||monthNow(),targets=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(month)&&l.status!=='已上課');if(!targets.length)return alert(`${month} 沒有需要修改的課程。`);const statusSummary=targets.reduce((m,l)=>(m[l.status||'未設定']=(m[l.status||'未設定']||0)+1,m),{}),detail=Object.entries(statusSummary).map(([k,v])=>`${k} ${v} 堂`).join('、');if(!confirm(`確定將 ${month} 的 ${targets.length} 堂課全部改成「已上課」？\n\n目前狀態：${detail}\n\n此操作會包含請假、取消及停課課程，但可使用「復原」恢復。`))return;snapshot();createVersion(`${month} 全部改已上課前備份`);for(const l of targets){const before={...l};l.status='已上課';logChange('批次改為已上課',l,before)}saveDB();toast(`已將 ${targets.length} 堂課改為已上課`)}function renderLessons(){$('lessonRows').innerHTML=filteredLessons().map(l=>`<tr class="${hasTeacherOverlap(l)?'teacher-overlap-row':''}"><td>${l.date}（${weekday(l.date)}）</td><td>${l.start}–${l.end}<br><span class="small">${hours(l.start,l.end)} hr</span></td><td><b>${esc(student(l.studentId).name)}</b><br>${esc(lessonTeacherNames(l))}${hasTeacherOverlap(l)?`<br><span class="overlap-badge">⚠ 老師時間重複：${esc(lessonTeacherConflictNames(l).join('、'))}</span>`:''}</td><td>${esc(l.title)}<br><span class="small">📍 ${esc(locationLabel(l))}${l.location==='到府'&&l.address?`<br>${esc(l.address)}`:''}<br>${esc(l.room||'未指定教室')}</span>${l.teacherReportStatus?`<div class="lesson-report-summary"><span class="report-badge ${esc(l.teacherReportStatus)}">${esc(window.teacherReportLabel?.(l.teacherReportStatus)||l.teacherReportStatus)}</span>${l.teacherReportContent?`<br><b>內容：</b>${esc(l.teacherReportContent)}`:''}${l.teacherReportHomework?`<br><b>作業：</b>${esc(l.teacherReportHomework)}`:''}${l.teacherReportNote?`<br><b>備註：</b>${esc(l.teacherReportNote)}`:''}${l.teacherReportUpdatedAt?`<br><span class="small">回報：${new Date(l.teacherReportUpdatedAt).toLocaleString('zh-TW')}｜${esc(l.teacherReportBy||'老師')}</span>`:''}</div>`:''}</td><td class="status-${l.status}">${esc(l.status)}<br><span class="${l.paymentStatus==='paid'?'pill green':'pill red'}">${l.paymentStatus==='paid'?'已繳':'未繳'}</span></td><td>${document.body.classList.contains('teacher-cloud-role')?'—':`收：${money(lessonCharge(l))}<br>薪：${money(lessonPay(l))}`}</td><td><button class="btn" onclick="editLesson('${l.id}')">${document.body.classList.contains('teacher-cloud-role')?'回報':'編輯'}</button></td></tr>`).join('')}
 function calendarFilterState(){return{teacher:$('calendarTeacherFilter')?.value||'',location:$('calendarLocationFilter')?.value||'',student:$('calendarStudentFilter')?.value||'',room:$('calendarRoomFilter')?.value||'',state:$('calendarStateFilter')?.value||'',search:($('calendarSearch')?.value||'').trim().toLowerCase()}}
 function lessonMatchesCalendar(l,f=calendarFilterState()){if(f.teacher&&!lessonTeacherIds(l).includes(f.teacher))return false;if(f.location&&locationLabel(l)!==f.location)return false;if(f.student&&l.studentId!==f.student)return false;if(f.room&&(l.room||'')!==f.room)return false;if(f.state&&(l.lessonState||(l.isDraft?'draft':'active'))!==f.state)return false;if(f.search){const hay=[l.date,l.start,l.end,l.title,l.room,l.location,l.address,l.status,student(l.studentId).name,student(l.studentId).parent,lessonTeacherNames(l),effectiveCampId(l)].join(' ').toLowerCase();if(!hay.includes(f.search))return false}return true}
@@ -3044,7 +3099,9 @@ async function downloadBackup(){try{const payload={...db,_meta:{app:'Danbridge S
 function normalizeImported(x){if(!x||!Array.isArray(x.students)||!Array.isArray(x.teachers)||!Array.isArray(x.lessons))throw new Error('格式不符');return{students:x.students.map(st=>studentDefaults({...st,homeAddress:st.homeAddress||''})),teachers:x.teachers.map(t=>({...t,minWeeklyHours:+t.minWeeklyHours||0,workDays:Array.isArray(t.workDays)&&t.workDays.length?[...new Set(t.workDays.map(Number))]:[1,2,3,4,5]})),lessons:x.lessons.map(l=>({...l,room:l.room||'',paymentStatus:l.paymentStatus||'unpaid',seriesId:l.seriesId||'',location:l.location||'美術東四路',address:l.address||'',campId:normalizeCampCode(l.campId||''),teacherIds:Array.isArray(l.teacherIds)&&l.teacherIds.length?[...new Set(l.teacherIds)]:[l.teacherId].filter(Boolean)})),makeups:Array.isArray(x.makeups)?x.makeups:[],changes:Array.isArray(x.changes)?x.changes:[],teacherGroups:Array.isArray(x.teacherGroups)?x.teacherGroups:[],winterTeacherGroups:Array.isArray(x.winterTeacherGroups)?x.winterTeacherGroups:[],summerCampClasses:Array.isArray(x.summerCampClasses)?x.summerCampClasses:[],winterCampClasses:Array.isArray(x.winterCampClasses)?x.winterCampClasses:[],settlementRecords:Array.isArray(x.settlementRecords)?x.settlementRecords:[],fixedExpenses:Array.isArray(x.fixedExpenses)?x.fixedExpenses:[],oneTimeExpenses:Array.isArray(x.oneTimeExpenses)?x.oneTimeExpenses:[]}}
 function importBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const incoming=normalizeImported(JSON.parse(r.result));const exportedAt=JSON.parse(r.result)._meta?.exportedAt;const msg=`檔案：${f.name}\n${exportedAt?'匯出時間：'+new Date(exportedAt).toLocaleString('zh-TW')+'\n':''}內容：${versionStats(incoming)}\n\n確定以此檔案取代目前資料？`;if(!confirm(msg))return;createVersion('匯入前自動備份');db=incoming;saveDB();toast('匯入完成')}catch(err){alert('JSON 格式錯誤或不是 Danbridge 備份檔。')}finally{e.target.value=''}};r.readAsText(f)}
 function resetData(){if(confirm('確定清空全部資料？系統會先建立可復原版本。')){createVersion('清空前自動備份');db={students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};saveDB();toast('資料已清空')}}
-function excelSafe(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}function downloadSettlementExcel(){const{sr,tr}=settleData(),month=$('settleMonth').value,totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0);const studentRows=sr.map(x=>`<tr><td>${excelSafe(x.s.name)}</td><td>${excelSafe(x.s.parent||'')}</td><td>${x.total}</td><td>${x.charged}</td><td>${x.h}</td><td>${x.abs}</td><td>${x.rate.toFixed(1)}%</td><td>${Math.round(x.amount)}</td></tr>`).join('');const teacherRows=tr.map(x=>`<tr><td>${excelSafe(x.t.name)}</td><td>${excelSafe(workDayNames(x.t.workDays))}</td><td>${x.t.minWeeklyHours||0}</td><td>${x.expected}</td><td>${x.h}</td><td>${x.diff}</td><td>${x.t.rate||0}</td><td>${Math.round(x.amount)}</td></tr>`).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,"Microsoft JhengHei"}table{border-collapse:collapse;margin-bottom:24px}th,td{border:1px solid #999;padding:7px 10px}th{background:#dceaf7}.money{mso-number-format:"#,##0"}</style></head><body><h1>Danbridge ${month} 月底結算</h1><table><tr><th>本月應收</th><th>老師薪資</th><th>預估差額</th></tr><tr><td class="money">${Math.round(totalRevenue)}</td><td class="money">${Math.round(totalPayroll)}</td><td class="money">${Math.round(totalRevenue-totalPayroll)}</td></tr></table><h2>學生應收</h2><table><tr><th>學生</th><th>家長</th><th>原定堂數</th><th>收費堂數</th><th>收費時數</th><th>請假</th><th>請假率</th><th>應收</th></tr>${studentRows}</table><h2>老師工時與薪資</h2><table><tr><th>老師</th><th>固定工作日</th><th>每週最低</th><th>本月最低</th><th>實際時數</th><th>差額</th><th>時薪</th><th>應付</th></tr>${teacherRows}</table></body></html>`;const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Danbridge-${month}-月底結算.xls`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Excel 結算報表已匯出')}function printSettlementReport(){renderSettlement();const old=document.title;document.title=`Danbridge-${$('settleMonth').value}-月底結算`;window.print();document.title=old}
+function excelSafe(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}function downloadSettlementExcel(){const{sr,tr}=settleData(),month=$('settleMonth').value,totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0);const studentRows=sr.map(x=>`<tr><td>${excelSafe(x.s.name)}</td><td>${excelSafe(x.s.parent||'')}</td><td>${x.total}</td><td>${x.charged}</td><td>${x.h}</td><td>${x.abs}</td><td>${x.rate.toFixed(1)}%</td><td>${Math.round(x.amount)}</td></tr>`).join('');const teacherRows=tr.map(x=>`<tr><td>${excelSafe(x.t.name)}</td><td>${excelSafe(workDayNames(x.t.workDays))}</td><td>${x.t.minWeeklyHours||0}</td><td>${x.expected}</td><td>${x.h}</td><td>${x.diff}</td><td>${x.t.rate||0}</td><td>${Math.round(x.amount)}</td></tr>`).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,"Microsoft JhengHei"}table{border-collapse:collapse;margin-bottom:24px}th,td{border:1px solid #999;padding:7px 10px}th{background:#dceaf7}.money{mso-number-format:"#,##0"}</style></head><body><h1>Danbridge ${month} 月底結算</h1><table><tr><th>本月應收</th><th>老師薪資</th><th>預估差額</th></tr><tr><td class="money">${Math.round(totalRevenue)}</td><td class="money">${Math.round(totalPayroll)}</td><td class="money">${Math.round(totalRevenue-totalPayroll)}</td></tr></table><h2>學生應收</h2><table><tr><th>學生</th><th>家長</th><th>原定堂數</th><th>收費堂數</th><th>收費時數</th><th>請假</th><th>請假率</th><th>應收</th></tr>${studentRows}</table><h2>老師工時與薪資</h2><table><tr><th>老師</th><th>固定工作日</th><th>每週最低</th><th>本月最低</th><th>實際時數</th><th>差額</th><th>時薪</th><th>應付</th></tr>${teacherRows}</table>
+
+</body></html>`;const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Danbridge-${month}-月底結算.xls`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Excel 結算報表已匯出')}function printSettlementReport(){renderSettlement();const old=document.title;document.title=`Danbridge-${$('settleMonth').value}-月底結算`;window.print();document.title=old}
 function downloadCSV(){const{sr,tr}=settleData();let csv='類型,姓名,工作日,每週最低,本月最低,實際時數,差額,堂數,金額\n';sr.forEach(x=>csv+=`學生,${x.s.name},,,,${x.h},,${x.charged},${Math.round(x.amount)}\n`);tr.forEach(x=>csv+=`老師,${x.t.name},"${workDayNames(x.t.workDays)}",${x.t.minWeeklyHours||0},${x.expected},${x.h},${x.diff},${x.count},${Math.round(x.amount)}\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`settlement-${$('settleMonth').value}.csv`;a.click()}function exportICS(){let out='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Danbridge//Scheduler//ZH-TW\r\nCALSCALE:GREGORIAN\r\n';for(const l of db.lessons.filter(x=>!x.isDraft)){const d=l.date.replaceAll('-',''),s=l.start.replace(':','')+'00',e=l.end.replace(':','')+'00';out+=`BEGIN:VEVENT\r\nUID:${l.id}@danbridge\r\nDTSTART:${d}T${s}\r\nDTEND:${d}T${e}\r\nSUMMARY:${student(l.studentId).name||'課程'} - ${l.title||'Danbridge'}\r\nLOCATION:${l.location==='到府'?(l.address||'到府'):l.location==='線上課'?'線上課':locationLabel(l)+(l.room?' '+l.room:'')}\r\nDESCRIPTION:老師：${lessonTeacherNames(l)}｜狀態：${l.status||''}｜付款：${l.paymentStatus==='paid'?'已繳':'未繳'}\r\nEND:VEVENT\r\n`}out+='END:VCALENDAR\r\n';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/calendar;charset=utf-8'}));a.download='danbridge-calendar.ics';a.click()}function renderAll(){setDefaults();renderSelects();renderStudents();renderTeachers();renderDashboard();renderLessons();renderSettlement();renderFinance();renderMakeups();renderSummerCampClasses();renderTeacherGroups();renderCampSelectors();renderWinterCampClasses();renderWinterTeacherGroups();renderWinterCampSelectors();renderBackupHistory();updateLastBackupInfo();if($('calendar').classList.contains('active'))renderCalendar()}
 function parseStudentAvailability(text){const dayMap={'日':0,'天':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};const out=[];String(text||'').split(/\n|；|;/).forEach(line=>{const m=line.trim().match(/(?:週|星期)?([日天一二三四五六]).*?(\d{1,2}:\d{2})\s*[-～~至]\s*(\d{1,2}:\d{2})/);if(m&&dayMap[m[1]]!==undefined&&m[3]>m[2])out.push({day:dayMap[m[1]],start:m[2].padStart(5,'0'),end:m[3].padStart(5,'0')})});return out}function minutesToTime(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}function dateRange(a,b){const out=[],d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00');while(d<=e&&out.length<62){out.push(localDate(d));d.setDate(d.getDate()+1)}return out}function slotFree(candidate){return !db.lessons.some(l=>l.date===candidate.date&&l.id!==candidate.id&&candidate.start<l.end&&candidate.end>l.start&&(l.studentId===candidate.studentId||lessonTeacherIds(l).includes(candidate.teacherId)||(candidate.room&&l.room===candidate.room&&l.location===candidate.location)))}function openSmartScheduler(studentId=''){renderSelects();$('smartStudent').value=studentId||$('studentId')?.value||'';$('smartDateFrom').value=todayStr();$('smartDateTo').value=shiftDate(todayStr(),14);$('smartDuration').value='60';$('smartStep').value='30';$('smartLocation').value='美術東四路';$('smartRoom').value='';$('smartTitle').value='補課';syncSmartStudent();$('smartResults').innerHTML='<span class="small">請設定條件後按「尋找可排時段」。</span>';$('smartSchedulerModal').classList.add('show')}function closeSmartScheduler(){$('smartSchedulerModal').classList.remove('show')}function syncSmartStudent(){const s=studentDefaults(db.students.find(x=>x.id===$('smartStudent').value)||{});$('smartTeacher').value=s.preferredTeacherId||'';$('smartAvailabilityHint').textContent=s.availability?'學生可上課時段：'+s.availability.replace(/\n/g,'；'):'未設定可上課時段，將以每日 09:00–21:00 搜尋。'}function findSmartSlots(){const sid=$('smartStudent').value,from=$('smartDateFrom').value,to=$('smartDateTo').value,duration=+$('smartDuration').value,step=+$('smartStep').value;if(!sid||!from||!to)return alert('請選擇學生與日期範圍');if(to<from)return alert('截止日期不能早於起始日期');const s=studentDefaults(db.students.find(x=>x.id===sid)||{}),avail=parseStudentAvailability(s.availability),teacherIds=$('smartTeacher').value?[$('smartTeacher').value]:db.teachers.map(t=>t.id),slots=[];for(const date of dateRange(from,to)){const dow=new Date(date+'T00:00:00').getDay(),windows=avail.length?avail.filter(a=>a.day===dow):[{start:'09:00',end:'21:00'}];for(const w of windows){let start=+w.start.slice(0,2)*60 + +w.start.slice(3),end=+w.end.slice(0,2)*60 + +w.end.slice(3);for(let n=start;n+duration<=end;n+=step){for(const tid of teacherIds){const candidate={date,start:minutesToTime(n),end:minutesToTime(n+duration),studentId:sid,teacherId:tid,teacherIds:[tid],room:$('smartRoom').value.trim(),location:$('smartLocation').value};if(slotFree(candidate)){const adjacent=db.lessons.some(l=>l.date===date&&lessonTeacherIds(l).includes(tid)&&(l.end===candidate.start||l.start===candidate.end));slots.push({...candidate,adjacent});break}}if(slots.length>=80)break}if(slots.length>=80)break}if(slots.length>=80)break}slots.sort((a,b)=>(b.adjacent-a.adjacent)||(a.date+a.start).localeCompare(b.date+b.start));$('smartResults').innerHTML=slots.slice(0,40).map((x,i)=>`<div class="smart-slot ${i<3?'best':''}"><div><b>${x.date}（週${'日一二三四五六'[new Date(x.date+'T00:00:00').getDay()]}） ${x.start}–${x.end}</b><span class="small">${esc(teacher(x.teacherId).name||'未指定老師')}｜${esc(x.location)}${x.room?'｜'+esc(x.room):''}${x.adjacent?'｜相鄰既有課程':''}</span></div><button class="btn primary" onclick="useSmartSlot('${x.date}','${x.start}','${x.end}','${x.teacherId}')">選擇</button></div>`).join('')||'<div class="hint">找不到完全無衝堂的時段。請放寬日期、調整老師或清空教室欄位。</div>'}function useSmartSlot(date,start,end,teacherId){const sid=$('smartStudent').value,title=$('smartTitle').value.trim(),loc=$('smartLocation').value,room=$('smartRoom').value.trim();closeSmartScheduler();openLessonModal(date,start);$('endTime').value=end;$('lessonStudent').value=sid;$('lessonTeacher').value=teacherId;$('lessonTitle').value=title;$('lessonLocation').value=loc;$('lessonRoom').value=room;handleLessonStudentChange();handleLocationChange();syncCoTeacherOptions();toast('已帶入建議時段，請確認後儲存')}$('smartSchedulerModal')?.addEventListener('click',e=>{if(e.target===$('smartSchedulerModal'))closeSmartScheduler()});
 
@@ -3425,7 +3482,7 @@ function applyRoleUI(profile,user){
  if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${profile.role==='owner'?'老闆':'老師'}｜${(user.displayName||user.email||'')}</span><button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
  document.body.classList.toggle('teacher-cloud-role',profile.role==='teacher');
- ensureTeacherHoursMetric();
+ window.ensureTeacherHoursMetric?.();
 
  const teacherOnly=profile.role==='teacher';
  if(teacherOnly){
@@ -3613,6 +3670,33 @@ onAuthStateChanged(auth,async user=>{
 });
 </script>
 
+
+<script id="danbridge-v137-ipad-toolbar-runtime-js">
+(function(){
+  function isIPadLike(){
+    return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function applyCalendarToolbarLayout(){
+    const toolbar=document.querySelector('#calendar .toolbar');
+    if(!toolbar) return;
+    const usable=toolbar.getBoundingClientRect().width;
+    const shouldFix=isIPadLike() || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    toolbar.classList.toggle('ipad-real-width-fix', shouldFix && usable < 1280 && window.innerWidth > 700);
+    toolbar.classList.toggle('ipad-real-width-narrow', shouldFix && usable < 760 && window.innerWidth > 700);
+  }
+  function init(){
+    applyCalendarToolbarLayout();
+    const toolbar=document.querySelector('#calendar .toolbar');
+    if(toolbar && 'ResizeObserver' in window){
+      new ResizeObserver(applyCalendarToolbarLayout).observe(toolbar);
+    }
+    window.addEventListener('resize',applyCalendarToolbarLayout,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(applyCalendarToolbarLayout,150),{passive:true});
+    document.addEventListener('click',e=>{if(e.target.closest('[data-tab="calendar"]'))setTimeout(applyCalendarToolbarLayout,30)});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 
 <script>
 /* PWA 安裝與更新：不影響 Firebase、老師權限及課程回報功能。 */
