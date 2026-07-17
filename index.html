@@ -200,6 +200,40 @@ body.lesson-paste-mode #calendarCanvas [data-date].paste-click-target{
   .summary{grid-template-columns:repeat(8,minmax(135px,1fr))!important}
 }
 
+
+
+/* ===== V3.0 Course Detail Drawer ===== */
+.course-drawer-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.34);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:.24s ease;z-index:1190}
+.course-drawer-backdrop.show{opacity:1;visibility:visible}
+.course-drawer{position:fixed;top:0;right:0;width:min(440px,94vw);height:100dvh;background:#fff;box-shadow:-24px 0 70px rgba(15,23,42,.22);transform:translateX(104%);transition:transform .3s cubic-bezier(.2,.75,.2,1);z-index:1200;display:flex;flex-direction:column}
+.course-drawer.show{transform:translateX(0)}
+.course-drawer-head{padding:24px 24px 18px;border-bottom:1px solid #e7edf5;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:linear-gradient(180deg,#f8fbff 0%,#fff 100%)}
+.course-drawer-kicker{font-size:12px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#64748b;margin-bottom:6px}
+.course-drawer-title{font-size:27px;line-height:1.15;font-weight:900;color:#0f172a;margin:0}
+.course-drawer-subtitle{margin-top:8px;color:#64748b;font-size:14px;font-weight:700}
+.course-drawer-close{border:1px solid #dce5ef;background:#fff;width:40px;height:40px;border-radius:13px;font-size:24px;line-height:1;color:#334155;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.course-drawer-body{padding:20px 24px 28px;overflow:auto;flex:1}
+.course-drawer-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.course-detail-badge{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;font-size:13px;font-weight:850;border:1px solid transparent}
+.course-detail-badge.status-complete{background:#eaf8f0;color:#137047;border-color:#bce8cf}
+.course-detail-badge.status-pending{background:#eef4ff;color:#2459a9;border-color:#cfdfff}
+.course-detail-badge.status-leave{background:#fff6df;color:#936000;border-color:#f5dc9a}
+.course-detail-badge.status-makeup{background:#f3ecff;color:#6d3ab7;border-color:#dcc8ff}
+.course-detail-badge.status-cancel{background:#fff0f1;color:#b42334;border-color:#ffcdd2}
+.course-detail-badge.payment-paid{background:#eaf8f0;color:#137047;border-color:#bce8cf}
+.course-detail-badge.payment-unpaid{background:#fff0f1;color:#b42334;border-color:#ffcdd2}
+.course-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.course-detail-item{padding:15px;border:1px solid #e4eaf2;border-radius:16px;background:#fbfdff;min-width:0}
+.course-detail-item.wide{grid-column:1/-1}
+.course-detail-label{font-size:12px;font-weight:800;color:#7b8798;margin-bottom:7px}
+.course-detail-value{font-size:15px;font-weight:850;color:#172033;line-height:1.45;word-break:break-word}
+.course-detail-note{padding:16px;border-radius:16px;background:#f7f9fc;border:1px solid #e6ebf2;color:#475569;line-height:1.65;white-space:pre-wrap}
+.course-detail-section-title{font-size:13px;font-weight:900;color:#334155;margin:20px 0 9px}
+.course-drawer-footer{padding:16px 24px calc(16px + env(safe-area-inset-bottom));border-top:1px solid #e7edf5;background:rgba(255,255,255,.96);display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.course-drawer-footer .btn{min-height:46px;border-radius:13px;font-weight:850}
+body.course-drawer-open{overflow:hidden}
+@media(max-width:640px){.course-drawer{top:auto;bottom:0;width:100%;height:min(86dvh,760px);border-radius:24px 24px 0 0;transform:translateY(104%)}.course-drawer.show{transform:translateY(0)}.course-drawer-head{padding:21px 18px 16px}.course-drawer-body{padding:17px 18px 24px}.course-drawer-footer{padding-left:18px;padding-right:18px}.course-detail-grid{grid-template-columns:1fr}.course-detail-item.wide{grid-column:auto}.course-drawer-title{font-size:24px}}
+
 </style>
 
 <!-- Danbridge UI V2.1 — visual-only override; application logic unchanged -->
@@ -912,7 +946,7 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
 
 
 
-<!-- Danbridge UI V2.9 — Lesson Cards & Status System; visual-only -->
+<!-- Danbridge V3.0 — Course Detail Drawer -->
 <style>
 /* ===== V2.9 Course card redesign ===== */
 :root{
@@ -1192,6 +1226,24 @@ body.teacher-cloud-role #lessons .btn{min-width:86px}
 <div class="card" style="grid-column:1/-1"><h2>安全與搬移</h2><div class="danger-note">不同裝置的 Safari 不會自動共用 localStorage。跨裝置時，請以 iCloud Drive 中最新 JSON 為準，匯入前先確認檔名與時間。</div><ol><li>Mac：按「匯出最新資料」→ 儲存至 iCloud Drive。</li><li>iPad：開啟本網站 →「匯入 JSON」→ 選取最新備份。</li><li>iPad 修改後，再匯出回同一個 iCloud 資料夾。</li></ol><button class="btn danger" onclick="resetData()">清空全部資料</button></div>
 </div></section>
 </main><div class="floating-actions"><button class="btn" onclick="undoLast()">↶ 復原</button><button class="btn primary" onclick="openLessonModal()">＋ 新增</button></div><div class="toast" id="toast"></div><div id="pasteModeBanner" class="paste-mode-banner"><div id="pasteModeMessage">📋 已複製課程</div><div class="small">點哪一天，第一筆就貼到哪一天；其餘課程保留原本日期間距；Esc 取消。</div></div><div id="marqueeBox" class="marquee-box"></div><div id="calendarContextMenu" class="calendar-context-menu"><button onclick="contextCopyLessons()">複製選取課程</button><button onclick="contextPasteLessons()">貼上到這裡</button><button onclick="selectVisibleLessons()">全選目前畫面</button><button class="danger-item" onclick="deleteSelectedLessons();hideCalendarContextMenu()">刪除選取課程</button><button onclick="hideCalendarContextMenu()">取消</button></div>
+
+<div id="courseDrawerBackdrop" class="course-drawer-backdrop" onclick="closeCourseDrawer()"></div>
+<aside id="courseDrawer" class="course-drawer" aria-hidden="true" aria-label="課程詳細資料">
+  <div class="course-drawer-head">
+    <div>
+      <div class="course-drawer-kicker">Course details</div>
+      <h2 id="courseDrawerTitle" class="course-drawer-title">課程</h2>
+      <div id="courseDrawerSubtitle" class="course-drawer-subtitle"></div>
+    </div>
+    <button type="button" class="course-drawer-close" onclick="closeCourseDrawer()" aria-label="關閉">×</button>
+  </div>
+  <div id="courseDrawerBody" class="course-drawer-body"></div>
+  <div class="course-drawer-footer">
+    <button type="button" class="btn" onclick="closeCourseDrawer()">關閉</button>
+    <button type="button" class="btn primary" id="courseDrawerEditBtn">編輯課程</button>
+  </div>
+</aside>
+
 <div class="modal-backdrop" id="lessonModal"><div class="modal"><div class="modal-head"><h2>新增／修改課程</h2><button onclick="closeLessonModal()">×</button></div><input type="hidden" id="lessonId"><label>日期</label><input id="lessonDate" type="date"><div class="grid"><div class="col-6"><label>開始時間</label><input id="startTime" type="time" step="300"></div><div class="col-6"><label>結束時間</label><input id="endTime" type="time" step="300"></div></div><label>學生</label><div class="student-select-row"><select id="lessonStudent" onchange="handleLessonStudentChange()"></select><button type="button" class="btn" onclick="toggleQuickStudent(true)">＋ 新增學生</button></div><div id="quickStudentBox" class="quick-student-box hidden"><b>快速新增學生</b><div class="grid"><div class="col-6"><label>學生姓名 *</label><input id="quickStudentName" placeholder="必填"></div><div class="col-6"><label>家長姓名</label><input id="quickParentName"></div><div class="col-6"><label>聯絡方式</label><input id="quickParentContact"></div><div class="col-6"><label>到府地址</label><input id="quickHomeAddress" placeholder="選到府時自動帶入"></div><div class="col-6"><label>課程類型</label><select id="quickCourseType"><option>1對1</option><option>1對4</option><option>團班</option><option>安親</option></select></div><div class="col-6"><label>收費方式</label><select id="quickBilling"><option value="hour">每小時</option><option value="lesson">每堂</option><option value="month">月費</option></select></div><div class="col-6"><label>單價</label><input id="quickRate" type="number" inputmode="numeric"></div></div><div class="quick-student-actions"><button type="button" class="btn primary" onclick="saveQuickStudent()">儲存並選取</button><button type="button" class="btn" onclick="toggleQuickStudent(false)">取消</button></div></div><label>主要老師</label><select id="lessonTeacher" onchange="syncCoTeacherOptions()"></select><div id="coTeacherWrap" class="co-teacher-wrap hidden"><b>共同授課老師（僅限團班）</b><div class="small" style="margin:4px 0 8px">夏令營或團班可勾選多位老師；主要老師也會自動計入。</div><div id="coTeacherChecks" class="teacher-checks"></div></div><label>課程名稱／班別</label><input id="lessonTitle" placeholder="例如：SC A班"><div id="lessonCampIdWrap" class="hidden"><label>營隊代碼（同一營隊不同班請填完全相同，例如 SC）</label><input id="lessonCampId" placeholder="例如：SC"><div class="small">只有團班使用；相同營隊代碼、日期與時段可共用老師；每位老師各自正常計薪，同一位老師跨多班不重複累加。</div></div><div class="grid"><div class="col-6"><label>上課地點</label><select id="lessonLocation" onchange="handleLocationChange()"><option value="河西一路">河西一路</option><option value="美術東四路">美術東四路</option><option value="到府">到府</option><option value="線上課">線上課</option></select></div><div class="col-6"><label>教室</label><input id="lessonRoom" placeholder="例如：教室 1"></div></div><div id="lessonAddressWrap" class="address-wrap hidden"><label>到府地址</label><input id="lessonAddress" placeholder="可自動帶入學生資料的地址"><div id="lessonMapLinkWrap" class="small" style="margin-top:6px"></div></div><div class="grid"><div class="col-6"><label>付款狀態</label><select id="paymentStatus"><option value="unpaid">未繳</option><option value="paid">已繳</option><option value="waived">免收</option></select></div></div><label>狀態</label><select id="lessonStatus"><option>已上課</option><option>未上課</option><option>學生請假</option><option>老師請假</option><option>補課</option><option>取消</option><option>停課</option></select><label>是否向學生收費</label><select id="chargeStudent"><option value="yes">是</option><option value="no">否</option></select><label>是否計入老師薪資</label><select id="payTeacher"><option value="yes">是</option><option value="no">否</option></select><label>備註</label><textarea id="lessonNote"></textarea><div class="grid"><div class="col-6"><label>重複排課</label><select id="repeatMode"><option value="none">不重複</option><option value="weekly">每週</option></select></div><div class="col-6"><label>重複到</label><input id="repeatUntil" type="date"></div></div><div id="seriesScopeWrap" style="display:none"><label>系列課程修改範圍</label><select id="seriesScope"><option value="one">只修改這一堂</option><option value="future">修改這堂及之後</option><option value="all">修改整個系列</option></select></div><br><button class="btn primary" onclick="saveLesson()">儲存課程</button> <button class="btn danger" id="modalDeleteBtn" onclick="deleteCurrentLesson()" style="display:none">刪除</button></div></div>
 
 <div class="modal-backdrop" id="teacherReportModal"><div class="modal"><div class="modal-head"><h2>課程回報</h2><button type="button" id="closeTeacherReportModal">×</button></div><input type="hidden" id="teacherReportLessonId"><div id="teacherReportLessonInfo" class="hint"></div><label>上課狀態</label><div class="report-status-grid"><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="completed">已完成</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="student_leave">學生請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="teacher_leave">老師請假</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="no_show">缺席（No Show）</label><label class="report-status-option"><input type="radio" name="teacherReportStatus" value="makeup_completed">補課完成</label></div><label>今日上課內容</label><textarea id="teacherReportContent" placeholder="例如：Flyers Unit 8、過去式、Speaking practice"></textarea><label>家庭作業</label><textarea id="teacherReportHomework" placeholder="例如：Workbook P.42、背 Unit 8 單字"></textarea><label>其他備註</label><textarea id="teacherReportNote" placeholder="例如：學生今天專注度、需要加強的內容"></textarea><br><button type="button" class="btn primary" id="saveTeacherReportBtn">儲存回報</button> <button type="button" class="btn" id="cancelTeacherReportBtn">取消</button><div class="small" style="margin-top:10px">系統會自動記錄回報時間與登入老師。</div></div></div>
@@ -1257,7 +1309,51 @@ function conflictDetail(o,ignore=''){
     if(o.room&&l.room===o.room&&locationLabel(l)===locationLabel(o))return{type:'教室',name:locationLabel(o)+' '+o.room,lesson:l};
   }
   return null;
-}function hasConflict(o,ignore=''){const c=conflictDetail(o,ignore);return c?c.type:''}function deleteCurrentLesson(){const id=$('lessonId').value;if(id&&confirm('確定刪除這堂課？')){snapshot();const old=db.lessons.find(x=>x.id===id);db.lessons=db.lessons.filter(x=>x.id!==id);if(old)logChange('刪除課程',null,old);closeLessonModal();saveDB()}}function editLesson(id){openLessonModal(todayStr(),'16:00',id)}function addMinutes(t,m){let[h,mi]=t.split(':').map(Number),n=h*60+mi+m;return `${String(Math.floor(n/60)%24).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}function snapTimeTo5(t){if(!t)return t;const[h,m]=t.split(':').map(Number),n=Math.max(0,Math.min(1435,Math.round((h*60+m)/5)*5));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
+}function hasConflict(o,ignore=''){const c=conflictDetail(o,ignore);return c?c.type:''}function deleteCurrentLesson(){const id=$('lessonId').value;if(id&&confirm('確定刪除這堂課？')){snapshot();const old=db.lessons.find(x=>x.id===id);db.lessons=db.lessons.filter(x=>x.id!==id);if(old)logChange('刪除課程',null,old);closeLessonModal();saveDB()}}
+let activeCourseDrawerId='';
+function courseDrawerStatusClass(status){
+  if(status==='已上課')return 'status-complete';
+  if(status==='補課')return 'status-makeup';
+  if(status==='學生請假'||status==='老師請假')return 'status-leave';
+  if(status==='取消'||status==='停課')return 'status-cancel';
+  return 'status-pending';
+}
+function formatCourseDrawerDate(date){
+  try{return new Date(date+'T00:00:00').toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'})}catch{return date||'—'}
+}
+function openCourseDrawer(id){
+  const l=db.lessons.find(x=>x.id===id);if(!l)return;
+  activeCourseDrawerId=id;
+  const s=student(l.studentId),teachers=lessonTeacherNames(l)||'未指定老師';
+  const place=l.location==='到府'?(l.address||'到府'):l.location==='線上課'?'線上課':`${locationLabel(l)}${l.room?'・'+l.room:''}`;
+  const payment=l.paymentStatus==='paid'?'已繳':l.paymentStatus==='waived'?'免收':'未繳';
+  $('courseDrawerTitle').textContent=s.name||l.title||'課程';
+  $('courseDrawerSubtitle').textContent=`${formatCourseDrawerDate(l.date)}・${l.start}–${l.end}`;
+  $('courseDrawerBody').innerHTML=`
+    <div class="course-drawer-status-row">
+      <span class="course-detail-badge ${courseDrawerStatusClass(l.status)}">${esc(l.status||'未上課')}</span>
+      <span class="course-detail-badge ${l.paymentStatus==='paid'||l.paymentStatus==='waived'?'payment-paid':'payment-unpaid'}">${payment}</span>
+    </div>
+    <div class="course-detail-grid">
+      <div class="course-detail-item"><div class="course-detail-label">上課時間</div><div class="course-detail-value">${esc(l.start)}–${esc(l.end)}<br>${hours(l.start,l.end)} 小時</div></div>
+      <div class="course-detail-item"><div class="course-detail-label">課程／班別</div><div class="course-detail-value">${esc(l.title||s.courseType||'一般課程')}</div></div>
+      <div class="course-detail-item wide"><div class="course-detail-label">授課老師</div><div class="course-detail-value">${esc(teachers)}</div></div>
+      <div class="course-detail-item wide"><div class="course-detail-label">上課地點</div><div class="course-detail-value">${esc(place||'未指定')}</div></div>
+      <div class="course-detail-item"><div class="course-detail-label">學生收費</div><div class="course-detail-value">${l.chargeStudent==='no'?'不收費':money(lessonCharge(l))}</div></div>
+      <div class="course-detail-item"><div class="course-detail-label">老師薪資</div><div class="course-detail-value">${l.payTeacher==='no'?'不計薪':money(lessonPay(l))}</div></div>
+    </div>
+    ${l.teacherReportContent||l.teacherReportHomework||l.teacherReportNote?`<div class="course-detail-section-title">老師課堂回報</div><div class="course-detail-note">${l.teacherReportContent?`<b>課程內容</b>\n${esc(l.teacherReportContent)}\n\n`:''}${l.teacherReportHomework?`<b>家庭作業</b>\n${esc(l.teacherReportHomework)}\n\n`:''}${l.teacherReportNote?`<b>老師備註</b>\n${esc(l.teacherReportNote)}`:''}</div>`:''}
+    <div class="course-detail-section-title">課程備註</div>
+    <div class="course-detail-note">${esc(l.note||'目前沒有備註。')}</div>`;
+  $('courseDrawerEditBtn').onclick=()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();openLessonModal(todayStr(),'16:00',lessonId)};
+  $('courseDrawerBackdrop').classList.add('show');$('courseDrawer').classList.add('show');$('courseDrawer').setAttribute('aria-hidden','false');document.body.classList.add('course-drawer-open');
+}
+function closeCourseDrawer(){
+  $('courseDrawerBackdrop')?.classList.remove('show');$('courseDrawer')?.classList.remove('show');$('courseDrawer')?.setAttribute('aria-hidden','true');document.body.classList.remove('course-drawer-open');activeCourseDrawerId='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('courseDrawer')?.classList.contains('show')){e.preventDefault();closeCourseDrawer()}},true);
+
+function editLesson(id){openCourseDrawer(id)}function addMinutes(t,m){let[h,mi]=t.split(':').map(Number),n=h*60+mi+m;return `${String(Math.floor(n/60)%24).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}function snapTimeTo5(t){if(!t)return t;const[h,m]=t.split(':').map(Number),n=Math.max(0,Math.min(1435,Math.round((h*60+m)/5)*5));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
 function renderDashboard(){const m=monthNow(),ls=db.lessons.filter(l=>l.date.startsWith(m));$('mStudents').textContent=db.students.length;$('mTeachers').textContent=db.teachers.length;$('mLessons').textContent=ls.length;$('mRevenue').textContent=money(ls.reduce((a,l)=>a+lessonCharge(l),0));$('mUnpaid').textContent=money(ls.filter(l=>(l.paymentStatus||'unpaid')==='unpaid').reduce((a,l)=>a+lessonCharge(l),0));$('mPayroll').textContent=money(ls.reduce((a,l)=>a+lessonPay(l),0));$('mMakeups').textContent=(db.makeups||[]).filter(x=>x.status==='pending').length;const tod=todayStr(),changes=(db.changes||[]).filter(c=>localDate(new Date(c.at))===tod);$('mChanges').textContent=changes.length;$('todayChanges').innerHTML=changes.length?`<table class="change-table"><thead><tr><th>時間</th><th>類型</th><th>學生／班級</th><th>原日期</th><th>原時間</th><th>新日期</th><th>新時間</th></tr></thead><tbody>${changes.slice(0,100).map(c=>`<tr><td>${new Date(c.at).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</td><td><b>${esc(c.type)}</b></td><td class="student-cell">${esc(student(c.studentId).name)}</td><td class="muted-cell">${esc(c.before?.date||'—')}</td><td>${esc(c.before?.start||'—')}</td><td class="muted-cell">${esc(c.after?.date||'—')}</td><td>${esc(c.after?.start||'—')}</td></tr>`).join('')}</tbody></table>`:'<div class="small" style="padding:12px">今天尚無課表異動。</div>'; $('todayLessons').innerHTML=db.lessons.filter(l=>l.date===tod).sort((a,b)=>a.start.localeCompare(b.start)).map(l=>`<div class="lesson ${hasTeacherOverlap(l)?'teacher-overlap':''}" style="--teacher:${teacher(l.teacherId).color||'#2563eb'};--location-bg:${locationBg(l.location)}" onclick="editLesson('${l.id}')"><b>${l.start}–${l.end}｜${esc(student(l.studentId).name)}</b><span class="meta">${esc(lessonTeacherNames(l))}｜${esc(l.title)}｜📍${esc(locationLabel(l))}${l.location==='到府'&&l.address?' '+esc(l.address):''}｜${esc(l.room||'未指定教室')}｜${l.paymentStatus==='paid'?'已繳':'未繳'}</span></div>`).join('')||'<span class="small">今天沒有課程。</span>'}function renderGlobalSearch(){const q=$('globalSearch').value.trim().toLowerCase();if(!q){$('globalSearchResults').innerHTML='';return}const rows=[];db.lessons.filter(l=>[l.date,l.title,l.room,l.location,l.address,student(l.studentId).name,lessonTeacherNames(l)].join(' ').toLowerCase().includes(q)).slice(0,8).forEach(l=>rows.push(`<button class="btn" style="width:100%;text-align:left;margin:3px 0" onclick="editLesson('${l.id}')">${l.date} ${l.start}｜${esc(student(l.studentId).name)}｜${esc(lessonTeacherNames(l))}</button>`));$('globalSearchResults').innerHTML=rows.join('')||'<span class="small">找不到相符課程</span>'}function lessonCharge(l){const s=student(l.studentId);if(l.chargeStudent!=='yes')return 0;return s.billing==='hour'?s.rate*hours(l.start,l.end):s.rate}function lessonTeacherPay(l,tid){if(l.payTeacher==='no'||!lessonTeacherIds(l).includes(tid))return 0;const camp=effectiveCampId(l);if(camp){const idx=db.lessons.indexOf(l);/* 同一老師若同時掛在同營隊多個班，只計一次該時段；不同老師仍各自完整計薪。 */const duplicate=db.lessons.some((x,i)=>i<idx&&x.payTeacher==='yes'&&sameCampSlot(l,x)&&lessonTeacherIds(x).includes(tid));if(duplicate)return 0}return(+teacher(tid).rate||0)*hours(l.start,l.end)}function lessonPay(l){return lessonTeacherIds(l).reduce((sum,id)=>sum+lessonTeacherPay(l,id),0)}function filteredLessons(){const m=$('lessonMonth').value||monthNow(),s=$('filterStudent').value,t=$('filterTeacher').value;return db.lessons.filter(l=>l.date.startsWith(m)&&(!s||l.studentId===s)&&(!t||lessonTeacherIds(l).includes(t))).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start))}function markMonthLessonsCompleted(){const month=$('lessonMonth').value||monthNow(),targets=db.lessons.filter(l=>l.date.startsWith(month)&&l.status!=='已上課');if(!targets.length)return alert(`${month} 沒有需要修改的課程。`);const statusSummary=targets.reduce((m,l)=>(m[l.status||'未設定']=(m[l.status||'未設定']||0)+1,m),{}),detail=Object.entries(statusSummary).map(([k,v])=>`${k} ${v} 堂`).join('、');if(!confirm(`確定將 ${month} 的 ${targets.length} 堂課全部改成「已上課」？\n\n目前狀態：${detail}\n\n此操作會包含請假、取消及停課課程，但可使用「復原」恢復。`))return;snapshot();createVersion(`${month} 全部改已上課前備份`);for(const l of targets){const before={...l};l.status='已上課';logChange('批次改為已上課',l,before)}saveDB();toast(`已將 ${targets.length} 堂課改為已上課`)}function renderLessons(){$('lessonRows').innerHTML=filteredLessons().map(l=>`<tr class="${hasTeacherOverlap(l)?'teacher-overlap-row':''}"><td>${l.date}（${weekday(l.date)}）</td><td>${l.start}–${l.end}<br><span class="small">${hours(l.start,l.end)} hr</span></td><td><b>${esc(student(l.studentId).name)}</b><br>${esc(lessonTeacherNames(l))}${hasTeacherOverlap(l)?`<br><span class="overlap-badge">⚠ 老師時間重複：${esc(lessonTeacherConflictNames(l).join('、'))}</span>`:''}</td><td>${esc(l.title)}<br><span class="small">📍 ${esc(locationLabel(l))}${l.location==='到府'&&l.address?`<br>${esc(l.address)}`:''}<br>${esc(l.room||'未指定教室')}</span>${l.teacherReportStatus?`<div class="lesson-report-summary"><span class="report-badge ${esc(l.teacherReportStatus)}">${esc(window.teacherReportLabel?.(l.teacherReportStatus)||l.teacherReportStatus)}</span>${l.teacherReportContent?`<br><b>內容：</b>${esc(l.teacherReportContent)}`:''}${l.teacherReportHomework?`<br><b>作業：</b>${esc(l.teacherReportHomework)}`:''}${l.teacherReportNote?`<br><b>備註：</b>${esc(l.teacherReportNote)}`:''}${l.teacherReportUpdatedAt?`<br><span class="small">回報：${new Date(l.teacherReportUpdatedAt).toLocaleString('zh-TW')}｜${esc(l.teacherReportBy||'老師')}</span>`:''}</div>`:''}</td><td class="status-${l.status}">${esc(l.status)}<br><span class="${l.paymentStatus==='paid'?'pill green':'pill red'}">${l.paymentStatus==='paid'?'已繳':'未繳'}</span></td><td>${document.body.classList.contains('teacher-cloud-role')?'—':`收：${money(lessonCharge(l))}<br>薪：${money(lessonPay(l))}`}</td><td><button class="btn" onclick="editLesson('${l.id}')">${document.body.classList.contains('teacher-cloud-role')?'回報':'編輯'}</button></td></tr>`).join('')}
 function calendarFilterState(){return{teacher:$('calendarTeacherFilter')?.value||'',location:$('calendarLocationFilter')?.value||'',student:$('calendarStudentFilter')?.value||'',room:$('calendarRoomFilter')?.value||'',search:($('calendarSearch')?.value||'').trim().toLowerCase()}}
 function lessonMatchesCalendar(l,f=calendarFilterState()){if(f.teacher&&!lessonTeacherIds(l).includes(f.teacher))return false;if(f.location&&locationLabel(l)!==f.location)return false;if(f.student&&l.studentId!==f.student)return false;if(f.room&&(l.room||'')!==f.room)return false;if(f.search){const hay=[l.date,l.start,l.end,l.title,l.room,l.location,l.address,l.status,student(l.studentId).name,student(l.studentId).parent,lessonTeacherNames(l),effectiveCampId(l)].join(' ').toLowerCase();if(!hay.includes(f.search))return false}return true}
