@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-cloud-pwa-backup-v2-1';
+const CACHE_NAME='danbridge-ui-v2-20260717';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
