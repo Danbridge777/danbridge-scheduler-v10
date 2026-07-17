@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v3-1-1-class-focus';
+const CACHE_NAME='danbridge-v3-2-ai-dashboard';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
