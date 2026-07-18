@@ -3885,6 +3885,7 @@ onAuthStateChanged(auth,async user=>{
     const moved=boxState.moved;boxState=null;
     if(moved){
       suppressNextBlankClick=true;
+      window.__danbridgeSuppressBlankCancelUntil=Date.now()+250;
       setTimeout(()=>{suppressNextBlankClick=false},0);
       updateSelectionCount();renderCalendar();
     }
@@ -3896,6 +3897,7 @@ onAuthStateChanged(auth,async user=>{
 <script id="danbridge-v1313-blank-cancel-only">
 (()=>{
   document.addEventListener('click',e=>{
+    if((window.__danbridgeSuppressBlankCancelUntil||0)>Date.now()) return;
     if(!(selectionMode||selectedLessonIds.size)) return;
     if(e.target.closest?.('#calendarCanvas [data-id],#selectionBar,#selectionModeBtn,button,input,select,textarea,a,.calendar-context-menu')) return;
     selectedLessonIds.clear();
