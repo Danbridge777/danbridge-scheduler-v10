@@ -2690,7 +2690,7 @@ function lessonHoverText(l){const s=student(l.studentId),parent=s.parent?`\n家�
 function visibleCalendarRange(){const mode=$('calendarMode').value,d=new Date(($('calendarDate').value||todayStr())+'T00:00:00');if(mode==='week'){const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return{start:localDate(mon),end:localDate(sun),days:7}}const start=new Date(d.getFullYear(),d.getMonth(),1),end=new Date(d.getFullYear(),d.getMonth()+1,0);return{start:localDate(start),end:localDate(end),days:end.getDate()}}
 function minutesOf(t){const[h,m]=String(t||'00:00').split(':').map(Number);return h*60+m}
 function renderCalendarAnalysis(){const box=$('calendarAnalysis');if(!box)return;const r=visibleCalendarRange(),f=calendarFilterState(),ls=db.lessons.filter(l=>l.date>=r.start&&l.date<=r.end&&lessonMatchesCalendar(l,f)&&!['取消','停課'].includes(l.status));const rooms=[...new Set(ls.map(l=>l.room).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));const available=Math.max(1,r.days*14*60);const roomRows=rooms.map(room=>{const mins=ls.filter(l=>l.room===room&&l.location!=='線上課').reduce((a,l)=>a+Math.max(0,minutesOf(l.end)-minutesOf(l.start)),0),pct=Math.min(100,mins/available*100);return{room,mins,pct}}).sort((a,b)=>b.mins-a.mins);const gapRows=[];for(const t of db.teachers){for(let d=new Date(r.start+'T00:00:00'),end=new Date(r.end+'T00:00:00');d<=end;d.setDate(d.getDate()+1)){const ds=localDate(d),arr=ls.filter(l=>l.date===ds&&lessonTeacherIds(l).includes(t.id)).sort((a,b)=>a.start.localeCompare(b.start));for(let i=0;i<arr.length-1;i++){const gap=minutesOf(arr[i+1].start)-minutesOf(arr[i].end);if(gap>=30)gapRows.push({teacher:t.name,date:ds,start:arr[i].end,end:arr[i+1].start,gap})}}}gapRows.sort((a,b)=>b.gap-a.gap||a.date.localeCompare(b.date));box.innerHTML=`<div class="analysis-panel"><h3>教室使用率</h3><div class="small">以目前顯示範圍 08:00–22:00 計算。</div>${roomRows.length?`<table class="analysis-table"><thead><tr><th>教室</th><th>使用時數</th><th>使用率</th></tr></thead><tbody>${roomRows.map(x=>`<tr><td><b>${esc(x.room)}</b></td><td>${fmtHours(x.mins/60)} hr</td><td>${x.pct.toFixed(1)}%<div class="usage-bar"><span style="width:${x.pct}%"></span></div></td></tr>`).join('')}</tbody></table>`:'<div class="small" style="padding:10px 0">目前範圍沒有已指定教室的課程。</div>'}</div><div class="analysis-panel"><h3>老師空堂分析</h3><div class="small">只列出同一天兩堂課之間至少 30 分鐘的空檔。</div><div class="gap-list">${gapRows.length?gapRows.slice(0,100).map(x=>`<div class="gap-item"><b>${esc(x.teacher)}</b>｜${x.date}｜${x.start}–${x.end}<span class="pill red" style="margin-left:6px">${fmtHours(x.gap/60)} hr</span></div>`).join(''):'<div class="small">目前沒有符合條件的空堂。</div>'}</div></div>`}
-function renderCalendar(){setDefaults();const mode=$('calendarMode').value,date=new Date($('calendarDate').value+'T00:00:00'),f=calendarFilterState();if(mode==='month')renderMonth(date,f);else renderWeek(date,f);renderCalendarAnalysis();setTimeout(enableDesktopMarquee,0)}function renderMonth(date,f){const y=date.getFullYear(),m=date.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),offset=(first.getDay()+6)%7,total=Math.ceil((offset+last.getDate())/7)*7;let h='<div class="month-grid">'+['一','二','三','四','五','六','日'].map(x=>`<div class="day-head">週${x}</div>`).join('');for(let i=0;i<total;i++){const d=new Date(y,m,1-offset+i),ds=localDate(d),out=d.getMonth()!==m,ls=db.lessons.filter(l=>l.date===ds&&lessonMatchesCalendar(l,f)).sort((a,b)=>a.start.localeCompare(b.start));h+=`<div class="day-cell ${out?'out':''} ${ds===todayStr()?'today':''}" data-date="${ds}" onclick="cellClick(event,'${ds}')"><div class="day-num"><span>${d.getDate()}</span><button type="button" class="day-add" aria-label="在 ${ds} 新增課程" title="新增課程" onclick="event.stopPropagation();openLessonModal('${ds}')">＋</button></div>${ls.map(lessonCard).join('')}</div>`}h+='</div>';$('calendarCanvas').innerHTML=h;$('calendarTitle').textContent=`${y} 年 ${m+1} 月`;attachDragHandlers()}function lessonCard(l){const t=teacher(l.teacherId),s=student(l.studentId),sel=selectedLessonIds.has(l.id);return `<div class="lesson ${(l.lessonState==='draft'||l.isDraft)?'lesson-draft':''} ${selectionMode?'selectable':''} ${sel?'selected':''} ${hasTeacherOverlap(l)?'teacher-overlap':''} ${calendarFilterState().search?'calendar-search-hit':''}" title="${esc(lessonHoverText(l))}" draggable="${selectionMode?'false':'true'}" data-id="${l.id}" style="--teacher:${t.color||'#2563eb'};--location-bg:${locationBg(l.location)}"><b>${l.isDraft?'<span class=\"draft-tag\">草稿</span> ':''}${l.start}–${l.end}｜${esc(s.name)}</b><span class="meta">${esc(lessonTeacherNames(l))}${effectiveCampId(l)?`｜營隊:${esc(effectiveCampId(l))}`:''}｜📍${esc(locationLabel(l))}${l.location==='到府'&&l.address?' '+esc(l.address):''}｜${esc(l.title||'')}｜${esc(l.room||'')}｜${l.paymentStatus==='paid'?'✓已繳':'未繳'}${hasTeacherOverlap(l)?`｜⚠老師重複：${esc(lessonTeacherConflictNames(l).join('、'))}`:''}</span>${l.teacherReportStatus?`<div class="lesson-report-summary"><span class="report-badge ${esc(l.teacherReportStatus)}">${esc(window.teacherReportLabel?.(l.teacherReportStatus)||l.teacherReportStatus)}</span>${l.teacherReportContent?`<br>內容：${esc(l.teacherReportContent)}`:''}${l.teacherReportHomework?`<br>作業：${esc(l.teacherReportHomework)}`:''}</div>`:''}</div>`}function renderWeek(date,f){const day=date.getDay(),mon=new Date(date);mon.setDate(date.getDate()-((day+6)%7));const days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d}),startHour=8,endHour=22,totalSlots=(endHour-startHour)*12;let h='<div class="week-grid"><div class="week-head" style="grid-column:1;grid-row:1">時間</div>'+days.map((d,i)=>`<div class="week-head" style="grid-column:${i+2};grid-row:1">${d.getMonth()+1}/${d.getDate()} 週${weekday(localDate(d))}</div>`).join('');for(let slot=0;slot<totalSlots;slot++){const totalMin=startHour*60+slot*5,hr=Math.floor(totalMin/60),min=totalMin%60,time=`${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`,row=slot+2,isHour=min===0,isHalf=min===30,label=time;h+=`<div class="time-label ${isHour?'hour':isHalf?'half-hour':''}" style="grid-column:1;grid-row:${row}">${label}</div>`;for(let i=0;i<days.length;i++){const ds=localDate(days[i]),lineClass=isHour?'full-hour':isHalf?'half-hour':'';h+=`<div class="time-slot ${lineClass}" style="grid-column:${i+2};grid-row:${row}" data-date="${ds}" data-time="${time}" onclick="weekCellClick(event,'${ds}','${time}')"></div>`}}for(let i=0;i<days.length;i++){const ds=localDate(days[i]),ls=db.lessons.filter(l=>l.date===ds&&lessonMatchesCalendar(l,f)).sort((a,b)=>a.start.localeCompare(b.start));for(const l of ls){const [sh,sm]=l.start.split(':').map(Number),[eh,em]=l.end.split(':').map(Number),startMin=sh*60+sm,endMin=eh*60+em,clampedStart=Math.max(startHour*60,Math.min(endHour*60-5,startMin)),clampedEnd=Math.max(clampedStart+5,Math.min(endHour*60,endMin)),startSlot=Math.round((clampedStart-startHour*60)/5),span=Math.max(1,Math.round((clampedEnd-clampedStart)/5)),rowStart=startSlot+2,rowEnd=Math.min(totalSlots+2,rowStart+span);h+=`<div class="week-event ${(l.lessonState==='draft'||l.isDraft)?'lesson-draft':''} ${selectionMode?'selectable':''} ${selectedLessonIds.has(l.id)?'selected':''} ${hasTeacherOverlap(l)?'teacher-overlap':''} ${calendarFilterState().search?'calendar-search-hit':''}" title="${esc(lessonHoverText(l))}" draggable="${selectionMode?'false':'true'}" data-id="${l.id}" style="grid-column:${i+2};grid-row:${rowStart}/${rowEnd};--teacher:${teacher(l.teacherId).color||'#2563eb'};--location-bg:${locationBg(l.location)}"><b>${l.isDraft?'<span class=\"draft-tag\">草稿</span> ':''}${l.start}–${l.end} ${esc(student(l.studentId).name)}</b><span class="week-event-meta">${esc(lessonTeacherNames(l))}${effectiveCampId(l)?`｜營隊:${esc(effectiveCampId(l))}`:''}｜📍${esc(locationLabel(l))}${hasTeacherOverlap(l)?`｜⚠${esc(lessonTeacherConflictNames(l).join('、'))}`:''}</span></div>`}}h+='</div>';$('calendarCanvas').innerHTML=h;$('calendarTitle').textContent=`${localDate(days[0])} ～ ${localDate(days[6])}｜每 5 分鐘一格`;attachDragHandlers()}
+function renderCalendar(){setDefaults();const mode=$('calendarMode').value,date=new Date($('calendarDate').value+'T00:00:00'),f=calendarFilterState();if(mode==='month')renderMonth(date,f);else renderWeek(date,f);renderCalendarAnalysis();setTimeout(enableDesktopMarquee,0)}function renderMonth(date,f){const y=date.getFullYear(),m=date.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),offset=(first.getDay()+6)%7,total=Math.ceil((offset+last.getDate())/7)*7;let h='<div class="month-grid">'+['一','二','三','四','五','六','日'].map(x=>`<div class="day-head">週${x}</div>`).join('');for(let i=0;i<total;i++){const d=new Date(y,m,1-offset+i),ds=localDate(d),out=d.getMonth()!==m,ls=db.lessons.filter(l=>l.date===ds&&lessonMatchesCalendar(l,f)).sort((a,b)=>a.start.localeCompare(b.start));h+=`<div class="day-cell ${out?'out':''} ${ds===todayStr()?'today':''}" data-date="${ds}" onclick="cellClick(event,'${ds}')"><div class="day-num"><span>${d.getDate()}</span><button type="button" class="day-add" aria-label="在 ${ds} 新增課程" title="新增課程" onclick="event.stopPropagation();openLessonModal('${ds}')">＋</button></div>${ls.map(lessonCard).join('')}</div>`}h+='</div>';$('calendarCanvas').innerHTML=h;$('calendarTitle').textContent=`${y} 年 ${m+1} 月`;attachDragHandlers()}function lessonCard(l){const t=teacher(l.teacherId),s=student(l.studentId),sel=selectedLessonIds.has(l.id);return `<div class="lesson ${(l.lessonState==='draft'||l.isDraft)?'lesson-draft':''} ${sel?'selected':''} ${hasTeacherOverlap(l)?'teacher-overlap':''} ${calendarFilterState().search?'calendar-search-hit':''}" title="${esc(lessonHoverText(l))}" draggable="${selectionMode?'false':'true'}" data-id="${l.id}" style="--teacher:${t.color||'#2563eb'};--location-bg:${locationBg(l.location)}"><b>${l.isDraft?'<span class=\"draft-tag\">草稿</span> ':''}${l.start}–${l.end}｜${esc(s.name)}</b><span class="meta">${esc(lessonTeacherNames(l))}${effectiveCampId(l)?`｜營隊:${esc(effectiveCampId(l))}`:''}｜📍${esc(locationLabel(l))}${l.location==='到府'&&l.address?' '+esc(l.address):''}｜${esc(l.title||'')}｜${esc(l.room||'')}｜${l.paymentStatus==='paid'?'✓已繳':'未繳'}${hasTeacherOverlap(l)?`｜⚠老師重複：${esc(lessonTeacherConflictNames(l).join('、'))}`:''}</span>${l.teacherReportStatus?`<div class="lesson-report-summary"><span class="report-badge ${esc(l.teacherReportStatus)}">${esc(window.teacherReportLabel?.(l.teacherReportStatus)||l.teacherReportStatus)}</span>${l.teacherReportContent?`<br>內容：${esc(l.teacherReportContent)}`:''}${l.teacherReportHomework?`<br>作業：${esc(l.teacherReportHomework)}`:''}</div>`:''}</div>`}function renderWeek(date,f){const day=date.getDay(),mon=new Date(date);mon.setDate(date.getDate()-((day+6)%7));const days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d}),startHour=8,endHour=22,totalSlots=(endHour-startHour)*12;let h='<div class="week-grid"><div class="week-head" style="grid-column:1;grid-row:1">時間</div>'+days.map((d,i)=>`<div class="week-head" style="grid-column:${i+2};grid-row:1">${d.getMonth()+1}/${d.getDate()} 週${weekday(localDate(d))}</div>`).join('');for(let slot=0;slot<totalSlots;slot++){const totalMin=startHour*60+slot*5,hr=Math.floor(totalMin/60),min=totalMin%60,time=`${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`,row=slot+2,isHour=min===0,isHalf=min===30,label=time;h+=`<div class="time-label ${isHour?'hour':isHalf?'half-hour':''}" style="grid-column:1;grid-row:${row}">${label}</div>`;for(let i=0;i<days.length;i++){const ds=localDate(days[i]),lineClass=isHour?'full-hour':isHalf?'half-hour':'';h+=`<div class="time-slot ${lineClass}" style="grid-column:${i+2};grid-row:${row}" data-date="${ds}" data-time="${time}" onclick="weekCellClick(event,'${ds}','${time}')"></div>`}}for(let i=0;i<days.length;i++){const ds=localDate(days[i]),ls=db.lessons.filter(l=>l.date===ds&&lessonMatchesCalendar(l,f)).sort((a,b)=>a.start.localeCompare(b.start));for(const l of ls){const [sh,sm]=l.start.split(':').map(Number),[eh,em]=l.end.split(':').map(Number),startMin=sh*60+sm,endMin=eh*60+em,clampedStart=Math.max(startHour*60,Math.min(endHour*60-5,startMin)),clampedEnd=Math.max(clampedStart+5,Math.min(endHour*60,endMin)),startSlot=Math.round((clampedStart-startHour*60)/5),span=Math.max(1,Math.round((clampedEnd-clampedStart)/5)),rowStart=startSlot+2,rowEnd=Math.min(totalSlots+2,rowStart+span);h+=`<div class="week-event ${(l.lessonState==='draft'||l.isDraft)?'lesson-draft':''} ${selectedLessonIds.has(l.id)?'selected':''} ${hasTeacherOverlap(l)?'teacher-overlap':''} ${calendarFilterState().search?'calendar-search-hit':''}" title="${esc(lessonHoverText(l))}" draggable="${selectionMode?'false':'true'}" data-id="${l.id}" style="grid-column:${i+2};grid-row:${rowStart}/${rowEnd};--teacher:${teacher(l.teacherId).color||'#2563eb'};--location-bg:${locationBg(l.location)}"><b>${l.isDraft?'<span class=\"draft-tag\">草稿</span> ':''}${l.start}–${l.end} ${esc(student(l.studentId).name)}</b><span class="week-event-meta">${esc(lessonTeacherNames(l))}${effectiveCampId(l)?`｜營隊:${esc(effectiveCampId(l))}`:''}｜📍${esc(locationLabel(l))}${hasTeacherOverlap(l)?`｜⚠${esc(lessonTeacherConflictNames(l).join('、'))}`:''}</span></div>`}}h+='</div>';$('calendarCanvas').innerHTML=h;$('calendarTitle').textContent=`${localDate(days[0])} ～ ${localDate(days[6])}｜每 5 分鐘一格`;attachDragHandlers()}
 /* V13.11 restored calendar multi-selection controls */
 function updateSelectionCount(){
   const count=selectedLessonIds.size;
@@ -3831,87 +3831,133 @@ onAuthStateChanged(auth,async user=>{
 })();
 </script>
 
-<script id="danbridge-v1311-selection-recovery">
+<script id="danbridge-v1315-clean-marquee-selection">
 (()=>{
-  let boxState=null;
-  let suppressNextBlankClick=false;
-  document.addEventListener('click',e=>{
-    const item=e.target.closest?.('#calendarCanvas [data-id]');
-    if(item&&(e.ctrlKey||e.metaKey)){
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-      selectionMode=true;
-      if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);else selectedLessonIds.add(item.dataset.id);
-      updateSelectionCount();renderCalendar();
-      return;
-    }
-    const canvas=e.target.closest?.('#calendarCanvas');
-    const isBlankCalendarClick=canvas&&!e.target.closest?.('[data-id],button,input,select,textarea,a');
-    if(isBlankCalendarClick&&(selectionMode||selectedLessonIds.size)){
-      if(suppressNextBlankClick){suppressNextBlankClick=false;return;}
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-      selectedLessonIds.clear();
-      selectionMode=false;
-      updateSelectionCount();
-      renderCalendar();
-    }
-  },true);
-  document.addEventListener('pointerdown',e=>{
-    const canvas=e.target.closest?.('#calendarCanvas');
-    if(!canvas||e.pointerType==='touch'||e.button!==0||e.target.closest('button,input,select,textarea,[data-id]'))return;
-    boxState={x:e.clientX,y:e.clientY,id:e.pointerId,moved:false};
-    selectionMode=true;updateSelectionCount();
-    const box=document.getElementById('marqueeBox');
-    if(box){box.style.cssText+=`;display:block;left:${e.clientX}px;top:${e.clientY}px;width:0;height:0`}
-    canvas.classList.add('marquee-active');
-    try{canvas.setPointerCapture(e.pointerId)}catch{}
-    e.preventDefault();
-  },true);
-  document.addEventListener('pointermove',e=>{
-    if(!boxState||e.pointerId!==boxState.id)return;
-    const x=Math.min(boxState.x,e.clientX),y=Math.min(boxState.y,e.clientY),w=Math.abs(e.clientX-boxState.x),h=Math.abs(e.clientY-boxState.y);
-    if(w>4||h>4)boxState.moved=true;
-    const box=document.getElementById('marqueeBox');if(box){box.style.left=x+'px';box.style.top=y+'px';box.style.width=w+'px';box.style.height=h+'px'}
-    const sel={left:x,top:y,right:x+w,bottom:y+h};
-    document.querySelectorAll('#calendarCanvas [data-id]').forEach(el=>{const r=el.getBoundingClientRect();el.classList.toggle('marquee-hit',!(r.right<sel.left||r.left>sel.right||r.bottom<sel.top||r.top>sel.bottom))});
-    e.preventDefault();
-  },true);
-  document.addEventListener('pointerup',e=>{
-    if(!boxState||e.pointerId!==boxState.id)return;
-    const hits=[...document.querySelectorAll('#calendarCanvas [data-id].marquee-hit')];
-    if(boxState.moved)hits.forEach(el=>selectedLessonIds.add(el.dataset.id));
-    document.querySelectorAll('#calendarCanvas .marquee-hit').forEach(el=>el.classList.remove('marquee-hit'));
-    const box=document.getElementById('marqueeBox');if(box)box.style.display='none';
-    document.getElementById('calendarCanvas')?.classList.remove('marquee-active');
-    const moved=boxState.moved;boxState=null;
-    if(moved){
-      suppressNextBlankClick=true;
-      window.__danbridgeSuppressBlankCancelUntil=Date.now()+250;
-      setTimeout(()=>{suppressNextBlankClick=false},0);
-      updateSelectionCount();renderCalendar();
-    }
-  },true);
-})();
-</script>
+  let state=null;
+  let suppressClickUntil=0;
 
-
-<script id="danbridge-v1313-blank-cancel-only">
-(()=>{
-  document.addEventListener('click',e=>{
-    if((window.__danbridgeSuppressBlankCancelUntil||0)>Date.now()) return;
-    if(!(selectionMode||selectedLessonIds.size)) return;
-    if(e.target.closest?.('#calendarCanvas [data-id],#selectionBar,#selectionModeBtn,button,input,select,textarea,a,.calendar-context-menu')) return;
+  function cancelMultiSelection(){
     selectedLessonIds.clear();
     selectionMode=false;
-    document.querySelectorAll('#calendarCanvas .selected,.calendarCanvas .selectable').forEach(el=>{
-      el.classList.remove('selected','selectable');
+    updateSelectionCount();
+    renderCalendar();
+  }
+
+  function bindCleanMarquee(){
+    const oldCanvas=document.getElementById('calendarCanvas');
+    if(!oldCanvas)return;
+
+    // Replace the canvas node once to remove all previously duplicated marquee listeners.
+    const canvas=oldCanvas.cloneNode(true);
+    oldCanvas.replaceWith(canvas);
+    attachDragHandlers();
+
+    canvas.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      const item=e.target.closest('[data-id]');
+      if(item&&!selectedLessonIds.has(item.dataset.id)){
+        selectedLessonIds.clear();
+        selectedLessonIds.add(item.dataset.id);
+        selectionMode=true;
+        updateSelectionCount();
+        renderCalendar();
+        setTimeout(()=>showCalendarContextMenu(e.clientX,e.clientY,{
+          date:e.target.closest('[data-date]')?.dataset.date||db.lessons.find(l=>l.id===item.dataset.id)?.date||'',
+          time:e.target.closest('[data-time]')?.dataset.time||''
+        }),0);
+        return;
+      }
+      const cell=e.target.closest('[data-date]');
+      showCalendarContextMenu(e.clientX,e.clientY,{date:cell?.dataset.date||'',time:cell?.dataset.time||''});
     });
-    const bar=document.getElementById('selectionBar');
-    const btn=document.getElementById('selectionModeBtn');
-    const count=document.getElementById('selectionCount');
-    if(bar) bar.classList.add('hidden');
-    if(btn) btn.textContent='部分選取';
-    if(count) count.textContent='已選 0 堂';
-  },true);
+
+    canvas.addEventListener('pointerdown',e=>{
+      if(pasteClickMode||e.pointerType==='touch'||e.button!==0)return;
+      if(e.target.closest('[data-id],button,input,select,textarea,a'))return;
+      state={
+        startX:e.clientX,
+        startY:e.clientY,
+        pointerId:e.pointerId,
+        moved:false,
+        additive:e.ctrlKey||e.metaKey
+      };
+      const box=document.getElementById('marqueeBox');
+      if(box){
+        box.style.display='block';
+        box.style.left=e.clientX+'px';
+        box.style.top=e.clientY+'px';
+        box.style.width='0px';
+        box.style.height='0px';
+      }
+      canvas.classList.add('marquee-active');
+      try{canvas.setPointerCapture(e.pointerId)}catch{}
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('pointermove',e=>{
+      if(!state||e.pointerId!==state.pointerId)return;
+      const x=Math.min(state.startX,e.clientX);
+      const y=Math.min(state.startY,e.clientY);
+      const w=Math.abs(e.clientX-state.startX);
+      const h=Math.abs(e.clientY-state.startY);
+      if(w>4||h>4)state.moved=true;
+      const box=document.getElementById('marqueeBox');
+      if(box){box.style.left=x+'px';box.style.top=y+'px';box.style.width=w+'px';box.style.height=h+'px'}
+      const area={left:x,top:y,right:x+w,bottom:y+h};
+      canvas.querySelectorAll('[data-id]').forEach(el=>{
+        const r=el.getBoundingClientRect();
+        const hit=r.right>=area.left&&r.left<=area.right&&r.bottom>=area.top&&r.top<=area.bottom;
+        el.classList.toggle('marquee-hit',hit);
+      });
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('pointerup',e=>{
+      if(!state||e.pointerId!==state.pointerId)return;
+      const moved=state.moved;
+      const additive=state.additive;
+      const hits=[...canvas.querySelectorAll('[data-id].marquee-hit')].map(el=>el.dataset.id);
+      canvas.querySelectorAll('.marquee-hit').forEach(el=>el.classList.remove('marquee-hit'));
+      const box=document.getElementById('marqueeBox');
+      if(box)box.style.display='none';
+      canvas.classList.remove('marquee-active');
+      state=null;
+
+      if(moved){
+        if(!additive)selectedLessonIds.clear();
+        hits.forEach(id=>selectedLessonIds.add(id));
+        selectionMode=selectedLessonIds.size>0;
+        suppressClickUntil=Date.now()+300;
+        updateSelectionCount();
+        renderCalendar();
+      }
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('click',e=>{
+      if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();return}
+      const item=e.target.closest('[data-id]');
+      if(item&&(e.ctrlKey||e.metaKey)){
+        e.preventDefault();e.stopPropagation();
+        selectionMode=true;
+        if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);
+        else selectedLessonIds.add(item.dataset.id);
+        selectionMode=selectedLessonIds.size>0;
+        updateSelectionCount();
+        renderCalendar();
+        return;
+      }
+      const blank=!e.target.closest('[data-id],button,input,select,textarea,a');
+      if(blank&&(selectionMode||selectedLessonIds.size)){
+        e.preventDefault();e.stopPropagation();
+        cancelMultiSelection();
+      }
+    },true);
+  }
+
+  // Replace the legacy binder globally, then rebuild the current calendar once.
+  window.enableDesktopMarquee=bindCleanMarquee;
+  setTimeout(()=>{renderCalendar();},0);
 })();
 </script>
 </body></html>
