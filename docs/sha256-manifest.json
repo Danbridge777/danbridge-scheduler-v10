@@ -1,60 +1,241 @@
 {
-  ".gitignore": "23e757c257fe660f1338892682603ef8ea942d7d2d6905b738b7959ec7c39808",
-  "CHANGELOG.md": "0face0a36d5f74f8315609aa3938944d182d1cba0aab608386f18ba35e37dcc3",
-  "README.md": "eb88725feb07ac2b9d4be3d70a66bed32e203eddfc8a1a93a5da876bf4591f1e",
-  "TEST_CHECKLIST.md": "d4b5ef9fcdc9c6ae07881443d580dcd48afe1c453445159aa6a3e9274a0c17b8",
-  "css/calendar/16-danbridge-v38-drag-ux.css": "03f07d972ccd5e432cea2110579986f7603c82149175ffa56e06a91b9f37acbe",
-  "css/calendar/24-danbridge-v134-calendar-mobile-overflow.css": "fb2343e9b13348ecf16ecdd184b1e1944d447bdb8512fd0510b771b985411f2f",
-  "css/calendar/25-danbridge-v135-ipad-toolbar-centering.css": "85635413f6bc464dc7b44b0efaaed9c49bfca1a26b3ba49a0778334e892cd532",
-  "css/calendar/26-danbridge-v136-ipad-calendar-hard-fix.css": "d10fed387f278343c9007b85f774cbf138d0a60332665b19fd2a953558c284f8",
-  "css/calendar/27-danbridge-v137-ipad-toolbar-runtime-fix.css": "74a4195d03a9ad5dbef965019d2e0bb0275bc33fd47787f50c10bbef1aa6425a",
-  "css/core/00-base.css": "ba220ae30a766c82904e1d7987be06fdda1b87ec0324118ee0169ec99d2f8964",
-  "css/core/02-danbridge-ui-v21.css": "3f17f02deb98a0fbb84465817e572191e077b269c47873d6837c1e312666ec2f",
-  "css/core/03-danbridge-ui-v2.css": "99caa0b10f9ad6c7c0b6d53c776eb3ae1f656cf9c700ca3f386f7bab6bddc958",
-  "css/core/04-danbridge-ui-v23.css": "e4b9a3fddd36b1229d29e3a128f0a562f6f6ddbccbd0bc2b9d963f1b439be760",
-  "css/core/05-danbridge-ui-v24.css": "a9435c51afb000a6c515599f16d3beb3ef5928b5f203b4b62ac2c403b421e9b5",
-  "css/core/06-danbridge-ui-v25.css": "f64caff2d69023caf5514b5bdf96d31c84959e50e4273dec66673c3ab76533f0",
-  "css/core/07-danbridge-ui-v26.css": "9c1a8a92879b6b24ac73ee32035e3b2f349d3b341c43d6a6223c7b239d3afdfd",
-  "css/core/08-ui-block.css": "f3cd6d5cbe219a5a22e1dd31e420d745e1714a95134d9896c3370f12a64dc32e",
-  "css/core/09-ui-block.css": "27b1ffb095d4e763a19a7a1383be5d6417e13f945a755be9b932660468fef379",
-  "css/core/10-ui-block.css": "eb72e429b77a81cc1b426b58387b3631dfcd0c7d6ee0142cbbd3478c3df5a6cb",
-  "css/core/13-danbridge-v33-operations.css": "c3549ab7a773f135c7db11955de9fbc96bcaee14950313f01306a3f338a1aa3e",
-  "css/core/19-danbridge-v12-course-state.css": "03e517f4ff2f814b5752412b2eab93ae1ad613dfce9828b30156c5dbb796d7c3",
-  "css/core/23-danbridge-v133-completed-hours-fix.css": "8827eb77f7853622c45b4b92cbddf5e69acb1c2baa3d138137ed777222217a0a",
-  "css/core/28-danbridge-v1310-sidebar-click-guard.css": "329a11fda79cc63a00a608bd0b3954eeacb2048c404ae9e0e18d70fcb99ee395",
-  "css/core/29-ui-block.css": "ee4647bd1a7e954dffc13ca3bbe402b4011ac4a0851dd833da55155fc7fba0ec",
-  "css/dashboard/11-danbridge-v32-dashboard.css": "31d009426fda45e0550a5714c38985d12f718ff10f7f0d789a937a2ca6f6f156",
-  "css/finance/17-danbridge-v39-settlement.css": "cd285058e2280ee8492d41571b6fcd61f5c51ebb5238a07e0096abc818137e5c",
-  "css/finance/18-danbridge-v40-sync.css": "f4495dc6206bd22c8d183e982bdc74f298bfb702f8be8e3a0a7ea030d30fd6e7",
-  "css/responsive/20-danbridge-v131-responsive-ui.css": "7a2cdef668171b06f58ad7473e9754837c48728b44a2963ba8f61d159efa0566",
-  "css/teachers/12-danbridge-v321-teacher-sidebar-hotfix.css": "06b81e8cee20c29ddffa915ee4e57a68394e3d41a9c674257b89814182df85e2",
-  "css/teachers/14-danbridge-v36-teacher-ui.css": "5431f4cd2bde59578acf7a8a13c22a6947a4dd30809c19d8e6e2ee40c2ad212f",
-  "css/teachers/15-danbridge-v37-teacher-navigation.css": "227cc1674d0ee0c3d6a9a027d5c5acc2fadb5bc7cd0c430ad3bd0dc0f8ecabde",
-  "css/teachers/21-danbridge-v13-mobile-teacher-fix.css": "03f51deb676e388b1a9fd7e3ddab69087fe2d61648871b616d5a4c3d4484f135",
-  "css/teachers/22-danbridge-v132-teacher-hours-overflow-fix.css": "e51b9730ca59157920e2fe693f22ddcdabf8be6ebacfd469e2309e38eeae9fee",
-  "docs/STEP_01_BASELINE.md": "eca6d7a5a4c3cf1468acb759af8014d85ce8c8c7cf376531ec95f5acd8c9dc1d",
-  "docs/STEP_02_CORE_SAFETY.md": "ebb1d3e72dc4e36996c0377b505c0ea97307d0554ff6b757fef1a1ed4d462e75",
-  "docs/STEP_03_CORE_UTILITIES.md": "54e519cf03986a0e78e9592dd5e6847477f13fe93f1fa98bc1bae90063a90e15",
-  "docs/STEP_04_STUDENTS_MODULE.md": "9fc075282227b96e4dfff62f005a455642108b01db466bec363dc0d81d86bd7a",
-  "docs/STEP_05_TEACHERS_MODULE.md": "baa6db117e9a11f8f1eecc9bfd21ff67515f71c4c67a2a19b0743a68ccc65683",
-  "docs/sha256-manifest.json": "ed839dfb390c5857d472402974ea9bc50e2d9b17f6c2199058da1959f6252c3e",
-  "icon-192.png": "4c1c39d9ab33e4acd74ba773056bcd59fc7e43ef07fab84005f8967e02625f05",
-  "icon-512.png": "772580771cfac41a2e9c17024480c6f8eed1d4c636597000faaff443b85a85a7",
-  "index.html": "b8919277f53488f4ba03a34660189ba6e0beb084c43e0dd0901c3c1929507363",
-  "js/core/cloud-sync-bridge.js": "34b4dbe49d17bafb2595d117c736bbe8da4fd00c728551ab34a70465feffdceb",
-  "js/core/constants.js": "1c9ca88a1e058a3876d9a806d821ea8830b8c6a680381883a3f410bfa5b8b0d9",
-  "js/core/date-utils.js": "b01e300d949b945cf0ddd5fee0d85bd0c42af90ddc6fabb9b6e80c42ed71a655",
-  "js/core/dom.js": "10f5b2de5857f0f94c797a57573fc863b04401c140b1e724801c91ee35952761",
-  "js/core/firebase-auth-and-cloud-sync.module.js": "073b4142972a9fe2bee66dd76a91e131c73f30542fab8427ff199ce07e8c43d6",
-  "js/core/pwa-installation.js": "87f6b64539acc95dd0f2156cbe5e9b13c79f96197d895193cd7d1786496f6e76",
-  "js/core/undo-redo-history.js": "fcd85b1d07823be652608119b6bb50a108269b46c3c13032c7b23846d81b970c",
-  "js/core/utils.js": "231dccfa0b6a4112f5af59752b9512e21145de23880dd8f60da07e0ecf689dd0",
-  "js/modules/application-and-business-features.js": "8bb214a73d98c39f9a01b614a77b309393aa9fb294f71dbf34eb98cc0dcb7e29",
-  "js/modules/calendar/ipad-toolbar-layout.js": "3a0881a5491dd421a941145ce7b9b8039f692c76f63b2241e380b22350881aaa",
-  "js/modules/calendar/marquee-multi-selection.js": "abbdc5eaddcc174a5e9289363b3168171c23411e84b06a3f9d101bdc3c0b6de8",
-  "js/modules/students/students-crm.js": "d5c0b0b731bd825064e5b1f4cd05d58a0cf9dc8f68c96ef3d20302ec566dfe30",
-  "js/modules/teachers/teachers-crm.js": "d7e3ca0b628f4783efa5c28d8a2fc110bf2da2d7fa560008bae7887535483b5d",
-  "manifest.webmanifest": "d4472a02f0b53a1eea5886a2fa24600bcf0e3b8a9e6fb6585b1bcf576e7d8acb",
-  "sw.js": "4b35ecd6fa7963713b1bd08ff0e02e594964d3c6b6122b1f61d650b68b7e21ff",
-  "tools/validate_project.py": "a9389992cabdd1016b8c6e97c44f3be1ed743107da72f47f1bfa7723341181cd"
+  "version": "V15.6",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "23e757c257fe660f1338892682603ef8ea942d7d2d6905b738b7959ec7c39808"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "2efe3fe17e0ece429e440305a611045022270a70f305c6753583a2bd349e8890"
+    },
+    {
+      "path": "README.md",
+      "sha256": "91faaa4a7589cecd165fe39b6225954a10036276ba41671d842c5877437a98d6"
+    },
+    {
+      "path": "TEST_CHECKLIST.md",
+      "sha256": "fdbdf9e91587f18ecc59080067dd3a43ab9b119127ebe4a71b19f83c92357d78"
+    },
+    {
+      "path": "css/calendar/16-danbridge-v38-drag-ux.css",
+      "sha256": "03f07d972ccd5e432cea2110579986f7603c82149175ffa56e06a91b9f37acbe"
+    },
+    {
+      "path": "css/calendar/24-danbridge-v134-calendar-mobile-overflow.css",
+      "sha256": "fb2343e9b13348ecf16ecdd184b1e1944d447bdb8512fd0510b771b985411f2f"
+    },
+    {
+      "path": "css/calendar/25-danbridge-v135-ipad-toolbar-centering.css",
+      "sha256": "85635413f6bc464dc7b44b0efaaed9c49bfca1a26b3ba49a0778334e892cd532"
+    },
+    {
+      "path": "css/calendar/26-danbridge-v136-ipad-calendar-hard-fix.css",
+      "sha256": "d10fed387f278343c9007b85f774cbf138d0a60332665b19fd2a953558c284f8"
+    },
+    {
+      "path": "css/calendar/27-danbridge-v137-ipad-toolbar-runtime-fix.css",
+      "sha256": "74a4195d03a9ad5dbef965019d2e0bb0275bc33fd47787f50c10bbef1aa6425a"
+    },
+    {
+      "path": "css/core/00-base.css",
+      "sha256": "ba220ae30a766c82904e1d7987be06fdda1b87ec0324118ee0169ec99d2f8964"
+    },
+    {
+      "path": "css/core/02-danbridge-ui-v21.css",
+      "sha256": "3f17f02deb98a0fbb84465817e572191e077b269c47873d6837c1e312666ec2f"
+    },
+    {
+      "path": "css/core/03-danbridge-ui-v2.css",
+      "sha256": "99caa0b10f9ad6c7c0b6d53c776eb3ae1f656cf9c700ca3f386f7bab6bddc958"
+    },
+    {
+      "path": "css/core/04-danbridge-ui-v23.css",
+      "sha256": "e4b9a3fddd36b1229d29e3a128f0a562f6f6ddbccbd0bc2b9d963f1b439be760"
+    },
+    {
+      "path": "css/core/05-danbridge-ui-v24.css",
+      "sha256": "a9435c51afb000a6c515599f16d3beb3ef5928b5f203b4b62ac2c403b421e9b5"
+    },
+    {
+      "path": "css/core/06-danbridge-ui-v25.css",
+      "sha256": "f64caff2d69023caf5514b5bdf96d31c84959e50e4273dec66673c3ab76533f0"
+    },
+    {
+      "path": "css/core/07-danbridge-ui-v26.css",
+      "sha256": "9c1a8a92879b6b24ac73ee32035e3b2f349d3b341c43d6a6223c7b239d3afdfd"
+    },
+    {
+      "path": "css/core/08-ui-block.css",
+      "sha256": "f3cd6d5cbe219a5a22e1dd31e420d745e1714a95134d9896c3370f12a64dc32e"
+    },
+    {
+      "path": "css/core/09-ui-block.css",
+      "sha256": "27b1ffb095d4e763a19a7a1383be5d6417e13f945a755be9b932660468fef379"
+    },
+    {
+      "path": "css/core/10-ui-block.css",
+      "sha256": "eb72e429b77a81cc1b426b58387b3631dfcd0c7d6ee0142cbbd3478c3df5a6cb"
+    },
+    {
+      "path": "css/core/13-danbridge-v33-operations.css",
+      "sha256": "c3549ab7a773f135c7db11955de9fbc96bcaee14950313f01306a3f338a1aa3e"
+    },
+    {
+      "path": "css/core/19-danbridge-v12-course-state.css",
+      "sha256": "03e517f4ff2f814b5752412b2eab93ae1ad613dfce9828b30156c5dbb796d7c3"
+    },
+    {
+      "path": "css/core/23-danbridge-v133-completed-hours-fix.css",
+      "sha256": "8827eb77f7853622c45b4b92cbddf5e69acb1c2baa3d138137ed777222217a0a"
+    },
+    {
+      "path": "css/core/28-danbridge-v1310-sidebar-click-guard.css",
+      "sha256": "329a11fda79cc63a00a608bd0b3954eeacb2048c404ae9e0e18d70fcb99ee395"
+    },
+    {
+      "path": "css/core/29-ui-block.css",
+      "sha256": "ee4647bd1a7e954dffc13ca3bbe402b4011ac4a0851dd833da55155fc7fba0ec"
+    },
+    {
+      "path": "css/dashboard/11-danbridge-v32-dashboard.css",
+      "sha256": "31d009426fda45e0550a5714c38985d12f718ff10f7f0d789a937a2ca6f6f156"
+    },
+    {
+      "path": "css/finance/17-danbridge-v39-settlement.css",
+      "sha256": "cd285058e2280ee8492d41571b6fcd61f5c51ebb5238a07e0096abc818137e5c"
+    },
+    {
+      "path": "css/finance/18-danbridge-v40-sync.css",
+      "sha256": "f4495dc6206bd22c8d183e982bdc74f298bfb702f8be8e3a0a7ea030d30fd6e7"
+    },
+    {
+      "path": "css/responsive/20-danbridge-v131-responsive-ui.css",
+      "sha256": "7a2cdef668171b06f58ad7473e9754837c48728b44a2963ba8f61d159efa0566"
+    },
+    {
+      "path": "css/teachers/12-danbridge-v321-teacher-sidebar-hotfix.css",
+      "sha256": "06b81e8cee20c29ddffa915ee4e57a68394e3d41a9c674257b89814182df85e2"
+    },
+    {
+      "path": "css/teachers/14-danbridge-v36-teacher-ui.css",
+      "sha256": "5431f4cd2bde59578acf7a8a13c22a6947a4dd30809c19d8e6e2ee40c2ad212f"
+    },
+    {
+      "path": "css/teachers/15-danbridge-v37-teacher-navigation.css",
+      "sha256": "227cc1674d0ee0c3d6a9a027d5c5acc2fadb5bc7cd0c430ad3bd0dc0f8ecabde"
+    },
+    {
+      "path": "css/teachers/21-danbridge-v13-mobile-teacher-fix.css",
+      "sha256": "03f51deb676e388b1a9fd7e3ddab69087fe2d61648871b616d5a4c3d4484f135"
+    },
+    {
+      "path": "css/teachers/22-danbridge-v132-teacher-hours-overflow-fix.css",
+      "sha256": "e51b9730ca59157920e2fe693f22ddcdabf8be6ebacfd469e2309e38eeae9fee"
+    },
+    {
+      "path": "docs/STEP_01_BASELINE.md",
+      "sha256": "eca6d7a5a4c3cf1468acb759af8014d85ce8c8c7cf376531ec95f5acd8c9dc1d"
+    },
+    {
+      "path": "docs/STEP_02_CORE_SAFETY.md",
+      "sha256": "ebb1d3e72dc4e36996c0377b505c0ea97307d0554ff6b757fef1a1ed4d462e75"
+    },
+    {
+      "path": "docs/STEP_03_CORE_UTILITIES.md",
+      "sha256": "54e519cf03986a0e78e9592dd5e6847477f13fe93f1fa98bc1bae90063a90e15"
+    },
+    {
+      "path": "docs/STEP_04_STUDENTS_MODULE.md",
+      "sha256": "9fc075282227b96e4dfff62f005a455642108b01db466bec363dc0d81d86bd7a"
+    },
+    {
+      "path": "docs/STEP_05_TEACHERS_MODULE.md",
+      "sha256": "baa6db117e9a11f8f1eecc9bfd21ff67515f71c4c67a2a19b0743a68ccc65683"
+    },
+    {
+      "path": "docs/STEP_06_CALENDAR_UI_MODULE.md",
+      "sha256": "ac99f0e2068618346ffb85ef07a3b58aef7afea331a65c62dad1f3a4226d8647"
+    },
+    {
+      "path": "icon-192.png",
+      "sha256": "4c1c39d9ab33e4acd74ba773056bcd59fc7e43ef07fab84005f8967e02625f05"
+    },
+    {
+      "path": "icon-512.png",
+      "sha256": "772580771cfac41a2e9c17024480c6f8eed1d4c636597000faaff443b85a85a7"
+    },
+    {
+      "path": "index.html",
+      "sha256": "509388e676a02c41f50524fee9af304d4b02f71cfa314ee141596b52186cc65c"
+    },
+    {
+      "path": "js/core/cloud-sync-bridge.js",
+      "sha256": "34b4dbe49d17bafb2595d117c736bbe8da4fd00c728551ab34a70465feffdceb"
+    },
+    {
+      "path": "js/core/constants.js",
+      "sha256": "1c9ca88a1e058a3876d9a806d821ea8830b8c6a680381883a3f410bfa5b8b0d9"
+    },
+    {
+      "path": "js/core/date-utils.js",
+      "sha256": "b01e300d949b945cf0ddd5fee0d85bd0c42af90ddc6fabb9b6e80c42ed71a655"
+    },
+    {
+      "path": "js/core/dom.js",
+      "sha256": "10f5b2de5857f0f94c797a57573fc863b04401c140b1e724801c91ee35952761"
+    },
+    {
+      "path": "js/core/firebase-auth-and-cloud-sync.module.js",
+      "sha256": "073b4142972a9fe2bee66dd76a91e131c73f30542fab8427ff199ce07e8c43d6"
+    },
+    {
+      "path": "js/core/pwa-installation.js",
+      "sha256": "87f6b64539acc95dd0f2156cbe5e9b13c79f96197d895193cd7d1786496f6e76"
+    },
+    {
+      "path": "js/core/undo-redo-history.js",
+      "sha256": "fcd85b1d07823be652608119b6bb50a108269b46c3c13032c7b23846d81b970c"
+    },
+    {
+      "path": "js/core/utils.js",
+      "sha256": "231dccfa0b6a4112f5af59752b9512e21145de23880dd8f60da07e0ecf689dd0"
+    },
+    {
+      "path": "js/modules/application-and-business-features.js",
+      "sha256": "f225cb9f5f2d53ae1f9ec995ba89f7e9067a2162364ec682a2f02859e7e176bb"
+    },
+    {
+      "path": "js/modules/calendar/ipad-toolbar-layout.js",
+      "sha256": "3a0881a5491dd421a941145ce7b9b8039f692c76f63b2241e380b22350881aaa"
+    },
+    {
+      "path": "js/modules/calendar/marquee-multi-selection.js",
+      "sha256": "abbdc5eaddcc174a5e9289363b3168171c23411e84b06a3f9d101bdc3c0b6de8"
+    },
+    {
+      "path": "js/modules/calendar/scheduler-ui.js",
+      "sha256": "9d73d3d2d2eb478c0a45187daaf81ad9734e2ac4317470c8659d6213001f5c36"
+    },
+    {
+      "path": "js/modules/students/students-crm.js",
+      "sha256": "d5c0b0b731bd825064e5b1f4cd05d58a0cf9dc8f68c96ef3d20302ec566dfe30"
+    },
+    {
+      "path": "js/modules/teachers/teachers-crm.js",
+      "sha256": "d7e3ca0b628f4783efa5c28d8a2fc110bf2da2d7fa560008bae7887535483b5d"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "sha256": "d4472a02f0b53a1eea5886a2fa24600bcf0e3b8a9e6fb6585b1bcf576e7d8acb"
+    },
+    {
+      "path": "sw.js",
+      "sha256": "4b35ecd6fa7963713b1bd08ff0e02e594964d3c6b6122b1f61d650b68b7e21ff"
+    },
+    {
+      "path": "tools/validate_project.py",
+      "sha256": "a9389992cabdd1016b8c6e97c44f3be1ed743107da72f47f1bfa7723341181cd"
+    }
+  ]
 }

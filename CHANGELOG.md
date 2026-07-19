@@ -45,3 +45,13 @@
 - Hourly rate, minimum weekly hours and fixed workday behavior.
 - Payroll, monthly settlement, teacher workspace and calendar calculations.
 
+## V15.6 — Calendar UI Module
+
+### Refactored
+- Extracted calendar rendering and interaction functions into `js/modules/calendar/scheduler-ui.js`.
+- Preserved existing global function names and event-handler entry points.
+- Reduced the responsibility of `application-and-business-features.js`.
+
+### Unchanged
+- Lesson schema, Firebase synchronization and calendar visual behavior.
+- Course editor, conflict checks, room checks and week/month copy behavior.
