@@ -19,6 +19,15 @@ const auth=getAuth(app);
 const cloud=getFirestore(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({prompt:'select_account'});
+
+// 舊版 Header 使用 onclick="authLogout()"；公開相容 API，避免 Header 重建前點擊失效。
+window.authLogout=async function authLogout(){
+ try{await signOut(auth)}
+ catch(error){
+   console.error('Firebase logout failed:',error);
+   cloudStatus('登出失敗：'+(error?.message||error),'error');
+ }
+};
 try{await setPersistence(auth,browserLocalPersistence)}catch(e){console.warn(e)}
 try{await enableIndexedDbPersistence(cloud)}catch(e){console.warn('Firestore offline persistence:',e?.code||e)}
 
