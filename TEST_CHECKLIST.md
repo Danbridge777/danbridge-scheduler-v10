@@ -38,3 +38,18 @@
 - [ ] Open smart scheduler from a student row
 - [ ] Delete a test student and undo if needed
 - [ ] Refresh and confirm student data persists
+
+## V15.5 Teacher CRM regression checks
+
+- [ ] Teacher list loads after sign-in
+- [ ] Add a test teacher with hourly rate
+- [ ] Save minimum weekly hours
+- [ ] Select and save fixed workdays
+- [ ] Edit teacher name, type, subjects and color
+- [ ] Refresh and confirm teacher data persists
+- [ ] Teacher appears in lesson teacher selectors
+- [ ] Existing teacher lessons still display correctly
+- [ ] Monthly settlement still calculates teacher hours and payroll
+- [ ] Delete an unused test teacher
+- [ ] Console has no red JavaScript errors
+

@@ -31,3 +31,17 @@
 - Student data schema and localStorage format.
 - Firebase synchronization behavior.
 - Student creation, editing, deletion, search, history, billing, and smart-scheduler entry points.
+
+## V15.5 — Teachers Module
+
+### Refactored
+- Extracted teacher master-data functions into `js/modules/teachers/teachers-crm.js`.
+- Preserved global function names used by existing inline UI handlers.
+- Reduced the responsibility of `application-and-business-features.js`.
+
+### Unchanged
+- Teacher data schema and localStorage format.
+- Firebase synchronization behavior.
+- Hourly rate, minimum weekly hours and fixed workday behavior.
+- Payroll, monthly settlement, teacher workspace and calendar calculations.
+
