@@ -1,0 +1,2 @@
+/* V15.19 Render Orchestrator: coordinates module rendering without owning business logic. */
+function renderAll(){setDefaults();renderSelects();renderStudents();renderTeachers();renderDashboard();renderLessons();renderSettlement();renderFinance();renderMakeups();renderSummerCampClasses();renderTeacherGroups();renderCampSelectors();renderWinterCampClasses();renderWinterTeacherGroups();renderWinterCampSelectors();renderBackupHistory();updateLastBackupInfo();renderDataIntegrity?.();if($('calendar').classList.contains('active'))renderCalendar()}

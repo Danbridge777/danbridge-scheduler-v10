@@ -1,1 +1,30 @@
 body{font-family:Arial,"Microsoft JhengHei"}table{border-collapse:collapse;margin-bottom:24px}th,td{border:1px solid #999;padding:7px 10px}th{background:#dceaf7}.money{mso-number-format:"#,##0"}
+
+/* V15.20.1 account and branch access center */
+#security .grid{align-items:stretch}
+#security .card{min-height:100%}
+.access-role-guide{display:grid;gap:10px;margin-top:18px}
+.access-role-guide>div{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(248,250,252,.78)}
+.access-role-guide span{font-size:12px;color:var(--muted)}
+.role-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.role-card-heading h2{margin:2px 0 0}
+.role-kicker{font-size:10px;font-weight:900;letter-spacing:.14em;color:#2563eb}
+.branch-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:7px}
+.branch-choice-grid label{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc;cursor:pointer}
+.branch-choice-grid input{width:auto;margin:0}
+@media(max-width:1100px){#security .col-4{grid-column:span 6}.account-summary-card{grid-column:span 12!important}}
+@media(max-width:720px){#security .col-4{grid-column:span 12}.branch-choice-grid{grid-template-columns:1fr}}
+
+/* V15.21 Step 1.1 — branch access responsive controls */
+.branch-choice-grid label{min-width:0;box-sizing:border-box;width:100%;overflow:hidden}
+.branch-choice-grid label input[type="checkbox"]{flex:0 0 22px;width:22px!important;height:22px!important;max-width:22px;margin:0!important}
+.branch-choice-grid label span{min-width:0;overflow-wrap:anywhere}
+#cloudBranchManagerList{min-width:0}
+#cloudBranchManagerList .branch-access-item{min-width:0;max-width:100%;box-sizing:border-box;flex-wrap:wrap;align-items:flex-start}
+#cloudBranchManagerList .branch-access-item .info{flex:1 1 210px;max-width:100%;overflow:hidden}
+#cloudBranchManagerList .branch-access-item .small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cloudBranchManagerList .branch-access-delete{flex:0 0 auto;max-width:100%;white-space:nowrap}
+@media(max-width:720px){
+  #cloudBranchManagerList .branch-access-item{display:grid!important;grid-template-columns:minmax(0,1fr);gap:12px}
+  #cloudBranchManagerList .branch-access-delete{width:100%;justify-content:center}
+}

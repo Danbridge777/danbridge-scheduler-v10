@@ -1,6 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4tID5Dl1c_6MCev1OZxMSpiYFq3t3_EU",
@@ -17,6 +18,7 @@ const OWNER_EMAIL='a0965487920@gmail.com';
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const cloud=getFirestore(app);
+const storage=getStorage(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({prompt:'select_account'});
 
@@ -33,6 +35,7 @@ try{await enableIndexedDbPersistence(cloud)}catch(e){console.warn('Firestore off
 
 let cloudRole='';
 let cloudTeacherId='';
+let cloudBranchIds=[];
 let cloudUid='';
 let cloudEmailKey='';
 let applyingCloud=false;
@@ -46,10 +49,11 @@ let ownerRetryCount=0;
 let lastUploadedHash='';
 let lastCloudSnapshotHash='';
 let reportSyncTimer=null;
+let teacherReportExistingPhotos=[];
 let originalSaveDB=window.saveDB;
 const originalEditLesson=window.editLesson;
 
-function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]}}
+function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],branches:[]}}
 function deepCopy(x){return JSON.parse(JSON.stringify(x||emptyDB()))}
 function cloudStatus(text,kind=''){let el=document.getElementById('firebaseCloudStatus');if(!el){el=document.createElement('div');el.id='firebaseCloudStatus';el.style.cssText='position:fixed;left:12px;bottom:12px;z-index:10001;padding:8px 11px;border-radius:10px;background:#172033;color:#fff;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.2)';document.body.appendChild(el)}el.textContent=text;el.dataset.kind=kind||'';el.style.background=kind==='error'?'#991b1b':kind==='ok'?'#18794e':kind==='pending'?'#9a6700':kind==='offline'?'#475569':'#172033'}
 function dataHash(value){try{const text=JSON.stringify(value||{});let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+':'+text.length}catch{return String(Date.now())}}
@@ -91,33 +95,32 @@ function filteredTeacherDB(source,teacherId){
  return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:(source.teachers||[]).filter(t=>t.id===teacherId),lessons,makeups:(source.makeups||[]).filter(m=>m.teacherId===teacherId),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};
 }
 
+function lessonBranchId(l){return l?.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l?.location||'')||'art_museum'}
+function filteredBranchDB(source,branchIds){
+ const allowed=new Set(Array.isArray(branchIds)?branchIds:[]);
+ const lessons=(source.lessons||[]).filter(l=>!l.isDraft&&allowed.has(lessonBranchId(l)));
+ const studentIds=new Set(lessons.map(l=>l.studentId));
+ const teacherIds=new Set(lessons.flatMap(l=>Array.isArray(l.teacherIds)&&l.teacherIds.length?l.teacherIds:[l.teacherId]).filter(Boolean));
+ const branches=(source.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).filter(b=>allowed.has(b.id));
+ return {...emptyDB(),branches,students:(source.students||[]).filter(st=>studentIds.has(st.id)||(st.branchIds||[]).some(id=>allowed.has(id))),teachers:(source.teachers||[]).filter(t=>teacherIds.has(t.id)||(t.assignedBranchIds||[]).some(id=>allowed.has(id))),lessons,makeups:(source.makeups||[]).filter(m=>allowed.has(m.branchId||lessonBranchId((source.lessons||[]).find(l=>l.id===m.lessonId)||m))),changes:(source.changes||[]).filter(c=>{const l=(source.lessons||[]).find(x=>x.id===c.lessonId);return l&&allowed.has(lessonBranchId(l))}),teacherGroups:[],winterTeacherGroups:[],summerCampClasses:(source.summerCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),winterCampClasses:(source.winterCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),settlementRecords:(source.settlementRecords||[]).filter(r=>allowed.has(r.branchId)),fixedExpenses:(source.fixedExpenses||[]).filter(e=>allowed.has(e.branchId)),oneTimeExpenses:(source.oneTimeExpenses||[]).filter(e=>allowed.has(e.branchId))};
+}
+
 async function renderCloudUserManager(){
  if(cloudRole!=='owner')return;
- const sec=document.getElementById('security');if(!sec||document.getElementById('cloudUserManager'))return;
- const card=document.createElement('div');card.id='cloudUserManager';card.className='card col-6';
- card.innerHTML=`<h2>雲端老師帳號</h2><div class="small">先選老師並輸入其 Gmail。老師使用該 Gmail 登入後，只能看到自己的課表。</div><label>老師</label><select id="cloudTeacherSelect"></select><label>老師 Gmail</label><input id="cloudTeacherEmail" type="email" placeholder="teacher@gmail.com"><br><button class="btn primary" id="saveCloudTeacherAccess">新增／更新權限</button><div id="cloudTeacherAccessList" class="backup-list" style="margin-top:12px"></div>`;
- sec.querySelector('.grid')?.appendChild(card);
+ const sec=document.getElementById('security');if(!sec)return;
+ let card=document.getElementById('cloudUserManager');
+ if(!card){card=document.createElement('div');card.id='cloudUserManager';card.className='card col-4';sec.querySelector('.grid')?.appendChild(card)}
+ card.innerHTML=`<h2>老師帳號</h2><div class="small">選擇老師並綁定 Gmail。老師登入後只能查看自己的課表。</div><label>老師</label><select id="cloudTeacherSelect"></select><label>老師 Gmail</label><input id="cloudTeacherEmail" type="email" placeholder="teacher@gmail.com"><br><button class="btn primary" id="saveCloudTeacherAccess">新增／更新老師權限</button><div id="cloudTeacherAccessList" class="backup-list" style="margin-top:12px"></div>`;
  const sel=document.getElementById('cloudTeacherSelect');sel.innerHTML='<option value="">請選擇老師</option>'+window.__danbridgeGetDB().teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
  document.getElementById('saveCloudTeacherAccess').onclick=async()=>{
    const teacherId=sel.value,email=document.getElementById('cloudTeacherEmail').value.trim().toLowerCase();
    if(!teacherId||!email)return alert('請選老師並輸入 Gmail');
    const t=window.__danbridgeGetDB().teachers.find(x=>x.id===teacherId);
    await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:t?.name||'',active:true,updatedAt:serverTimestamp()},{merge:true});
-   // 若此 Gmail 曾被停用，重新啟用既有登入帳號。
-   try{
-     const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
-     await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:t?.name||'',updatedAt:serverTimestamp()},{merge:true})));
-   }catch(e){console.warn('重新啟用老師帳號失敗：',e)}
-   // 立即以 Gmail 為索引建立老師專屬檢視，不必等老師先登入取得 UID。
-   await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{
-     db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),
-     updatedAt:serverTimestamp(),
-     teacherId,
-     email
-   },{merge:false});
+   try{const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:t?.name||'',updatedAt:serverTimestamp()},{merge:true})))}catch(e){console.warn('重新啟用老師帳號失敗：',e)}
+   await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),updatedAt:serverTimestamp(),teacherId,email},{merge:false});
    alert('老師權限與專屬課表已建立。請老師使用此 Gmail 登入。');
-   document.getElementById('cloudTeacherEmail').value='';
-   await listCloudTeacherAccess();
+   document.getElementById('cloudTeacherEmail').value='';await listCloudTeacherAccess();
  };
  await listCloudTeacherAccess();
 }
@@ -151,13 +154,135 @@ async function listCloudTeacherAccess(){
 }
 
 
+function branchManagerFormStatus(message='',kind=''){
+ const el=document.getElementById('cloudBranchManagerStatus');
+ if(!el)return;
+ el.textContent=message;
+ el.dataset.kind=kind;
+ el.style.display=message?'block':'none';
+ el.style.color=kind==='error'?'#b91c1c':kind==='ok'?'#15803d':'#475569';
+}
+function validGmailAddress(email){
+ return /^[^\s@]+@gmail\.com$/i.test(String(email||'').trim());
+}
+async function saveCloudBranchManagerAccess(){
+ if(cloudRole!=='owner')return alert('只有 Owner 可以設定校區管理者權限。');
+ const emailInput=document.getElementById('cloudBranchManagerEmail');
+ const saveButton=document.getElementById('saveCloudBranchManager');
+ const email=String(emailInput?.value||'').trim().toLowerCase();
+ const branchIds=[...document.querySelectorAll('#cloudBranchChoices input[type="checkbox"]:checked')].map(x=>x.value);
+ if(!validGmailAddress(email)){
+   branchManagerFormStatus('請輸入有效的 Gmail，例如 manager@gmail.com。','error');
+   emailInput?.focus();
+   return;
+ }
+ if(!branchIds.length){
+   branchManagerFormStatus('請至少選擇一個校區。','error');
+   return;
+ }
+ if(saveButton?.dataset.saving==='1')return;
+ try{
+   if(saveButton){saveButton.dataset.saving='1';saveButton.disabled=true;saveButton.textContent='儲存中…'}
+   branchManagerFormStatus('正在建立校區管理者權限…','pending');
+   cloudStatus('正在儲存校區管理者權限…','pending');
+   const branches=window.__danbridgeGetDB()?.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[];
+   const branchNames=branches.filter(b=>branchIds.includes(b.id)).map(b=>b.name);
+   const existing=await getDoc(doc(cloud,'companyAccess',email));
+   if(existing.exists()&&existing.data()?.role==='teacher'){
+     throw new Error('這個 Gmail 已經綁定為老師帳號，請先刪除老師權限後再設定為校區管理者。');
+   }
+   const scopedDb=filteredBranchDB(window.__danbridgeGetDB(),branchIds);
+   // 將管理者可讀取的校區快照直接存進自己的 companyAccess 文件。
+   // 這條路徑已被現有登入規則允許，避免新 branchViews 路徑因規則尚未部署而失敗。
+   const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,active:true,readOnly:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
+   await setDoc(doc(cloud,'companyAccess',email),payload,{merge:true});
+   try{
+     const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
+     await Promise.all(userQs.docs.map(u=>setDoc(u.ref,payload,{merge:true})));
+   }catch(e){console.warn('同步既有使用者資料失敗：',e)}
+   // 不再把儲存成功綁在 branchViews / teacherViews 上。
+   // 舊 Firebase 規則若不允許這些路徑，主權限仍已完整儲存在 companyAccess。
+   // 先更新本機畫面，不等待下一次 Firestore 查詢或快取刷新。
+   const optimistic={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,active:true,readOnly:true};
+   renderCloudBranchManagerList([...branchManagerAccessCache.filter(x=>String(x.email||x.id||'').toLowerCase()!==email),optimistic]);
+   if(emailInput)emailInput.value='';
+   document.querySelectorAll('#cloudBranchChoices input[type="checkbox"]').forEach(x=>x.checked=false);
+   listCloudBranchManagerAccess();
+   branchManagerFormStatus('校區管理者權限已建立。','ok');
+   cloudStatus('校區管理者權限已建立','ok');
+ }catch(e){
+   console.error('saveCloudBranchManagerAccess failed:',e);
+   branchManagerFormStatus('儲存失敗：'+(e?.message||e),'error');
+   cloudStatus('儲存校區管理者權限失敗','error');
+ }finally{
+   if(saveButton){saveButton.dataset.saving='0';saveButton.disabled=false;saveButton.textContent='新增／更新管理者權限'}
+ }
+}
+function installBranchManagerAccessEvents(){
+ if(document.documentElement.dataset.branchManagerEventsInstalled==='1')return;
+ document.documentElement.dataset.branchManagerEventsInstalled='1';
+ document.addEventListener('click',event=>{
+   const button=event.target.closest?.('#saveCloudBranchManager');
+   if(!button)return;
+   event.preventDefault();
+   event.stopPropagation();
+   saveCloudBranchManagerAccess();
+ });
+}
+async function renderBranchManagerAccess(){
+ if(cloudRole!=='owner')return;
+ const card=document.getElementById('cloudBranchManager');
+ if(!card)return;
+ const branches=window.__danbridgeGetDB()?.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[];
+ const choices=document.getElementById('cloudBranchChoices');
+ if(choices){
+   choices.innerHTML=branches.map(b=>`<label><input type="checkbox" value="${b.id}"> <span>${b.name}</span></label>`).join('');
+ }
+ const button=document.getElementById('saveCloudBranchManager');
+ if(button){button.type='button';button.disabled=false;button.dataset.saving='0'}
+ branchManagerFormStatus('','');
+ await listCloudBranchManagerAccess();
+}
+let branchManagerAccessCache=[];
+function escapeHTML(value=''){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function renderCloudBranchManagerList(records=branchManagerAccessCache){
+ const box=document.getElementById('cloudBranchManagerList');if(!box||cloudRole!=='owner')return;
+ branchManagerAccessCache=Array.isArray(records)?records:[];
+ box.innerHTML=branchManagerAccessCache.map(x=>{const email=String(x.email||x.id||'').toLowerCase();return `<div class="backup-item branch-access-item"><div class="info"><b>${escapeHTML((x.branchNames||x.branchIds||[]).join('、')||'未指定校區')}</b><div class="small" title="${escapeHTML(email)}">${escapeHTML(email)}｜唯讀</div></div><button type="button" class="btn danger branch-access-delete" data-email="${escapeHTML(email)}">刪除權限</button></div>`}).join('')||'<span class="small">尚未建立校區管理者。</span>';
+ box.querySelectorAll('.branch-access-delete').forEach(btn=>btn.onclick=()=>removeCloudBranchManagerAccess(btn.dataset.email));
+}
+async function listCloudBranchManagerAccess(){
+ const box=document.getElementById('cloudBranchManagerList');if(!box||cloudRole!=='owner')return;
+ try{
+   const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID),where('role','==','branch_manager')));
+   renderCloudBranchManagerList(qs.docs.map(d=>({id:d.id,...d.data()})));
+ }catch(e){
+   console.error('listCloudBranchManagerAccess failed:',e);
+   if(!branchManagerAccessCache.length)box.innerHTML='<span class="small" style="color:#b91c1c">管理者清單讀取失敗，請重新整理後再試。</span>';
+ }
+}
+async function removeCloudBranchManagerAccess(email){
+ if(!confirm(`確定刪除 ${email} 的校區管理權限？`))return;
+ const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
+ await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:false,updatedAt:serverTimestamp()},{merge:true})));
+ await deleteDoc(doc(cloud,'companyAccess',email));
+ // 舊檢視只做清理，不讓未部署的 Firestore 規則阻斷刪除流程。
+ await Promise.allSettled([
+   deleteDoc(doc(cloud,'companies',COMPANY_ID,'branchViews',email)),
+   deleteDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email))
+ ]);
+ renderCloudBranchManagerList(branchManagerAccessCache.filter(x=>String(x.email||x.id||'').toLowerCase()!==String(email).toLowerCase()));
+ listCloudBranchManagerAccess();
+}
+
+
 const REPORT_STATUS_LABELS={completed:'已完成',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'};
 const REPORT_TO_LESSON_STATUS={completed:'已上課',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課'};
 function reportStatusLabel(v){return REPORT_STATUS_LABELS[v]||'尚未回報'}
 function lessonBelongsToTeacher(l,teacherId){return (Array.isArray(l?.teacherIds)?l.teacherIds:[l?.teacherId]).filter(Boolean).includes(teacherId)}
 function applyReportToLesson(lesson,report){
  if(!lesson||!report)return false;
- const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
+ const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportFeedback:report.feedback||'',teacherReportPhotos:Array.isArray(report.photos)?report.photos:[],teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
  let changed=false;
  for(const [k,v] of Object.entries(next)){if((lesson[k]||'')!==v){lesson[k]=v;changed=true}}
  const mapped=REPORT_TO_LESSON_STATUS[report.status];
@@ -174,8 +299,24 @@ function openTeacherReportModal(lessonId){
  document.querySelectorAll('input[name="teacherReportStatus"]').forEach(r=>r.checked=r.value===(lesson.teacherReportStatus||''));
  document.getElementById('teacherReportContent').value=lesson.teacherReportContent||'';
  document.getElementById('teacherReportHomework').value=lesson.teacherReportHomework||'';
+ document.getElementById('teacherReportFeedback').value=lesson.teacherReportFeedback||'';
  document.getElementById('teacherReportNote').value=lesson.teacherReportNote||'';
+ const photoInput=document.getElementById('teacherReportPhotos');if(photoInput)photoInput.value='';
+ teacherReportExistingPhotos=Array.isArray(lesson.teacherReportPhotos)?[...lesson.teacherReportPhotos]:[];
+ renderTeacherReportPhotoPreview();
  document.getElementById('teacherReportModal').classList.add('show');
+}
+function renderTeacherReportPhotoPreview(){
+ const box=document.getElementById('teacherReportPhotoPreview');if(!box)return;
+ const existing=teacherReportExistingPhotos.map((photo,index)=>`<div class="teacher-report-photo-item existing"><a href="${String(photo.url||'').replace(/"/g,'&quot;')}" target="_blank" rel="noopener"><img src="${String(photo.url||'').replace(/"/g,'&quot;')}" alt="課堂照片"></a><button type="button" data-photo-index="${index}" aria-label="移除照片">×</button></div>`).join('');
+ const files=[...(document.getElementById('teacherReportPhotos')?.files||[])];
+ const pending=files.map(file=>`<div class="teacher-report-photo-item"><img src="${URL.createObjectURL(file)}" alt="待上傳照片"></div>`).join('');
+ box.innerHTML=existing+pending;
+ box.querySelectorAll('[data-photo-index]').forEach(btn=>btn.addEventListener('click',()=>{teacherReportExistingPhotos.splice(Number(btn.dataset.photoIndex),1);renderTeacherReportPhotoPreview()}));
+}
+function quickCompleteTeacherReport(){
+ document.querySelectorAll('input[name="teacherReportStatus"]').forEach(r=>r.checked=r.value==='completed');
+ return saveTeacherReport();
 }
 function closeTeacherReportModal(){document.getElementById('teacherReportModal')?.classList.remove('show')}
 async function saveTeacherReport(){
@@ -185,13 +326,25 @@ async function saveTeacherReport(){
  if(!lesson||!lessonBelongsToTeacher(lesson,cloudTeacherId))return alert('找不到可回報的課程。');
  const status=document.querySelector('input[name="teacherReportStatus"]:checked')?.value||'';
  if(!status)return alert('請選擇上課狀態。');
- const report={companyId:COMPANY_ID,lessonId,teacherId:cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:auth.currentUser?.displayName||'',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),note:document.getElementById('teacherReportNote').value.trim(),updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
- const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent='儲存中…';
+ const photoFiles=[...(document.getElementById('teacherReportPhotos')?.files||[])];
+ if(photoFiles.length+teacherReportExistingPhotos.length>6)return alert('課堂照片最多 6 張。');
+ if(photoFiles.some(file=>file.size>8*1024*1024))return alert('每張課堂照片不可超過 8 MB。');
+ const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent=photoFiles.length?'上傳照片中…':'儲存中…';
+ document.getElementById('teacherReportModal')?.classList.add('teacher-report-uploading');
  try{
+   const uploaded=[];
+   for(const file of photoFiles){
+     const safeName=String(file.name||'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g,'_');
+     const path=`companies/${COMPANY_ID}/lessonReports/${lessonId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeName}`;
+     const fileRef=storageRef(storage,path);
+     await uploadBytes(fileRef,file,{contentType:file.type||'image/jpeg'});
+     uploaded.push({url:await getDownloadURL(fileRef),name:file.name||'課堂照片',path});
+   }
+   const report={companyId:COMPANY_ID,lessonId,teacherId:cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:auth.currentUser?.displayName||'',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
    await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
    applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();cloudStatus('課程回報已儲存','ok');return true;
  }catch(e){console.error(e);alert('課程回報儲存失敗：'+e.message);cloudStatus('回報儲存失敗','error');return false}
- finally{btn.disabled=false;btn.textContent='儲存回報'}
+ finally{btn.disabled=false;btn.textContent='儲存回報';document.getElementById('teacherReportModal')?.classList.remove('teacher-report-uploading')}
 }
 
 
@@ -203,7 +356,7 @@ function getClassFocusDraft(id){try{return JSON.parse(localStorage.getItem(class
 function saveClassFocusDraft(){
  if(!classFocusLessonId)return;
  const status=document.querySelector('input[name="classFocusStatus"]:checked')?.value||'';
- const draft={content:document.getElementById('classFocusContent')?.value||'',homework:document.getElementById('classFocusHomework')?.value||'',note:document.getElementById('classFocusNote')?.value||'',status,updatedAt:new Date().toISOString()};
+ const draft={content:document.getElementById('classFocusContent')?.value||'',homework:document.getElementById('classFocusHomework')?.value||'',feedback:document.getElementById('classFocusFeedback')?.value||'',note:document.getElementById('classFocusNote')?.value||'',status,updatedAt:new Date().toISOString()};
  try{localStorage.setItem(classFocusDraftKey(classFocusLessonId),JSON.stringify(draft))}catch{}
 }
 function clearClassFocusDraft(id){try{localStorage.removeItem(classFocusDraftKey(id))}catch{}}
@@ -229,6 +382,7 @@ function openClassFocusMode(){
  document.getElementById('classFocusMeta').textContent=`${lesson.date} ${lesson.start}–${lesson.end}｜${lesson.title||'課程'}｜${lesson.location||''} ${lesson.room||''}`.trim();
  document.getElementById('classFocusContent').value=draft?.content ?? document.getElementById('teacherReportContent').value;
  document.getElementById('classFocusHomework').value=draft?.homework ?? document.getElementById('teacherReportHomework').value;
+ document.getElementById('classFocusFeedback').value=draft?.feedback ?? document.getElementById('teacherReportFeedback').value;
  document.getElementById('classFocusNote').value=draft?.note ?? document.getElementById('teacherReportNote').value;
  const selected=draft?.status||document.querySelector('input[name="teacherReportStatus"]:checked')?.value||'completed';
  document.querySelectorAll('input[name="classFocusStatus"]').forEach(r=>r.checked=r.value===selected);
@@ -253,6 +407,7 @@ async function completeClassFocusMode(){
  document.getElementById('teacherReportLessonId').value=id;
  document.getElementById('teacherReportContent').value=document.getElementById('classFocusContent').value;
  document.getElementById('teacherReportHomework').value=document.getElementById('classFocusHomework').value;
+ document.getElementById('teacherReportFeedback').value=document.getElementById('classFocusFeedback').value;
  document.getElementById('teacherReportNote').value=document.getElementById('classFocusNote').value;
  document.querySelectorAll('input[name="teacherReportStatus"]').forEach(r=>r.checked=r.value===status);
  const btn=document.getElementById('classFocusCompleteBtn');btn.disabled=true;btn.textContent='同步中…';
@@ -261,6 +416,8 @@ async function completeClassFocusMode(){
 }
 function installClassFocusMode(){
  document.getElementById('startClassFocusBtn')?.addEventListener('click',openClassFocusMode);
+ document.getElementById('teacherReportPhotos')?.addEventListener('change',renderTeacherReportPhotoPreview);
+ document.getElementById('quickCompleteTeacherReportBtn')?.addEventListener('click',quickCompleteTeacherReport);
  document.getElementById('classFocusExitBtn')?.addEventListener('click',()=>closeClassFocusMode({reopen:true}));
  document.getElementById('classFocusDiscardBtn')?.addEventListener('click',()=>{if(confirm('確定放棄這次尚未同步的輸入？'))closeClassFocusMode({discard:true,reopen:true})});
  document.getElementById('classFocusCompleteBtn')?.addEventListener('click',completeClassFocusMode);
@@ -292,11 +449,15 @@ function subscribeLessonReports(){
 }
 
 function applyRoleUI(profile,user){
- cloudRole=profile.role;cloudTeacherId=profile.teacherId||'';cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
+ cloudRole=profile.role;cloudTeacherId=profile.teacherId||'';cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
+ window.DanbridgeAccess?.setContext({role:cloudRole,branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:profile.readOnly===true||cloudRole==='branch_manager'});
+ const signedInName=(profile.role==='teacher'?(profile.teacherName||profile.displayName):profile.role==='branch_manager'?(profile.managerName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
+ document.body.dataset.cloudDisplayName=String(signedInName).trim();
  const header=document.querySelector('.header-auth-actions');
- if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${profile.role==='owner'?'老闆':'老師'}｜${(user.displayName||user.email||'')}</span><button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
+ if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${window.DanbridgeAccess?.ROLE_LABELS?.[profile.role]||profile.role}｜${String(signedInName).trim()}</span><button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
  document.body.classList.toggle('teacher-cloud-role',profile.role==='teacher');
+ document.body.classList.toggle('branch-manager-cloud-role',profile.role==='branch_manager');
  window.ensureTeacherHoursMetric?.();
 
  const teacherOnly=profile.role==='teacher';
@@ -328,6 +489,13 @@ function applyRoleUI(profile,user){
    });
    document.querySelector('.dashboard-changes')?.style.setProperty('display','none');
    document.querySelector('#dashboard .card:nth-of-type(2)')?.style.setProperty('display','none');
+ }else if(profile.role==='branch_manager'){
+   applyingCloud=true;window.__danbridgeSetDB(emptyDB());window.renderAll?.();applyingCloud=false;
+   const allowedTabs=new Set(['dashboard','students','teachers','calendar','lessons','makeups','settlement','finance']);
+   document.querySelectorAll('nav button[data-tab]').forEach(b=>{const allowed=allowedTabs.has(b.dataset.tab);b.hidden=!allowed;b.style.setProperty('display',allowed?'':'none',allowed?'':'important');if(!allowed)b.tabIndex=-1;else b.removeAttribute('tabindex')});
+   const active=document.querySelector('main section.active');if(active&&!allowedTabs.has(active.id))switchTab('dashboard');
+   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions,#students button,#teachers button,#lessons button,#makeups button,#settlement button,#finance button').forEach(e=>e.style.setProperty('display','none','important'));
+   document.querySelectorAll('#drafts,#camps,#winterCamps,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
  }else{
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.hidden=false;b.classList.remove('teacher-nav-hidden');b.style.removeProperty('display');b.removeAttribute('aria-hidden');b.removeAttribute('tabindex')});
    document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=false;e.style.removeProperty('display')});
@@ -339,7 +507,7 @@ function applyRoleUI(profile,user){
    document.querySelector('#dashboard .card:nth-of-type(2)')?.style.removeProperty('display');
  }
 }
-async function publishTeacherViews(){
+async function publishScopedViews(){
  if(cloudRole!=='owner')return;
  try{
    // 從 companyAccess 建立檢視，老師不必先登入，亦不依賴 Firebase UID。
@@ -347,18 +515,19 @@ async function publishTeacherViews(){
    const jobs=qs.docs.map(d=>{
      const p=d.data();
      const email=(p.email||d.id||'').trim().toLowerCase();
-     if(p.role!=='teacher'||p.active===false||!p.teacherId||!email)return Promise.resolve();
-     return setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{
-       db:filteredTeacherDB(window.__danbridgeGetDB(),p.teacherId),
-       updatedAt:serverTimestamp(),
-       teacherId:p.teacherId,
-       email
-     },{merge:false});
+     if(p.active===false||!email)return Promise.resolve();
+     if(p.role==='teacher'&&p.teacherId)return setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:filteredTeacherDB(window.__danbridgeGetDB(),p.teacherId),updatedAt:serverTimestamp(),teacherId:p.teacherId,email},{merge:false});
+     if(p.role==='branch_manager'&&Array.isArray(p.branchIds)&&p.branchIds.length){
+       const scopedDb=filteredBranchDB(window.__danbridgeGetDB(),p.branchIds);
+       // 每次 Owner 同步時，同步更新管理者自己的可讀文件。
+       return setDoc(d.ref,{scopedDb,scopedUpdatedAt:serverTimestamp(),branchIds:p.branchIds,active:true},{merge:true});
+     }
+     return Promise.resolve();
    });
    await Promise.all(jobs);
  }catch(e){
-   console.error('publishTeacherViews',e);
-   cloudStatus('老師課表發布失敗：'+(e.message||e),'error');
+   console.error('publishScopedViews',e);
+   cloudStatus('角色資料檢視發布失敗：'+(e.message||e),'error');
  }
 }
 async function uploadOwnerState(force=false){
@@ -374,7 +543,7 @@ async function uploadOwnerState(force=false){
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
  try{
    await setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false});
-   await publishTeacherViews();
+   await publishScopedViews();
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
    cloudStatus('已同步到雲端','ok');
  }catch(e){
@@ -388,7 +557,7 @@ async function uploadOwnerState(force=false){
 }
 function installCloudSave(){
  window.saveDB=function(){
-   if(cloudRole==='teacher'){alert('老師帳號目前為唯讀，只能查看自己的課表。');return}
+   if(cloudRole==='teacher'||cloudRole==='branch_manager'){alert(cloudRole==='teacher'?'老師帳號目前為唯讀，只能查看自己的課表。':'校區管理者目前為唯讀，只能查看指定校區資料。');return}
    originalSaveDB?.();
    ownerUploadQueued=true;
    cloudStatus(navigator.onLine?'變更已儲存，準備同步…':'變更已保存在本機；恢復網路後自動同步。',navigator.onLine?'pending':'offline');
@@ -467,6 +636,45 @@ async function subscribeTeacher(){
  });
 }
 
+async function subscribeBranchManager(){
+ if(!cloudEmailKey||!cloudBranchIds.length)throw new Error('校區管理者尚未綁定校區。');
+ unsubscribeState?.();
+ // 直接監聽自己的 companyAccess 文件。此路徑同時保存角色與 scopedDb，
+ // 不需要另外部署 branchViews Firestore 規則。
+ const accessRef=doc(cloud,'companyAccess',cloudEmailKey);
+ unsubscribeState=onSnapshot(accessRef,{includeMetadataChanges:true},snap=>{
+   if(snap.metadata.fromCache&&!navigator.onLine)setOfflineStatus();
+   if(snap.metadata.hasPendingWrites)return;
+   if(!snap.exists()){
+     cloudStatus('校區管理權限已被移除，請聯絡 Owner。','error');
+     return;
+   }
+   const access=snap.data()||{};
+   if(access.active===false){cloudStatus('校區管理者帳號已停用。','error');return}
+   const latestBranchIds=Array.isArray(access.branchIds)&&access.branchIds.length?access.branchIds:cloudBranchIds;
+   cloudBranchIds=latestBranchIds;
+   window.DanbridgeAccess?.setContext({role:'branch_manager',branchIds:cloudBranchIds,teacherId:'',email:cloudEmailKey,readOnly:true});
+   const raw=access.scopedDb;
+   if(!raw){
+     cloudStatus('校區資料尚未發布；請 Owner 登入並儲存一次資料。','error');
+     return;
+   }
+   const incoming=filteredBranchDB(raw,cloudBranchIds);
+   applyingCloud=true;
+   window.__danbridgeSetDB(deepCopy(incoming));
+   window.renderAll?.();
+   requestAnimationFrame(()=>window.renderDashboard?.());
+   setTimeout(()=>window.renderDashboard?.(),150);
+   applyingCloud=false;
+   cloudStatus(`校區資料已同步：學生 ${incoming.students?.length||0}、老師 ${incoming.teachers?.length||0}、課程 ${incoming.lessons?.length||0}`,'ok');
+ },err=>{
+   console.error('讀取校區權限資料失敗',err);
+   cloudStatus('讀取校區資料失敗：'+(err.message||err),'error');
+ });
+}
+
+
+
 window.addEventListener('offline',()=>setOfflineStatus());
 window.addEventListener('online',()=>{cloudStatus('網路已恢復，正在檢查待同步變更…','pending');if(cloudRole==='owner'){ownerUploadQueued=true;clearTimeout(ownerRetryTimer);uploadOwnerState()}else cloudStatus('網路已恢復，正在重新連線…','pending')});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudRole==='owner'&&ownerUploadQueued&&navigator.onLine)uploadOwnerState()});
@@ -475,11 +683,12 @@ setAuthCard();
 installCloudSave();
 installTeacherReportUI();
 installClassFocusMode();
+installBranchManagerAccessEvents();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;
- if(!user){cloudRole='';cloudTeacherId='';cloudUid='';cloudEmailKey='';showCloudLogin();cloudStatus('尚未登入');return}
+ if(!user){cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
-   if(profile.role==='owner'){subscribeOwner();setTimeout(renderCloudUserManager,0)}else if(profile.role==='teacher')subscribeTeacher();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();
+   if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();
  }catch(e){console.error(e);await signOut(auth);showCloudLogin();showCloudLoginError(e.message);cloudStatus(e.message,'error')}
 });
