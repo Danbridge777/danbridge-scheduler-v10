@@ -1,3 +1,10 @@
+# V15.27.6 — Lesson Report Re-save Permission Fix
+
+- 修正 Owner 核准 10 分鐘後，老師第一次可儲存、數分鐘後第二次儲存卻被 Firestore 拒絕。
+- lessonReports 的 update 規則改為每次依最新 lessonMeta、登入 UID、teacherId 與有效授權重新驗證。
+- 不再依賴既有回報文件中的舊 trusted identity 欄位，避免第一次寫入後的後續更新誤判。
+- 必須重新部署 firebase/firestore.rules。
+
 # V15.27.5 — Storage Fallback
 
 - 課堂照片上傳改為非阻斷流程。

@@ -201,11 +201,12 @@ service cloud.firestore {
 
       allow update: if isOwner()
         || (
-          trustedIdentityUpdate(companyId, lessonId)
+          (isTeacher(companyId) || isManager(companyId))
+          && matchesTrustedLesson(companyId, lessonId, request.resource.data)
           && request.resource.data.teacherUid == request.auth.uid
           && request.resource.data.teacherId == ownTeacherId()
           && ownLessonReport(request.resource.data)
-          && (((isManager(companyId) && managerBranch(request.resource.data)) || isTeacher(companyId)))
+          && (isTeacher(companyId) || managerBranch(request.resource.data))
           && withinReportWindow(companyId, lessonId)
         );
 

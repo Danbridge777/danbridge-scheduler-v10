@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.27.6: lesson-report text remains savable when Firebase Storage is unavailable.
+// V15.27.5: lesson-report text remains savable when Firebase Storage is unavailable.
