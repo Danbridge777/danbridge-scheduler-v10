@@ -87,7 +87,17 @@ function openCourseDrawer(id){
     ${l.teacherReportContent||l.teacherReportHomework||l.teacherReportNote?`<div class="course-detail-section-title">老師課堂回報</div><div class="course-detail-note">${l.teacherReportContent?`<b>課程內容</b>\n${esc(l.teacherReportContent)}\n\n`:''}${l.teacherReportHomework?`<b>家庭作業</b>\n${esc(l.teacherReportHomework)}\n\n`:''}${l.teacherReportFeedback?`<b>老師回饋</b>\n${esc(l.teacherReportFeedback)}\n\n`:''}${l.teacherReportNote?`<b>內部備註</b>\n${esc(l.teacherReportNote)}`:''}</div>${Array.isArray(l.teacherReportPhotos)&&l.teacherReportPhotos.length?`<div class="lesson-report-photos">${l.teacherReportPhotos.map(p=>`<a href="${esc(p.url||'')}" target="_blank" rel="noopener"><img src="${esc(p.url||'')}" alt="課堂照片"></a>`).join('')}</div>`:''}`:''}
     <div class="course-detail-section-title">課程備註</div>
     <div class="course-detail-note">${esc(l.note||'目前沒有備註。')}</div>`;
-  $('courseDrawerEditBtn').onclick=()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();openLessonModal(todayStr(),'16:00',lessonId)};
+  const reportBtn=$('courseDrawerReportBtn');
+  if(reportBtn){
+    const canReport=window.canCurrentUserReportLesson?.(l.id)===true;
+    reportBtn.hidden=!canReport;
+    reportBtn.onclick=()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();window.openLessonReport?.(lessonId)};
+  }
+  const editBtn=$('courseDrawerEditBtn');
+  const role=window.currentCloudRole?.()||'';
+  const ownerCanEdit=!role||role==='owner';
+  editBtn.hidden=!ownerCanEdit;
+  editBtn.onclick=ownerCanEdit?()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();openLessonModal(todayStr(),'16:00',lessonId)}:null;
   $('courseDrawerBackdrop').classList.add('show');$('courseDrawer').classList.add('show');$('courseDrawer').setAttribute('aria-hidden','false');document.body.classList.add('course-drawer-open');
 }
 

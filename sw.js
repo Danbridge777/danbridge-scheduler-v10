@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-25-3';
+const CACHE_NAME='danbridge-v15-27-2-owner-extension-inbox';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
@@ -36,7 +36,23 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  // 本地圖示與 manifest 採快取優先並在背景更新。
+  // JS/CSS 採網路優先，避免 GitHub 更新後仍執行舊權限與同步程式。
+  if(['script','style'].includes(event.request.destination) || /\.(?:js|css)$/.test(url.pathname)){
+    event.respondWith(
+      fetch(event.request,{cache:'no-store'})
+        .then(response=>{
+          if(response&&response.ok){
+            const copy=response.clone();
+            caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy));
+          }
+          return response;
+        })
+        .catch(()=>caches.match(event.request))
+    );
+    return;
+  }
+
+  // 圖示與 manifest 可採快取優先並在背景更新。
   event.respondWith(
     caches.match(event.request).then(cached=>{
       const network=fetch(event.request).then(response=>{
@@ -50,3 +66,5 @@ self.addEventListener('fetch',event=>{
     })
   );
 });
+
+// V15.27.2: dedicated extension-request inbox and multi-lesson batch requests.

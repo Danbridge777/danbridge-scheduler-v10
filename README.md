@@ -1,14 +1,19 @@
-# Danbridge Scheduler V15.20.1
+# V15.27.2 — Owner 補交申請中心
 
-課程列表與搜尋模組拆分版。全域搜尋、月份篩選、課程清單與本月全部標記已上課已集中至獨立模組，既有計算、權限與操作行為保持不變。
+- 新增 Owner 專用「補交申請」側邊入口與待處理數量。
+- 新增待處理／已核准／已拒絕／全部清單。
+- 支援逐筆核准 10 分鐘及拒絕。
+- 修正登入後頁首重建導致通知鈴消失。
+- Owner 即時監聽申請集合並更新清單。
 
+# Danbridge Operations V15.27.1
 
-## V15.19
-App Shell、共用選項與全域渲染協調層已獨立。
+修正「校區管理者同時也是老師」時，對自己的課程申請補交回報 10 分鐘會顯示申請失敗。
 
+本版送出申請前不再讀取可能缺少 `branchId` 的舊 `lessonReports` 文件；送出時會依受保護的 `lessonMeta` 同步補齊 `companyId`、`lessonId`、`branchId`、`reportedForTeacherIds` 與 `editableUntil`，讓舊回報文件也能安全升級。
 
-## V15.20
-支援老闆、老師、校區管理者三種雲端角色。校區管理者依指定校區取得唯讀資料範圍。
+部署時必須同時更新 GitHub Pages 與重新部署 `firebase/firestore.rules`，否則前端修正與雲端權限規則不會完整生效。
 
-### V15.20.2
-課程採用 branchId + deliveryMode + room/address/meetingUrl 資料模型。
+### V15.27.1 deployment note
+
+Deploy both the web files and Firestore rules. Branch managers retain full teacher reporting actions for lessons assigned to their own `teacherId`, including the 10-minute extension request.

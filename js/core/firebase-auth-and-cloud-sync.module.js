@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, Timestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js';
 
 const firebaseConfig = {
@@ -42,6 +42,9 @@ let applyingCloud=false;
 let unsubscribeState=null;
 let syncTimer=null;
 let unsubscribeReports=null;
+let unsubscribeExtensionRequests=null;
+let reportExtensionRequests=[];
+let lessonReportDocuments=[];
 let ownerUploadInFlight=false;
 let ownerUploadQueued=false;
 let ownerRetryTimer=null;
@@ -50,6 +53,9 @@ let lastUploadedHash='';
 let lastCloudSnapshotHash='';
 let reportSyncTimer=null;
 let teacherReportExistingPhotos=[];
+let lessonMetaSignatureCache=new Map();
+let lessonMetaCacheReady=false;
+let scopedViewHashCache=new Map();
 let originalSaveDB=window.saveDB;
 const originalEditLesson=window.editLesson;
 
@@ -69,25 +75,45 @@ function showCloudApp(){document.body.classList.remove('auth-locked');document.g
 function showCloudLogin(){document.body.classList.add('auth-locked');document.getElementById('authScreen')?.classList.remove('hidden');setAuthCard()}
 
 async function ensureProfile(user){
- const ref=doc(cloud,'users',user.uid);let snap=await getDoc(ref);
- if(!snap.exists() && user.email?.toLowerCase()===OWNER_EMAIL){
-   await setDoc(ref,{email:user.email,displayName:user.displayName||'Daniel',role:'owner',companyId:COMPANY_ID,createdAt:serverTimestamp(),active:true});
-   snap=await getDoc(ref);
- }
- if(!snap.exists() && user.email){
-   const emailKey=user.email.toLowerCase();
-   const accessSnap=await getDoc(doc(cloud,'companyAccess',emailKey));
-   if(accessSnap.exists()){
-     const a=accessSnap.data();
-     await setDoc(ref,{...a,email:user.email,displayName:user.displayName||'',createdAt:serverTimestamp()},{merge:true});
+ const emailKey=(user.email||'').trim().toLowerCase();
+ if(!emailKey)throw new Error('Google 帳號沒有可用的 Email。');
+
+ // Owner 保留 users/{uid} 個人檔案；老師與校區管理者則直接以 companyAccess 為唯一權限來源。
+ // 登入流程不再要求一般帳號寫入 users，避免任何 users 規則或舊資料欄位造成登入被拒絕。
+ if(emailKey===OWNER_EMAIL){
+   const ref=doc(cloud,'users',user.uid);let snap=await getDoc(ref);
+   if(!snap.exists()){
+     await setDoc(ref,{email:user.email,displayName:user.displayName||'Daniel',role:'owner',companyId:COMPANY_ID,createdAt:serverTimestamp(),active:true});
      snap=await getDoc(ref);
    }
+   const p=snap.data();
+   if(p.active===false)throw new Error('此帳號已停用。');
+   if(p.companyId!==COMPANY_ID||p.role!=='owner')throw new Error('Owner 帳號資料不正確。');
+   return p;
  }
- if(!snap.exists())throw new Error('此 Google 帳號尚未被加入 Danbridge 系統。請由老闆先在「安全設定」加入老師 Gmail。');
- const p=snap.data();
- if(p.active===false)throw new Error('此帳號已停用。');
- if(p.companyId!==COMPANY_ID)throw new Error('此帳號不屬於 Danbridge。');
- return p;
+
+ const accessSnap=await getDoc(doc(cloud,'companyAccess',emailKey));
+ if(!accessSnap.exists())throw new Error('此 Google 帳號尚未被加入 Danbridge 系統。請由 Owner 先在「安全設定」加入 Gmail。');
+ const a=accessSnap.data()||{};
+ if(a.active!==true)throw new Error('此帳號已停用。');
+ if(a.companyId!==COMPANY_ID)throw new Error('此帳號不屬於 Danbridge。');
+ if(!['teacher','branch_manager'].includes(a.role))throw new Error('此帳號角色設定不正確。');
+ if(!a.teacherId)throw new Error('此帳號尚未綁定老師身分，請 Owner 重新設定。');
+ if(a.role==='branch_manager'&&(!Array.isArray(a.branchIds)||!a.branchIds.length))throw new Error('此管理者尚未綁定校區。');
+ return {
+   email:user.email,
+   displayName:user.displayName||'',
+   role:a.role,
+   companyId:a.companyId,
+   active:true,
+   teacherId:String(a.teacherId),
+   teacherName:a.teacherName||'',
+   managerName:a.managerName||'',
+   branchIds:Array.isArray(a.branchIds)?a.branchIds:[],
+   branchNames:Array.isArray(a.branchNames)?a.branchNames:[],
+   readOnly:a.readOnly===true,
+   canSubmitOwnReports:a.canSubmitOwnReports!==false
+ };
 }
 function filteredTeacherDB(source,teacherId){
  const lessons=(source.lessons||[]).filter(l=>!l.isDraft&&(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).includes(teacherId));
@@ -171,9 +197,14 @@ async function saveCloudBranchManagerAccess(){
  const saveButton=document.getElementById('saveCloudBranchManager');
  const email=String(emailInput?.value||'').trim().toLowerCase();
  const branchIds=[...document.querySelectorAll('#cloudBranchChoices input[type="checkbox"]:checked')].map(x=>x.value);
+ const teacherId=String(document.getElementById('cloudBranchManagerTeacher')?.value||'').trim();
  if(!validGmailAddress(email)){
    branchManagerFormStatus('請輸入有效的 Gmail，例如 manager@gmail.com。','error');
    emailInput?.focus();
+   return;
+ }
+ if(!teacherId){
+   branchManagerFormStatus('請選擇校區管理者本人對應的老師身分。','error');
    return;
  }
  if(!branchIds.length){
@@ -191,10 +222,12 @@ async function saveCloudBranchManagerAccess(){
    if(existing.exists()&&existing.data()?.role==='teacher'){
      throw new Error('這個 Gmail 已經綁定為老師帳號，請先刪除老師權限後再設定為校區管理者。');
    }
+   const managerTeacher=(window.__danbridgeGetDB()?.teachers||[]).find(t=>t.id===teacherId);
+   if(!managerTeacher)throw new Error('找不到所選老師，請重新選擇。');
    const scopedDb=filteredBranchDB(window.__danbridgeGetDB(),branchIds);
    // 將管理者可讀取的校區快照直接存進自己的 companyAccess 文件。
    // 這條路徑已被現有登入規則允許，避免新 branchViews 路徑因規則尚未部署而失敗。
-   const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,active:true,readOnly:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
+   const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:managerTeacher.name||'',managerName:managerTeacher.name||'',active:true,readOnly:true,canSubmitOwnReports:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
    await setDoc(doc(cloud,'companyAccess',email),payload,{merge:true});
    try{
      const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
@@ -203,9 +236,10 @@ async function saveCloudBranchManagerAccess(){
    // 不再把儲存成功綁在 branchViews / teacherViews 上。
    // 舊 Firebase 規則若不允許這些路徑，主權限仍已完整儲存在 companyAccess。
    // 先更新本機畫面，不等待下一次 Firestore 查詢或快取刷新。
-   const optimistic={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,active:true,readOnly:true};
+   const optimistic={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:managerTeacher.name||'',managerName:managerTeacher.name||'',active:true,readOnly:true,canSubmitOwnReports:true};
    renderCloudBranchManagerList([...branchManagerAccessCache.filter(x=>String(x.email||x.id||'').toLowerCase()!==email),optimistic]);
    if(emailInput)emailInput.value='';
+   const managerTeacherSelect=document.getElementById('cloudBranchManagerTeacher');if(managerTeacherSelect)managerTeacherSelect.value='';
    document.querySelectorAll('#cloudBranchChoices input[type="checkbox"]').forEach(x=>x.checked=false);
    listCloudBranchManagerAccess();
    branchManagerFormStatus('校區管理者權限已建立。','ok');
@@ -238,6 +272,12 @@ async function renderBranchManagerAccess(){
  if(choices){
    choices.innerHTML=branches.map(b=>`<label><input type="checkbox" value="${b.id}"> <span>${b.name}</span></label>`).join('');
  }
+ const managerTeacherSelect=document.getElementById('cloudBranchManagerTeacher');
+ if(managerTeacherSelect){
+   const current=managerTeacherSelect.value;
+   managerTeacherSelect.innerHTML='<option value="">請選擇管理者本人</option>'+((window.__danbridgeGetDB()?.teachers||[]).map(t=>`<option value="${escapeHTML(t.id)}">${escapeHTML(t.name||'未命名老師')}</option>`).join(''));
+   if(current)managerTeacherSelect.value=current;
+ }
  const button=document.getElementById('saveCloudBranchManager');
  if(button){button.type='button';button.disabled=false;button.dataset.saving='0'}
  branchManagerFormStatus('','');
@@ -248,7 +288,7 @@ function escapeHTML(value=''){return String(value).replace(/&/g,'&amp;').replace
 function renderCloudBranchManagerList(records=branchManagerAccessCache){
  const box=document.getElementById('cloudBranchManagerList');if(!box||cloudRole!=='owner')return;
  branchManagerAccessCache=Array.isArray(records)?records:[];
- box.innerHTML=branchManagerAccessCache.map(x=>{const email=String(x.email||x.id||'').toLowerCase();return `<div class="backup-item branch-access-item"><div class="info"><b>${escapeHTML((x.branchNames||x.branchIds||[]).join('、')||'未指定校區')}</b><div class="small" title="${escapeHTML(email)}">${escapeHTML(email)}｜唯讀</div></div><button type="button" class="btn danger branch-access-delete" data-email="${escapeHTML(email)}">刪除權限</button></div>`}).join('')||'<span class="small">尚未建立校區管理者。</span>';
+ box.innerHTML=branchManagerAccessCache.map(x=>{const email=String(x.email||x.id||'').toLowerCase();return `<div class="backup-item branch-access-item"><div class="info"><b>${escapeHTML((x.branchNames||x.branchIds||[]).join('、')||'未指定校區')}</b><div class="small" title="${escapeHTML(email)}">${escapeHTML(email)}｜${escapeHTML(x.teacherName||x.managerName||'未綁定老師')}｜可回報本人課程</div></div><button type="button" class="btn danger branch-access-delete" data-email="${escapeHTML(email)}">刪除權限</button></div>`}).join('')||'<span class="small">尚未建立校區管理者。</span>';
  box.querySelectorAll('.branch-access-delete').forEach(btn=>btn.onclick=()=>removeCloudBranchManagerAccess(btn.dataset.email));
 }
 async function listCloudBranchManagerAccess(){
@@ -280,6 +320,50 @@ const REPORT_STATUS_LABELS={completed:'已完成',student_leave:'學生請假',t
 const REPORT_TO_LESSON_STATUS={completed:'已上課',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課'};
 function reportStatusLabel(v){return REPORT_STATUS_LABELS[v]||'尚未回報'}
 function lessonBelongsToTeacher(l,teacherId){return (Array.isArray(l?.teacherIds)?l.teacherIds:[l?.teacherId]).filter(Boolean).includes(teacherId)}
+function canUseTeacherReporting(){return cloudRole==='owner'||((cloudRole==='teacher'||cloudRole==='branch_manager')&&!!cloudTeacherId)}
+function canActAsTeacherForLesson(lesson){return !!lesson&&!!cloudTeacherId&&(cloudRole==='teacher'||cloudRole==='branch_manager')&&lessonBelongsToTeacher(lesson,cloudTeacherId)}
+function lessonReportDeadline(lesson){
+ if(!lesson?.date||!lesson?.end)return null;
+ const [y,m,d]=String(lesson.date).split('-').map(Number);
+ const [h,mi]=String(lesson.end).split(':').map(Number);
+ if(!y||!m||!d||Number.isNaN(h)||Number.isNaN(mi))return null;
+ return new Date(y,m-1,d,h+3,mi,0,0);
+}
+function currentReportExtension(lesson){
+ if(!lesson||cloudRole==='owner')return null;
+ return reportExtensionRequests.find(r=>r.lessonId===lesson.id&&r.requesterTeacherId===cloudTeacherId&&r.extensionStatus==='approved')||null;
+}
+function effectiveReportDeadline(lesson){
+ const base=lessonReportDeadline(lesson),extension=currentReportExtension(lesson);
+ const extra=extension?.extensionUntil?.toDate?.()||((extension?.extensionUntilClient)?new Date(extension.extensionUntilClient):null);
+ return extra&&(!base||extra>base)?extra:base;
+}
+function teacherReportWindowOpen(lesson){
+ const deadline=effectiveReportDeadline(lesson);
+ return !deadline||Date.now()<=deadline.getTime();
+}
+function canReportLesson(lesson){
+ if(cloudRole==='owner')return !!lesson;
+ if(!canUseTeacherReporting()||!canActAsTeacherForLesson(lesson))return false;
+ // 老師與校區管理者皆以課程結束後 3 小時為基準；Owner 核准後可額外開放 10 分鐘。
+ return teacherReportWindowOpen(lesson);
+}
+function canViewLessonReport(lesson){
+ if(!lesson)return false;
+ if(cloudRole==='owner')return true;
+ if(cloudRole==='branch_manager')return cloudBranchIds.includes(lessonBranchId(lesson));
+ return cloudRole==='teacher'&&lessonBelongsToTeacher(lesson,cloudTeacherId);
+}
+function setTeacherReportReadOnly(readOnly,message=''){
+ const modal=document.getElementById('teacherReportModal');if(!modal)return;
+ modal.dataset.readOnly=readOnly?'true':'false';
+ modal.querySelectorAll('input[name="teacherReportStatus"], textarea, #teacherReportPhotos').forEach(el=>el.disabled=!!readOnly);
+ ['saveTeacherReportBtn','quickCompleteTeacherReportBtn','startClassFocusBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=!!readOnly});
+ const requestBtn=document.getElementById('requestReportExtensionBtn');if(requestBtn)requestBtn.hidden=true;
+ const lockedActions=document.getElementById('teacherReportLockedActions');if(lockedActions)lockedActions.hidden=true;
+ const note=document.getElementById('teacherReportPermissionNote');
+ if(note){note.hidden=!message;note.textContent=message}
+}
 function applyReportToLesson(lesson,report){
  if(!lesson||!report)return false;
  const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportFeedback:report.feedback||'',teacherReportPhotos:Array.isArray(report.photos)?report.photos:[],teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
@@ -289,10 +373,11 @@ function applyReportToLesson(lesson,report){
  if(mapped&&lesson.status!==mapped){lesson.status=mapped;changed=true}
  return changed;
 }
-function openTeacherReportModal(lessonId){
- if(cloudRole!=='teacher')return originalEditLesson?.(lessonId);
+function openTeacherReportModal(lessonId,options={}){
+ if(!canUseTeacherReporting())return originalEditLesson?.(lessonId);
  const lesson=window.__danbridgeGetDB().lessons.find(l=>l.id===lessonId);
- if(!lesson||!lessonBelongsToTeacher(lesson,cloudTeacherId))return alert('你只能回報自己的課程。');
+ const readOnly=options.readOnly===true;
+ if(!lesson||!canViewLessonReport(lesson)||(!readOnly&&cloudRole!=='owner'&&!lessonBelongsToTeacher(lesson,cloudTeacherId)))return alert('你沒有這堂課的回報權限。');
  document.getElementById('teacherReportLessonId').value=lesson.id;
  const s=window.__danbridgeGetDB().students.find(x=>x.id===lesson.studentId)||{};
  document.getElementById('teacherReportLessonInfo').innerHTML=`<b>${lesson.date} ${lesson.start}–${lesson.end}</b><br>${s.name||'未命名學生'}｜${lesson.title||'課程'}｜${lesson.location||''} ${lesson.room||''}`;
@@ -304,7 +389,25 @@ function openTeacherReportModal(lessonId){
  const photoInput=document.getElementById('teacherReportPhotos');if(photoInput)photoInput.value='';
  teacherReportExistingPhotos=Array.isArray(lesson.teacherReportPhotos)?[...lesson.teacherReportPhotos]:[];
  renderTeacherReportPhotoPreview();
+ const baseDeadline=lessonReportDeadline(lesson),deadline=effectiveReportDeadline(lesson),extension=currentReportExtension(lesson);
+ const locked=!readOnly&&cloudRole!=='owner'&&!teacherReportWindowOpen(lesson);
+ let permissionMessage='';
+ if(readOnly)permissionMessage='唯讀模式：你可以查看此校區的課堂回報，但不能修改其他老師的內容。';
+ else if(extension&&deadline&&Date.now()<=deadline.getTime())permissionMessage=`Owner 已開放 10 分鐘，可修改至 ${deadline.toLocaleString('zh-TW')}。`;
+ else if(deadline)permissionMessage=`可修改至 ${deadline.toLocaleString('zh-TW')}（課程結束後 3 小時）。`;
+ setTeacherReportReadOnly(readOnly||locked,locked?`已超過課程結束後 3 小時。可向 Owner 申請開放 10 分鐘。`:permissionMessage);
+ const requestBtn=document.getElementById('requestReportExtensionBtn');
+ if(requestBtn){
+   const pending=reportExtensionRequests.find(r=>r.lessonId===lesson.id&&r.requesterTeacherId===cloudTeacherId&&r.extensionStatus==='pending');
+   const canRequest=locked&&cloudRole!=='owner'&&canActAsTeacherForLesson(lesson);
+   requestBtn.hidden=!canRequest;
+   requestBtn.disabled=!!pending;
+   requestBtn.textContent=pending?'已送出申請，等待 Owner':'申請開放 10 分鐘';
+   const lockedActions=document.getElementById('teacherReportLockedActions');
+   if(lockedActions)lockedActions.hidden=!canRequest;
+ }
  document.getElementById('teacherReportModal').classList.add('show');
+ if(locked){const modal=document.querySelector('#teacherReportModal .modal');if(modal)modal.scrollTop=0;}
 }
 function renderTeacherReportPhotoPreview(){
  const box=document.getElementById('teacherReportPhotoPreview');if(!box)return;
@@ -314,16 +417,186 @@ function renderTeacherReportPhotoPreview(){
  box.innerHTML=existing+pending;
  box.querySelectorAll('[data-photo-index]').forEach(btn=>btn.addEventListener('click',()=>{teacherReportExistingPhotos.splice(Number(btn.dataset.photoIndex),1);renderTeacherReportPhotoPreview()}));
 }
+function extensionRequestDocId(lessonId,uid=cloudUid){
+ const safeUid=String(uid||'').replace(/\//g,'_');
+ const safeLessonId=String(lessonId||'').replace(/\//g,'_');
+ return `${safeUid}__${safeLessonId}`;
+}
+async function getTrustedLessonMeta(lessonId){
+ const metaSnap=await getDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',lessonId));
+ if(!metaSnap.exists())throw new Error('找不到這堂課的雲端權限資料，請 Owner 登入並重新同步課表。');
+ const meta=metaSnap.data()||{};
+ if(meta.active!==true)throw new Error('這堂課目前未啟用回報。');
+ const teacherIds=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String);
+ if(!cloudUid)throw new Error('登入狀態尚未完成，請重新登入後再試。');
+ if(!cloudTeacherId)throw new Error('此帳號尚未綁定老師資料，請 Owner 重新儲存帳號設定。');
+ if(!teacherIds.includes(String(cloudTeacherId)))throw new Error('雲端課程尚未綁定目前老師，請 Owner 登入後重新同步一次課表。');
+ return {...meta,teacherIds};
+}
+function eligibleExtensionLessons(){
+ const lessons=window.__danbridgeGetDB?.().lessons||[];
+ return lessons.filter(lesson=>canActAsTeacherForLesson(lesson)&&!teacherReportWindowOpen(lesson))
+   .filter(lesson=>!reportExtensionRequests.some(r=>(r.lessonId||r.id)===lesson.id&&r.extensionStatus==='pending'))
+   .sort((a,b)=>`${b.date||''} ${b.start||''}`.localeCompare(`${a.date||''} ${a.start||''}`));
+}
+async function submitExtensionRequests(lessonIds){
+ const unique=[...new Set((lessonIds||[]).filter(Boolean))];
+ if(!unique.length)throw new Error('請至少選擇一堂課。');
+ if(!cloudUid||!cloudTeacherId)throw new Error('老師登入資料尚未完成，請登出後重新登入。');
+ const lessons=window.__danbridgeGetDB?.().lessons||[];
+ const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
+ const nowIso=new Date().toISOString();
+ const jobs=[];
+ for(const lessonId of unique){
+   const lesson=lessons.find(l=>l.id===lessonId);
+   if(!lesson||!canActAsTeacherForLesson(lesson))throw new Error('包含無權限的課程。');
+   if(teacherReportWindowOpen(lesson))throw new Error(`${lesson.date||''} ${lesson.start||''} 仍在可修改時間內。`);
+   // lessonMeta 只用於前端確認課程仍存在；Rules 不再要求脆弱的完整欄位比對。
+   await getTrustedLessonMeta(lessonId);
+   const payload={
+     companyId:COMPANY_ID,
+     lessonId,
+     requesterUid:cloudUid,
+     requesterTeacherId:cloudTeacherId,
+     requesterEmail:auth.currentUser?.email?.toLowerCase()||'',
+     requesterName:reporterName,
+     lessonDate:lesson.date||'',
+     lessonStart:lesson.start||'',
+     lessonEnd:lesson.end||'',
+     extensionStatus:'pending',
+     extensionMinutes:10,
+     extensionRequestedAt:serverTimestamp(),
+     extensionRequestedAtClient:nowIso,
+     extensionUntil:null,
+     extensionUntilClient:'',
+     approvedAt:null,
+     approvedAtClient:'',
+     approvedByUid:'',
+     approvedByEmail:''
+   };
+   jobs.push(addDoc(collection(cloud,'companies',COMPANY_ID,'reportExtensionRequests'),payload));
+ }
+ await Promise.all(jobs);
+}
+async function requestReportExtension(){
+ const lessonId=document.getElementById('teacherReportLessonId')?.value||'';
+ const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===lessonId);
+ if(!lesson||cloudRole==='owner'||!canActAsTeacherForLesson(lesson))return alert('你沒有這堂課的申請權限。');
+ if(teacherReportWindowOpen(lesson))return alert('目前仍在可修改時間內，不需要申請。');
+ try{
+   await submitExtensionRequests([lessonId]);
+   cloudStatus('已送出 10 分鐘開放申請','ok');
+   alert('申請已送出。Owner 核准後，會從核准當下起開放 10 分鐘。');
+ }catch(e){console.error('requestReportExtension failed',e);const code=e?.code?` [${e.code}]`:'';alert('申請送出失敗'+code+'：'+(e?.message||e)+'\n\n請確認已部署此版本 firebase/firestore.rules，並重新登入老師帳號。')}
+}
+function openBatchExtensionRequestModal(){
+ if(cloudRole==='owner'||!canUseTeacherReporting())return;
+ const lessons=eligibleExtensionLessons();
+ if(!lessons.length)return alert('目前沒有可申請補交的逾時課程。');
+ let modal=document.getElementById('batchExtensionRequestModal');
+ if(!modal){
+   modal=document.createElement('div');modal.id='batchExtensionRequestModal';modal.className='modal-backdrop';
+   modal.innerHTML=`<div class="modal"><div class="modal-head"><h2>批次申請開放 10 分鐘</h2><button type="button" data-close-batch-extension>×</button></div><div class="hint">可一次勾選多堂課送出，支援 6 堂以上；每堂課仍由 Owner 分別核准。</div><div style="display:flex;gap:8px;margin:10px 0"><button type="button" class="btn" data-select-six>選前 6 堂</button><button type="button" class="btn" data-select-all>全選</button><button type="button" class="btn" data-clear-all>清除</button></div><div id="batchExtensionLessonList" style="max-height:50vh;overflow:auto;border:1px solid var(--line,#ddd);border-radius:10px;padding:8px"></div><div style="margin-top:12px"><button type="button" class="btn primary" data-submit-batch-extension>送出所選申請</button> <button type="button" class="btn" data-close-batch-extension>取消</button></div></div>`;
+   document.body.appendChild(modal);
+   modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('[data-close-batch-extension]'))modal.classList.remove('show')});
+   modal.querySelector('[data-select-six]').addEventListener('click',()=>[...modal.querySelectorAll('input[type=checkbox]')].forEach((x,i)=>x.checked=i<6));
+   modal.querySelector('[data-select-all]').addEventListener('click',()=>modal.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true));
+   modal.querySelector('[data-clear-all]').addEventListener('click',()=>modal.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false));
+   modal.querySelector('[data-submit-batch-extension]').addEventListener('click',async()=>{
+     const ids=[...modal.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
+     if(!ids.length)return alert('請至少選擇一堂課。');
+     const btn=modal.querySelector('[data-submit-batch-extension]');btn.disabled=true;btn.textContent='送出中…';
+     try{await submitExtensionRequests(ids);modal.classList.remove('show');cloudStatus(`已送出 ${ids.length} 筆 10 分鐘申請`,'ok');alert(`已成功送出 ${ids.length} 筆申請。`)}
+     catch(e){console.error(e);alert('批次申請失敗：'+e.message)}finally{btn.disabled=false;btn.textContent='送出所選申請'}
+   });
+ }
+ const list=modal.querySelector('#batchExtensionLessonList');
+ list.innerHTML=lessons.map(l=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:9px;border-bottom:1px solid var(--line,#eee)"><input type="checkbox" value="${String(l.id).replace(/"/g,'&quot;')}"><span><b>${l.date||''} ${l.start||''}–${l.end||''}</b><br><span class="small">${((window.__danbridgeGetDB?.().students||[]).find(x=>x.id===l.studentId)?.name)||l.title||'課程'}</span></span></label>`).join('');
+ modal.classList.add('show');
+}
+let ownerExtensionFilter='pending';
+function extensionRequestStatusLabel(status){return ({pending:'待處理',approved:'已核准',rejected:'已拒絕'})[status]||status||'未知'}
+function extensionRequestTimeText(value){
+ try{
+  const d=value?.toDate?.()||new Date(value||0);
+  return Number.isNaN(d.getTime())?'':d.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+ }catch{return ''}
+}
+function setOwnerExtensionFilter(filter){
+ ownerExtensionFilter=filter||'pending';
+ document.querySelectorAll('[data-extension-filter]').forEach(btn=>btn.classList.toggle('primary',btn.dataset.extensionFilter===ownerExtensionFilter));
+ renderOwnerExtensionInbox();
+}
+function renderOwnerExtensionInbox(){
+ const list=document.getElementById('extensionRequestOwnerList');
+ const summary=document.getElementById('extensionRequestSummary');
+ const pending=reportExtensionRequests.filter(r=>r.extensionStatus==='pending');
+ const badge=document.getElementById('extensionRequestNavBadge');
+ if(badge){badge.textContent=String(pending.length);badge.hidden=pending.length===0}
+ if(summary)summary.textContent=`待處理 ${pending.length} 筆｜全部 ${reportExtensionRequests.length} 筆`;
+ if(!list)return;
+ if(cloudRole!=='owner'){list.innerHTML='<div class="hint">只有 Owner 可以查看全部補交申請。</div>';return}
+ const rows=reportExtensionRequests
+  .filter(r=>ownerExtensionFilter==='all'||r.extensionStatus===ownerExtensionFilter)
+  .sort((a,b)=>String(b.extensionRequestedAtClient||'').localeCompare(String(a.extensionRequestedAtClient||'')));
+ if(!rows.length){list.innerHTML='<div class="extension-request-empty">目前沒有這個狀態的申請。</div>';return}
+ list.innerHTML=rows.map(r=>{
+  const status=r.extensionStatus||'pending';
+  const studentName=(window.__danbridgeGetDB?.().students||[]).find(s=>s.id===r.studentId)?.name||r.studentName||'';
+  const requested=extensionRequestTimeText(r.extensionRequestedAt)||extensionRequestTimeText(r.extensionRequestedAtClient);
+  const decided=extensionRequestTimeText(r.approvedAt||r.rejectedAt)||extensionRequestTimeText(r.approvedAtClient||r.rejectedAtClient);
+  const actions=status==='pending'?`<div class="extension-request-actions"><button type="button" class="btn ok" onclick="DanbridgeReportExtensions.approveById('${String(r.id).replace(/'/g,"\'")}')">核准 10 分鐘</button><button type="button" class="btn danger" onclick="DanbridgeReportExtensions.rejectById('${String(r.id).replace(/'/g,"\'")}')">拒絕</button></div>`:'';
+  return `<article class="extension-request-card status-${status}"><div class="extension-request-main"><div class="extension-request-title"><b>${esc(r.requesterName||'老師')}</b><span class="extension-status">${extensionRequestStatusLabel(status)}</span></div><div class="extension-request-course">${esc(r.lessonDate||'')} ${esc(r.lessonStart||'')}–${esc(r.lessonEnd||'')} ${studentName?'｜'+esc(studentName):''}</div><div class="extension-request-meta">申請時間：${esc(requested||'—')}${decided?`｜處理時間：${esc(decided)}`:''}</div></div>${actions}</article>`
+ }).join('');
+}
+async function approveReportExtensionById(requestId){
+ if(cloudRole!=='owner')return alert('只有 Owner 可以核准。');
+ const req=reportExtensionRequests.find(r=>r.id===requestId);
+ if(!req)return alert('找不到這筆申請，可能已被處理。');
+ if(req.extensionStatus!=='pending')return alert('這筆申請已經處理。');
+ const until=new Date(Date.now()+10*60*1000);
+ try{
+  const requestRef=doc(cloud,'companies',COMPANY_ID,'reportExtensionRequests',req.id);
+  const grantId=extensionRequestDocId(req.lessonId,req.requesterUid);
+  await Promise.all([
+   setDoc(requestRef,{extensionStatus:'approved',approvedAt:serverTimestamp(),approvedAtClient:new Date().toISOString(),extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedByUid:cloudUid,approvedByEmail:auth.currentUser?.email?.toLowerCase()||''},{merge:true}),
+   setDoc(doc(cloud,'companies',COMPANY_ID,'reportExtensionGrants',grantId),{companyId:COMPANY_ID,lessonId:req.lessonId,requesterUid:req.requesterUid,requesterTeacherId:String(req.requesterTeacherId||''),extensionStatus:'approved',extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedAt:serverTimestamp(),approvedByUid:cloudUid},{merge:false})
+  ]);
+  cloudStatus(`已開放 ${req.requesterName||'老師'} 10 分鐘`,'ok');
+ }catch(e){console.error(e);alert('核准失敗：'+e.message)}
+}
+async function rejectReportExtensionById(requestId){
+ if(cloudRole!=='owner')return alert('只有 Owner 可以拒絕。');
+ const req=reportExtensionRequests.find(r=>r.id===requestId);
+ if(!req)return alert('找不到這筆申請，可能已被處理。');
+ if(req.extensionStatus!=='pending')return alert('這筆申請已經處理。');
+ if(!confirm(`確定拒絕 ${req.requesterName||'老師'} 的補交申請？`))return;
+ try{
+  await setDoc(doc(cloud,'companies',COMPANY_ID,'reportExtensionRequests',req.id),{extensionStatus:'rejected',rejectedAt:serverTimestamp(),rejectedAtClient:new Date().toISOString(),rejectedByUid:cloudUid,rejectedByEmail:auth.currentUser?.email?.toLowerCase()||''},{merge:true});
+  cloudStatus('已拒絕補交申請','ok');
+ }catch(e){console.error(e);alert('拒絕失敗：'+e.message)}
+}
+async function approveReportExtension(requestOrLessonId){
+ const req=reportExtensionRequests.find(r=>r.id===requestOrLessonId)||(reportExtensionRequests.filter(r=>r.lessonId===requestOrLessonId&&r.extensionStatus==='pending').sort((a,b)=>String(b.extensionRequestedAtClient||'').localeCompare(String(a.extensionRequestedAtClient||'')))[0]);
+ if(!req)return alert('找不到這筆申請，可能已被處理。');
+ return approveReportExtensionById(req.id);
+}
+window.DanbridgeReportExtensions={
+ getRequests:()=>reportExtensionRequests.map(x=>({...x})),
+ approve:approveReportExtension,approveById:approveReportExtensionById,rejectById:rejectReportExtensionById,
+ request:requestReportExtension,openBatch:openBatchExtensionRequestModal,
+ renderOwnerInbox:renderOwnerExtensionInbox,setOwnerFilter:setOwnerExtensionFilter
+};
 function quickCompleteTeacherReport(){
  document.querySelectorAll('input[name="teacherReportStatus"]').forEach(r=>r.checked=r.value==='completed');
  return saveTeacherReport();
 }
 function closeTeacherReportModal(){document.getElementById('teacherReportModal')?.classList.remove('show')}
 async function saveTeacherReport(){
- if(cloudRole!=='teacher')return;
+ if(!canUseTeacherReporting())return;
  const lessonId=document.getElementById('teacherReportLessonId').value;
  const lesson=window.__danbridgeGetDB().lessons.find(l=>l.id===lessonId);
- if(!lesson||!lessonBelongsToTeacher(lesson,cloudTeacherId))return alert('找不到可回報的課程。');
+ if(!lesson||!canReportLesson(lesson)){const deadline=effectiveReportDeadline(lesson);return alert(cloudRole!=='owner'&&deadline&&Date.now()>deadline.getTime()?`此課程已超過可修改時間（${deadline.toLocaleString('zh-TW')} 截止）。如需修改，請向 Owner 申請開放 10 分鐘。`:'找不到可回報的課程。');}
  const status=document.querySelector('input[name="teacherReportStatus"]:checked')?.value||'';
  if(!status)return alert('請選擇上課狀態。');
  const photoFiles=[...(document.getElementById('teacherReportPhotos')?.files||[])];
@@ -332,6 +605,7 @@ async function saveTeacherReport(){
  const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent=photoFiles.length?'上傳照片中…':'儲存中…';
  document.getElementById('teacherReportModal')?.classList.add('teacher-report-uploading');
  try{
+   const trustedMeta=await getTrustedLessonMeta(lessonId);
    const uploaded=[];
    for(const file of photoFiles){
      const safeName=String(file.name||'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g,'_');
@@ -340,7 +614,10 @@ async function saveTeacherReport(){
      await uploadBytes(fileRef,file,{contentType:file.type||'image/jpeg'});
      uploaded.push({url:await getDownloadURL(fileRef),name:file.name||'課堂照片',path});
    }
-   const report={companyId:COMPANY_ID,lessonId,teacherId:cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:auth.currentUser?.displayName||'',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
+   const lessonTeacherId=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean)[0]||'';
+   const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
+   const trustedDeadline=trustedMeta.editableUntil?.toDate?.()||null;
+   const report={companyId:COMPANY_ID,lessonId,branchId:trustedMeta.branchId,teacherId:cloudRole==='owner'?(cloudTeacherId||lessonTeacherId):cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:reporterName,reportedByRole:cloudRole,reportedForTeacherIds:Array.isArray(trustedMeta.teacherIds)?trustedMeta.teacherIds:[],isOwnerReport:cloudRole==='owner',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),editableUntil:trustedMeta.editableUntil,editableUntilClient:trustedDeadline?.toISOString()||'',updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
    await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
    applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();cloudStatus('課程回報已儲存','ok');return true;
  }catch(e){console.error(e);alert('課程回報儲存失敗：'+e.message);cloudStatus('回報儲存失敗','error');return false}
@@ -372,10 +649,10 @@ function updateClassFocusTimer(){
  label.textContent=over?'已超過下課時間':'距離下課';box.classList.toggle('overtime',over);
 }
 function openClassFocusMode(){
- if(cloudRole!=='teacher')return;
+ if(!canUseTeacherReporting())return;
  const lessonId=document.getElementById('teacherReportLessonId')?.value||'';
  const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===lessonId);
- if(!lesson||!lessonBelongsToTeacher(lesson,cloudTeacherId))return alert('找不到可開始的課程。');
+ if(!lesson||!canReportLesson(lesson))return alert('找不到可開始的課程。');
  const student=window.__danbridgeGetDB().students.find(x=>x.id===lesson.studentId)||{},draft=getClassFocusDraft(lessonId);
  classFocusLessonId=lessonId;
  document.getElementById('classFocusTitle').textContent=student.name||lesson.title||'課程';
@@ -426,20 +703,53 @@ function installClassFocusMode(){
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('classFocusMode')?.classList.contains('show')){e.preventDefault();closeClassFocusMode({reopen:true})}},true);
 }
 
+
+window.openLessonReport=function(lessonId){
+ const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===lessonId);
+ if(!lesson)return alert('找不到課程。');
+ if(cloudRole==='owner'||canActAsTeacherForLesson(lesson))return openTeacherReportModal(lessonId);
+ if(cloudRole==='branch_manager'&&canViewLessonReport(lesson))return openTeacherReportModal(lessonId,{readOnly:true});
+ return alert('你沒有這堂課的回報權限。');
+};
+window.canCurrentUserReportLesson=function(lessonId){
+ const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===lessonId);
+ return !!lesson&&canReportLesson(lesson);
+};
+window.currentCloudRole=function(){return cloudRole};
+
 function installTeacherReportUI(){
- window.editLesson=(id)=>cloudRole==='teacher'?openTeacherReportModal(id):originalEditLesson?.(id);
+ window.editLesson=(id)=>{
+   if(cloudRole==='teacher')return openTeacherReportModal(id);
+   if(cloudRole==='branch_manager'){
+     const lesson=window.__danbridgeGetDB?.().lessons.find(l=>l.id===id);
+     return canActAsTeacherForLesson(lesson)?openTeacherReportModal(id):openTeacherReportModal(id,{readOnly:true});
+   }
+   return originalEditLesson?.(id);
+ };
  document.getElementById('closeTeacherReportModal')?.addEventListener('click',closeTeacherReportModal);
  document.getElementById('cancelTeacherReportBtn')?.addEventListener('click',closeTeacherReportModal);
  document.getElementById('saveTeacherReportBtn')?.addEventListener('click',saveTeacherReport);
+ document.getElementById('requestReportExtensionBtn')?.addEventListener('click',requestReportExtension);
+ document.getElementById('batchReportExtensionBtn')?.addEventListener('click',openBatchExtensionRequestModal);
  document.getElementById('teacherReportModal')?.addEventListener('click',e=>{if(e.target===document.getElementById('teacherReportModal'))closeTeacherReportModal()});
 }
 function subscribeLessonReports(){
  unsubscribeReports?.();unsubscribeReports=null;
- if(cloudRole!=='owner'&&cloudRole!=='teacher')return;
- const qy=cloudRole==='teacher'?query(collection(cloud,'companies',COMPANY_ID,'lessonReports'),where('teacherUid','==',cloudUid)):collection(cloud,'companies',COMPANY_ID,'lessonReports');
+ if(cloudRole!=='owner'&&!canUseTeacherReporting())return;
+ const reportsRef=collection(cloud,'companies',COMPANY_ID,'lessonReports');
+ let qy=reportsRef;
+ if(cloudRole==='teacher')qy=query(reportsRef,where('reportedForTeacherIds','array-contains',cloudTeacherId));
+ else if(cloudRole==='branch_manager'){
+   if(!cloudBranchIds.length)return;
+   qy=cloudBranchIds.length===1?query(reportsRef,where('branchId','==',cloudBranchIds[0])):query(reportsRef,where('branchId','in',cloudBranchIds.slice(0,30)));
+ }
  unsubscribeReports=onSnapshot(qy,snap=>{
+   lessonReportDocuments=snap.docs.map(d=>({id:d.id,...d.data()}));
+   window.DanbridgeNotifications?.render?.();
    let changed=false;const local=window.__danbridgeGetDB();
-   snap.docs.forEach(d=>{const r=d.data();const l=local.lessons.find(x=>x.id===(r.lessonId||d.id));if(l&&(cloudRole==='owner'||lessonBelongsToTeacher(l,cloudTeacherId)))changed=applyReportToLesson(l,r)||changed});
+   lessonReportDocuments.forEach(r=>{const l=local.lessons.find(x=>x.id===(r.lessonId||r.id));if(l&&canViewLessonReport(l))changed=applyReportToLesson(l,r)||changed});
+   const modal=document.getElementById('teacherReportModal');
+   if(modal?.classList.contains('show')){const id=document.getElementById('teacherReportLessonId')?.value;const l=local.lessons.find(x=>x.id===id);if(l)setTimeout(()=>openTeacherReportModal(id,{readOnly:modal.dataset.readOnly==='true'&&cloudRole==='branch_manager'&&!canActAsTeacherForLesson(l)}),0)}
    if(!changed)return;
    try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(local))}catch{}
    window.renderAll?.();
@@ -448,13 +758,28 @@ function subscribeLessonReports(){
  },e=>{console.error('lessonReports listener',e);cloudStatus('課程回報同步失敗：'+e.message,'error')});
 }
 
+function subscribeReportExtensionRequests(){
+ unsubscribeExtensionRequests?.();unsubscribeExtensionRequests=null;
+ if(cloudRole!=='owner'&&!canUseTeacherReporting())return;
+ const ref=collection(cloud,'companies',COMPANY_ID,'reportExtensionRequests');
+ let qy=ref;
+ if(cloudRole!=='owner')qy=query(ref,where('requesterUid','==',cloudUid));
+ unsubscribeExtensionRequests=onSnapshot(qy,snap=>{
+   reportExtensionRequests=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>cloudRole==='owner'||r.requesterUid===cloudUid);
+   window.DanbridgeNotifications?.render?.();
+   renderOwnerExtensionInbox();
+   const modal=document.getElementById('teacherReportModal');
+   if(modal?.classList.contains('show')){const id=document.getElementById('teacherReportLessonId')?.value;const l=window.__danbridgeGetDB?.().lessons.find(x=>x.id===id);if(l)setTimeout(()=>openTeacherReportModal(id,{readOnly:modal.dataset.readOnly==='true'&&cloudRole==='branch_manager'&&!canActAsTeacherForLesson(l)}),0)}
+ },e=>{console.error('reportExtensionRequests listener',e);cloudStatus('補交申請同步失敗：'+e.message,'error')});
+}
+
 function applyRoleUI(profile,user){
- cloudRole=profile.role;cloudTeacherId=profile.teacherId||'';cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
- window.DanbridgeAccess?.setContext({role:cloudRole,branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:profile.readOnly===true||cloudRole==='branch_manager'});
+ cloudRole=profile.role;cloudTeacherId=profile.teacherId==null?'':String(profile.teacherId);cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();
+ window.DanbridgeAccess?.setContext({role:cloudRole,branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:profile.readOnly===true||cloudRole==='branch_manager',canSubmitOwnReports:profile.canSubmitOwnReports!==false});
  const signedInName=(profile.role==='teacher'?(profile.teacherName||profile.displayName):profile.role==='branch_manager'?(profile.managerName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
  document.body.dataset.cloudDisplayName=String(signedInName).trim();
  const header=document.querySelector('.header-auth-actions');
- if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${window.DanbridgeAccess?.ROLE_LABELS?.[profile.role]||profile.role}｜${String(signedInName).trim()}</span><button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
+ if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${window.DanbridgeAccess?.ROLE_LABELS?.[profile.role]||profile.role}｜${String(signedInName).trim()}</span>${profile.role==='owner'?'<button type="button" class="btn notification-bell" onclick="DanbridgeNotifications.open()" aria-label="開啟通知中心"><span class="notification-bell-icon">🔔</span><span id="notificationCount" class="notification-count" hidden>0</span></button><button type="button" class="btn" onclick="switchTab(\'extensionRequests\')">補交申請</button>':''}<button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
  document.body.classList.toggle('teacher-cloud-role',profile.role==='teacher');
  document.body.classList.toggle('branch-manager-cloud-role',profile.role==='branch_manager');
@@ -481,7 +806,7 @@ function applyRoleUI(profile,user){
 
    // 老師唯讀：只保留總覽、自己的課表與課程回報。
    document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions').forEach(e=>e.style.setProperty('display','none','important'));
-   document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
+   document.querySelectorAll('#students,#teachers,#drafts,#makeups,#extensionRequests,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
 
    // 隱藏公司營收、未收款、薪資、老師總數與公司異動等敏感資訊。
    ['mTeachers','mRevenue','mUnpaid','mPayroll','mChanges'].forEach(id=>{
@@ -494,7 +819,8 @@ function applyRoleUI(profile,user){
    const allowedTabs=new Set(['dashboard','students','teachers','calendar','lessons','makeups','settlement','finance']);
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{const allowed=allowedTabs.has(b.dataset.tab);b.hidden=!allowed;b.style.setProperty('display',allowed?'':'none',allowed?'':'important');if(!allowed)b.tabIndex=-1;else b.removeAttribute('tabindex')});
    const active=document.querySelector('main section.active');if(active&&!allowedTabs.has(active.id))switchTab('dashboard');
-   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions,#students button,#teachers button,#lessons button,#makeups button,#settlement button,#finance button').forEach(e=>e.style.setProperty('display','none','important'));
+   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions,#students button,#teachers button,#lessons .toolbar button,#makeups button,#settlement button,#finance button').forEach(e=>e.style.setProperty('display','none','important'));
+   // 課程清單保留查看入口；點到本人授課課程時會開啟課堂回報，其他課程維持唯讀詳情。
    document.querySelectorAll('#drafts,#camps,#winterCamps,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
  }else{
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.hidden=false;b.classList.remove('teacher-nav-hidden');b.style.removeProperty('display');b.removeAttribute('aria-hidden');b.removeAttribute('tabindex')});
@@ -507,27 +833,67 @@ function applyRoleUI(profile,user){
    document.querySelector('#dashboard .card:nth-of-type(2)')?.style.removeProperty('display');
  }
 }
+function lessonMetaSignature(value){
+ const teacherIds=(Array.isArray(value?.teacherIds)?value.teacherIds:[]).filter(Boolean).map(String).sort();
+ const editable=value?.editableUntil instanceof Date?value.editableUntil.toISOString():(value?.editableUntil?.toDate?.()?.toISOString?.()||String(value?.editableUntil||''));
+ return dataHash({companyId:String(value?.companyId||COMPANY_ID),lessonId:String(value?.lessonId||''),branchId:String(value?.branchId||''),teacherIds,editableUntil:editable,active:value?.active!==false});
+}
+async function publishLessonMeta(){
+ if(cloudRole!=='owner')return;
+ const lessons=(window.__danbridgeGetDB()?.lessons||[]).filter(l=>l?.id&&!l.isDraft);
+ const metaRef=collection(cloud,'companies',COMPANY_ID,'lessonMeta');
+ if(!lessonMetaCacheReady){
+   const existing=await getDocs(metaRef);
+   lessonMetaSignatureCache=new Map(existing.docs.map(d=>[d.id,lessonMetaSignature({...d.data(),lessonId:d.id})]));
+   lessonMetaCacheReady=true;
+ }
+ const nextIds=new Set();
+ const jobs=[];
+ lessons.forEach(lesson=>{
+   const deadline=lessonReportDeadline(lesson);
+   const teacherIds=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean).map(String).sort();
+   if(!deadline||!teacherIds.length)return;
+   const lessonId=String(lesson.id);
+   nextIds.add(lessonId);
+   const payload={companyId:COMPANY_ID,lessonId,branchId:lessonBranchId(lesson),teacherIds,editableUntil:deadline,active:true};
+   const signature=lessonMetaSignature(payload);
+   if(lessonMetaSignatureCache.get(lessonId)===signature)return;
+   jobs.push(setDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',lessonId),{...payload,editableUntil:Timestamp.fromDate(deadline),updatedAt:serverTimestamp()},{merge:false}).then(()=>lessonMetaSignatureCache.set(lessonId,signature)));
+ });
+ for(const lessonId of [...lessonMetaSignatureCache.keys()]){
+   if(nextIds.has(lessonId))continue;
+   jobs.push(deleteDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',lessonId)).then(()=>lessonMetaSignatureCache.delete(lessonId)));
+ }
+ await Promise.all(jobs);
+}
 async function publishScopedViews(){
  if(cloudRole!=='owner')return;
  try{
-   // 從 companyAccess 建立檢視，老師不必先登入，亦不依賴 Firebase UID。
+   const sourceDb=window.__danbridgeGetDB();
    const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID)));
-   const jobs=qs.docs.map(d=>{
+   const jobs=[];
+   for(const d of qs.docs){
      const p=d.data();
      const email=(p.email||d.id||'').trim().toLowerCase();
-     if(p.active===false||!email)return Promise.resolve();
-     if(p.role==='teacher'&&p.teacherId)return setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:filteredTeacherDB(window.__danbridgeGetDB(),p.teacherId),updatedAt:serverTimestamp(),teacherId:p.teacherId,email},{merge:false});
-     if(p.role==='branch_manager'&&Array.isArray(p.branchIds)&&p.branchIds.length){
-       const scopedDb=filteredBranchDB(window.__danbridgeGetDB(),p.branchIds);
-       // 每次 Owner 同步時，同步更新管理者自己的可讀文件。
-       return setDoc(d.ref,{scopedDb,scopedUpdatedAt:serverTimestamp(),branchIds:p.branchIds,active:true},{merge:true});
+     if(p.active===false||!email)continue;
+     if(p.role==='teacher'&&p.teacherId){
+       const viewDb=filteredTeacherDB(sourceDb,p.teacherId);
+       const hash=dataHash(viewDb);
+       const key='teacher:'+email;
+       if(scopedViewHashCache.get(key)===hash)continue;
+       jobs.push(setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:viewDb,updatedAt:serverTimestamp(),teacherId:p.teacherId,email,clientHash:hash},{merge:false}).then(()=>scopedViewHashCache.set(key,hash)));
+     }else if(p.role==='branch_manager'&&Array.isArray(p.branchIds)&&p.branchIds.length){
+       const scopedDb=filteredBranchDB(sourceDb,p.branchIds);
+       const hash=dataHash(scopedDb);
+       const key='branch:'+email;
+       if(scopedViewHashCache.get(key)===hash||p.scopedClientHash===hash){scopedViewHashCache.set(key,hash);continue}
+       jobs.push(setDoc(d.ref,{scopedDb,scopedClientHash:hash,scopedUpdatedAt:serverTimestamp(),branchIds:p.branchIds,active:true},{merge:true}).then(()=>scopedViewHashCache.set(key,hash)));
      }
-     return Promise.resolve();
-   });
+   }
    await Promise.all(jobs);
  }catch(e){
    console.error('publishScopedViews',e);
-   cloudStatus('角色資料檢視發布失敗：'+(e.message||e),'error');
+   throw e;
  }
 }
 async function uploadOwnerState(force=false){
@@ -541,14 +907,17 @@ async function uploadOwnerState(force=false){
  const hash=dataHash(current);
  if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;cloudStatus('資料已是最新版本','ok');return}
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
+ let syncStage='主資料';
  try{
+   syncStage='主資料';
    await setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false});
-   await publishScopedViews();
+   syncStage='權限索引與角色檢視';
+   await Promise.all([publishLessonMeta(),publishScopedViews()]);
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
    cloudStatus('已同步到雲端','ok');
  }catch(e){
-   console.error(e);ownerUploadQueued=true;ownerRetryCount++;
-   cloudStatus((navigator.onLine?'雲端同步暫時失敗，系統會自動重試：':'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?'error':'offline');
+   console.error('Owner cloud sync failed at '+syncStage,e);ownerUploadQueued=true;ownerRetryCount++;
+   cloudStatus((navigator.onLine?`雲端同步暫時失敗（${syncStage}），系統會自動重試：`:'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?'error':'offline');
    scheduleOwnerRetry();
  }finally{
    ownerUploadInFlight=false;
@@ -653,7 +1022,8 @@ async function subscribeBranchManager(){
    if(access.active===false){cloudStatus('校區管理者帳號已停用。','error');return}
    const latestBranchIds=Array.isArray(access.branchIds)&&access.branchIds.length?access.branchIds:cloudBranchIds;
    cloudBranchIds=latestBranchIds;
-   window.DanbridgeAccess?.setContext({role:'branch_manager',branchIds:cloudBranchIds,teacherId:'',email:cloudEmailKey,readOnly:true});
+   cloudTeacherId=access.teacherId||cloudTeacherId||'';
+   window.DanbridgeAccess?.setContext({role:'branch_manager',branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:true,canSubmitOwnReports:true});
    const raw=access.scopedDb;
    if(!raw){
      cloudStatus('校區資料尚未發布；請 Owner 登入並儲存一次資料。','error');
@@ -685,10 +1055,10 @@ installTeacherReportUI();
 installClassFocusMode();
 installBranchManagerAccessEvents();
 onAuthStateChanged(auth,async user=>{
- unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;
+ unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;unsubscribeExtensionRequests?.();unsubscribeExtensionRequests=null;reportExtensionRequests=[];lessonReportDocuments=[];lessonMetaSignatureCache=new Map();lessonMetaCacheReady=false;scopedViewHashCache=new Map();
  if(!user){cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
-   if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();
+   if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();subscribeReportExtensionRequests();
  }catch(e){console.error(e);await signOut(auth);showCloudLogin();showCloudLoginError(e.message);cloudStatus(e.message,'error')}
 });

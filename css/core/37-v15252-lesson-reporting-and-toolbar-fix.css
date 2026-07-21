@@ -131,3 +131,9 @@
   transform:translateY(-50%)!important;
   margin:0!important;
 }
+
+/* V15.26.1 — lesson-report role and edit-window messaging */
+.teacher-report-permission-note{margin:12px 0;padding:10px 12px;border:1px solid #d7dee9;border-radius:10px;background:#f7f9fc;color:#40516a;font-weight:750}
+#teacherReportModal[data-read-only="true"] .report-status-option{opacity:.78;cursor:default}
+#teacherReportModal[data-read-only="true"] textarea,
+#teacherReportModal[data-read-only="true"] input[type="file"]{background:#f4f6f8;color:#536174}
