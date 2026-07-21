@@ -45,19 +45,21 @@ service cloud.firestore {
     function metaPath(companyId, lessonId) {
       return /databases/$(database)/documents/companies/$(companyId)/lessonMeta/$(lessonId);
     }
-    function extensionRequestPath(companyId, lessonId) {
-      return /databases/$(database)/documents/companies/$(companyId)/reportExtensionGrants/$(request.auth.uid + '__' + lessonId);
+    function extensionGrantPath(companyId, lessonId) {
+      return /databases/$(database)/documents/companies/$(companyId)/reportExtensionGrants/$(lessonId);
     }
     function metaExists(companyId, lessonId) { return exists(metaPath(companyId, lessonId)); }
     function meta(companyId, lessonId) { return get(metaPath(companyId, lessonId)).data; }
     function extensionOpen(companyId, lessonId) {
-      return exists(extensionRequestPath(companyId, lessonId))
-        && get(extensionRequestPath(companyId, lessonId)).data.requesterUid == request.auth.uid
-        && get(extensionRequestPath(companyId, lessonId)).data.requesterTeacherId == ownTeacherId()
-        && get(extensionRequestPath(companyId, lessonId)).data.lessonId == lessonId
-        && get(extensionRequestPath(companyId, lessonId)).data.extensionStatus == 'approved'
-        && get(extensionRequestPath(companyId, lessonId)).data.extensionUntil is timestamp
-        && request.time <= get(extensionRequestPath(companyId, lessonId)).data.extensionUntil;
+      return exists(extensionGrantPath(companyId, lessonId))
+        && metaExists(companyId, lessonId)
+        && meta(companyId, lessonId).teacherIds is list
+        && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
+        && get(extensionGrantPath(companyId, lessonId)).data.lessonId == lessonId
+        && get(extensionGrantPath(companyId, lessonId)).data.extensionStatus == 'approved'
+        && get(extensionGrantPath(companyId, lessonId)).data.approvedForTeacherId == ownTeacherId()
+        && get(extensionGrantPath(companyId, lessonId)).data.approvedAt is timestamp
+        && request.time <= get(extensionGrantPath(companyId, lessonId)).data.approvedAt + duration.value(10, 'm');
     }
     function withinReportWindow(companyId, lessonId) {
       return request.time <= meta(companyId, lessonId).editableUntil || extensionOpen(companyId, lessonId);
@@ -81,11 +83,16 @@ service cloud.firestore {
     }
     function canSubmitOwnTeacherRequest(companyId, lessonId, data) {
       return activeMember(companyId)
+        && (isTeacher(companyId) || isManager(companyId))
+        && metaExists(companyId, lessonId)
+        && meta(companyId, lessonId).active == true
+        && meta(companyId, lessonId).teacherIds is list
+        && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
         && data.companyId == companyId
         && data.lessonId == lessonId
         && data.requesterUid == request.auth.uid
         && data.requesterEmail == emailKey()
-        && data.requesterTeacherId != null
+        && data.requesterTeacherId == ownTeacherId()
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }
@@ -178,8 +185,7 @@ service cloud.firestore {
     }
 
     match /companies/{companyId}/reportExtensionGrants/{grantId} {
-      allow read: if isOwner()
-        || (activeMember(companyId) && resource.data.requesterUid == request.auth.uid);
+      allow read: if isOwner() || activeMember(companyId);
       allow create, update, delete: if isOwner();
     }
 

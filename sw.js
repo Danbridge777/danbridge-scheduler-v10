@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-27-4-storage-fallback';
+const CACHE_NAME='danbridge-v15-27-9-report-workflow-stability';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.27.6: lesson-report text remains savable when Firebase Storage is unavailable.
+// V15.27.9: extension windows use Firestore server approval time, eliminating client-clock drift.

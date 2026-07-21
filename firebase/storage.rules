@@ -55,25 +55,24 @@ service firebase.storage {
     function lessonMeta(lessonId) {
       return firestore.get(/databases/(default)/documents/companies/danbridge/lessonMeta/$(lessonId)).data;
     }
-    function grantId(lessonId) {
-      return request.auth.uid + '__' + lessonId;
-    }
     function grantExists(lessonId) {
-      return firestore.exists(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(grantId(lessonId)));
+      return firestore.exists(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(lessonId));
     }
     function grant(lessonId) {
-      return firestore.get(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(grantId(lessonId))).data;
+      return firestore.get(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(lessonId)).data;
     }
     function extensionOpen(lessonId) {
       return activeMember()
         && effectiveTeacherId() != ''
         && grantExists(lessonId)
-        && grant(lessonId).requesterUid == request.auth.uid
-        && grant(lessonId).requesterTeacherId == effectiveTeacherId()
+        && lessonMetaExists(lessonId)
+        && lessonMeta(lessonId).teacherIds is list
+        && lessonMeta(lessonId).teacherIds.hasAny([effectiveTeacherId()])
         && grant(lessonId).lessonId == lessonId
         && grant(lessonId).extensionStatus == 'approved'
-        && grant(lessonId).extensionUntil is timestamp
-        && request.time <= grant(lessonId).extensionUntil;
+        && grant(lessonId).approvedForTeacherId == effectiveTeacherId()
+        && grant(lessonId).approvedAt is timestamp
+        && request.time <= grant(lessonId).approvedAt + duration.value(10, 'm');
     }
     function withinReportWindow(lessonId) {
       return lessonMetaExists(lessonId)
