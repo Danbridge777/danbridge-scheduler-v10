@@ -373,6 +373,17 @@ function applyReportToLesson(lesson,report){
  if(mapped&&lesson.status!==mapped){lesson.status=mapped;changed=true}
  return changed;
 }
+
+function applyCachedLessonReportsToCurrentDB(){
+ const local=window.__danbridgeGetDB?.();
+ if(!local||!Array.isArray(local.lessons)||!Array.isArray(lessonReportDocuments)||!lessonReportDocuments.length)return false;
+ let changed=false;
+ for(const report of lessonReportDocuments){
+   const lesson=local.lessons.find(x=>x.id===(report.lessonId||report.id));
+   if(lesson&&canViewLessonReport(lesson))changed=applyReportToLesson(lesson,report)||changed;
+ }
+ return changed;
+}
 function openTeacherReportModal(lessonId,options={}){
  if(!canUseTeacherReporting())return originalEditLesson?.(lessonId);
  const lesson=window.__danbridgeGetDB().lessons.find(l=>l.id===lessonId);
@@ -607,20 +618,48 @@ async function saveTeacherReport(){
  try{
    const trustedMeta=await getTrustedLessonMeta(lessonId);
    const uploaded=[];
+   const failedPhotoUploads=[];
    for(const file of photoFiles){
      const safeName=String(file.name||'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g,'_');
      const path=`companies/${COMPANY_ID}/lessonReports/${lessonId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeName}`;
      const fileRef=storageRef(storage,path);
-     await uploadBytes(fileRef,file,{contentType:file.type||'image/jpeg'});
-     uploaded.push({url:await getDownloadURL(fileRef),name:file.name||'課堂照片',path});
+     try{
+       await uploadBytes(fileRef,file,{contentType:file.type||'image/jpeg'});
+       uploaded.push({url:await getDownloadURL(fileRef),name:file.name||'課堂照片',path});
+     }catch(photoError){
+       console.warn('lesson report photo upload skipped',photoError);
+       failedPhotoUploads.push({name:file.name||'課堂照片',code:String(photoError?.code||''),message:String(photoError?.message||'')});
+     }
    }
    const lessonTeacherId=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean)[0]||'';
    const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
    const trustedDeadline=trustedMeta.editableUntil?.toDate?.()||null;
    const report={companyId:COMPANY_ID,lessonId,branchId:trustedMeta.branchId,teacherId:cloudRole==='owner'?(cloudTeacherId||lessonTeacherId):cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:reporterName,reportedByRole:cloudRole,reportedForTeacherIds:Array.isArray(trustedMeta.teacherIds)?trustedMeta.teacherIds:[],isOwnerReport:cloudRole==='owner',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),editableUntil:trustedMeta.editableUntil,editableUntilClient:trustedDeadline?.toISOString()||'',updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
    await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
-   applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();cloudStatus('課程回報已儲存','ok');return true;
- }catch(e){console.error(e);alert('課程回報儲存失敗：'+e.message);cloudStatus('回報儲存失敗','error');return false}
+   applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();
+   if(failedPhotoUploads.length){
+     const uploadedCount=uploaded.length;
+     const failedCount=failedPhotoUploads.length;
+     cloudStatus(`課程回報已儲存；${failedCount} 張照片未上傳`,'pending');
+     alert(uploadedCount
+       ? `課程回報已成功儲存。\n${uploadedCount} 張照片已上傳，${failedCount} 張照片未上傳。`
+       : '課程回報已成功儲存。\n圖片未上傳，因目前 Firebase Storage 尚未啟用；文字、作業、回饋與上課狀態均已正常保存。');
+   }else{
+     cloudStatus('課程回報已儲存','ok');
+   }
+   return true;
+ }catch(e){
+   console.error('saveTeacherReport failed',e);
+   const code=String(e?.code||'');
+   let detail=e?.message||'未知錯誤';
+   if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
+     detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
+   }else if(code.includes('permission-denied')){
+     detail='課程回報寫入被 Firestore 拒絕。請確認 10 分鐘授權仍有效，並已部署本版本的 firebase/firestore.rules。';
+   }
+   alert('課程回報儲存失敗：'+detail);
+   cloudStatus('回報儲存失敗','error');return false
+ }
  finally{btn.disabled=false;btn.textContent='儲存回報';document.getElementById('teacherReportModal')?.classList.remove('teacher-report-uploading')}
 }
 
@@ -746,8 +785,8 @@ function subscribeLessonReports(){
  unsubscribeReports=onSnapshot(qy,snap=>{
    lessonReportDocuments=snap.docs.map(d=>({id:d.id,...d.data()}));
    window.DanbridgeNotifications?.render?.();
-   let changed=false;const local=window.__danbridgeGetDB();
-   lessonReportDocuments.forEach(r=>{const l=local.lessons.find(x=>x.id===(r.lessonId||r.id));if(l&&canViewLessonReport(l))changed=applyReportToLesson(l,r)||changed});
+   const local=window.__danbridgeGetDB();
+   const changed=applyCachedLessonReportsToCurrentDB();
    const modal=document.getElementById('teacherReportModal');
    if(modal?.classList.contains('show')){const id=document.getElementById('teacherReportLessonId')?.value;const l=local.lessons.find(x=>x.id===id);if(l)setTimeout(()=>openTeacherReportModal(id,{readOnly:modal.dataset.readOnly==='true'&&cloudRole==='branch_manager'&&!canActAsTeacherForLesson(l)}),0)}
    if(!changed)return;
@@ -964,6 +1003,7 @@ function subscribeOwner(){
    if(incomingHash===lastCloudSnapshotHash&&incomingHash===dataHash(window.__danbridgeGetDB()))return;
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
+   applyCachedLessonReportsToCurrentDB();
    try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());
@@ -995,6 +1035,8 @@ async function subscribeTeacher(){
    const incoming=filteredTeacherDB(raw,cloudTeacherId);
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
+   applyCachedLessonReportsToCurrentDB();
+   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());setTimeout(()=>window.renderDashboard?.(),150);
    applyingCloud=false;
@@ -1032,6 +1074,8 @@ async function subscribeBranchManager(){
    const incoming=filteredBranchDB(raw,cloudBranchIds);
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
+   applyCachedLessonReportsToCurrentDB();
+   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());
    setTimeout(()=>window.renderDashboard?.(),150);

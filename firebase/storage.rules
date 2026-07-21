@@ -1,10 +1,15 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function signedIn() { return request.auth != null && request.auth.token.email is string; }
-    function emailKey() { return request.auth.token.email.lower(); }
+    function signedIn() {
+      return request.auth != null && request.auth.token.email is string;
+    }
+    function emailKey() {
+      return request.auth.token.email.lower();
+    }
     function ownerProfileExists() {
-      return signedIn() && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
     }
     function ownerProfile() {
       return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
@@ -19,62 +24,95 @@ service firebase.storage {
       );
     }
     function accessExists() {
-      return signedIn() && firestore.exists(/databases/(default)/documents/companyAccess/$(emailKey()));
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/companyAccess/$(emailKey()));
     }
     function access() {
       return firestore.get(/databases/(default)/documents/companyAccess/$(emailKey())).data;
     }
     function activeMember() {
-      return accessExists() && access().active == true && access().companyId == 'danbridge';
+      return accessExists()
+        && access().active == true
+        && access().companyId == 'danbridge';
+    }
+    function effectiveTeacherId() {
+      return access().teacherId is string
+        ? access().teacherId
+        : (ownerProfileExists() && ownerProfile().teacherId is string
+          ? ownerProfile().teacherId
+          : '');
+    }
+    function effectiveBranchIds() {
+      return access().branchIds is list
+        ? access().branchIds
+        : (ownerProfileExists() && ownerProfile().branchIds is list
+          ? ownerProfile().branchIds
+          : []);
+    }
+    function lessonMetaExists(lessonId) {
+      return firestore.exists(/databases/(default)/documents/companies/danbridge/lessonMeta/$(lessonId));
     }
     function lessonMeta(lessonId) {
       return firestore.get(/databases/(default)/documents/companies/danbridge/lessonMeta/$(lessonId)).data;
     }
-    function report(lessonId) {
-      return firestore.get(/databases/(default)/documents/companies/danbridge/lessonReports/$(lessonId)).data;
+    function grantId(lessonId) {
+      return request.auth.uid + '__' + lessonId;
+    }
+    function grantExists(lessonId) {
+      return firestore.exists(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(grantId(lessonId)));
+    }
+    function grant(lessonId) {
+      return firestore.get(/databases/(default)/documents/companies/danbridge/reportExtensionGrants/$(grantId(lessonId))).data;
     }
     function extensionOpen(lessonId) {
-      return firestore.exists(/databases/(default)/documents/companies/danbridge/lessonReports/$(lessonId))
-        && report(lessonId).extensionStatus == 'approved'
-        && report(lessonId).requesterTeacherId == access().teacherId
-        && report(lessonId).requesterUid == request.auth.uid
-        && report(lessonId).extensionUntil is timestamp
-        && request.time <= report(lessonId).extensionUntil;
+      return activeMember()
+        && effectiveTeacherId() != ''
+        && grantExists(lessonId)
+        && grant(lessonId).requesterUid == request.auth.uid
+        && grant(lessonId).requesterTeacherId == effectiveTeacherId()
+        && grant(lessonId).lessonId == lessonId
+        && grant(lessonId).extensionStatus == 'approved'
+        && grant(lessonId).extensionUntil is timestamp
+        && request.time <= grant(lessonId).extensionUntil;
     }
     function withinReportWindow(lessonId) {
-      return request.time <= lessonMeta(lessonId).editableUntil || extensionOpen(lessonId);
+      return lessonMetaExists(lessonId)
+        && lessonMeta(lessonId).editableUntil is timestamp
+        && (request.time <= lessonMeta(lessonId).editableUntil || extensionOpen(lessonId));
     }
-    function canReadLesson(lessonId) {
+    function teacherAssignedToLesson(lessonId) {
       return activeMember()
-        && firestore.exists(/databases/(default)/documents/companies/danbridge/lessonMeta/$(lessonId))
-        && lessonMeta(lessonId).active == true
-        && (
-          (access().role == 'teacher'
-            && lessonMeta(lessonId).teacherIds is list
-            && lessonMeta(lessonId).teacherIds.hasAny([access().teacherId]))
-          || (access().role == 'branch_manager'
-            && access().branchIds is list
-            && access().branchIds.hasAny([lessonMeta(lessonId).branchId]))
-        );
-    }
-    function canUploadOwnLesson(lessonId) {
-      return activeMember()
-        && firestore.exists(/databases/(default)/documents/companies/danbridge/lessonMeta/$(lessonId))
+        && effectiveTeacherId() != ''
+        && lessonMetaExists(lessonId)
         && lessonMeta(lessonId).active == true
         && lessonMeta(lessonId).teacherIds is list
-        && lessonMeta(lessonId).teacherIds.hasAny([access().teacherId])
-        && (
-          access().role == 'teacher'
-          || (access().role == 'branch_manager'
-            && access().branchIds is list
-            && access().branchIds.hasAny([lessonMeta(lessonId).branchId]))
-        )
+        && lessonMeta(lessonId).teacherIds.hasAny([effectiveTeacherId()]);
+    }
+    function managerCanAccessBranch(lessonId) {
+      return activeMember()
+        && access().role == 'branch_manager'
+        && effectiveBranchIds().hasAny([lessonMeta(lessonId).branchId]);
+    }
+    function canReadLesson(lessonId) {
+      return teacherAssignedToLesson(lessonId)
+        || (activeMember()
+          && lessonMetaExists(lessonId)
+          && lessonMeta(lessonId).active == true
+          && managerCanAccessBranch(lessonId));
+    }
+    function canUploadOwnLesson(lessonId) {
+      return teacherAssignedToLesson(lessonId)
+        && (access().role == 'teacher'
+          || access().role == 'branch_manager'
+          || access().canSubmitOwnReports == true)
         && withinReportWindow(lessonId);
     }
+
     match /companies/danbridge/lessonReports/{lessonId}/{fileName} {
       allow read: if isOwner() || canReadLesson(lessonId);
       allow create, update: if (isOwner() || canUploadOwnLesson(lessonId))
         && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType is string
         && request.resource.contentType.matches('image/.*');
       allow delete: if isOwner();
     }

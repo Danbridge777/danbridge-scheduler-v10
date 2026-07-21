@@ -1,4 +1,21 @@
-# V15.27.2 — Owner 補交申請中心
+# V15.27.5 — Storage Fallback
+
+- 課堂照片上傳改為非阻斷流程。
+- Firebase Storage 尚未啟用或上傳失敗時，課程回報文字資料仍正常儲存。
+- 支援部分照片成功、部分失敗；成功照片仍會寫入回報。
+- 新增清楚提示，區分「回報儲存成功」與「圖片未上傳」。
+- 更新 Service Worker 快取版本，避免載入舊版儲存流程。
+
+# V15.27.3 — Lesson Report Storage Authorization Fix
+
+- Aligned Firebase Storage authorization with the V15.27 report-extension architecture.
+- Storage now validates approved windows through `reportExtensionGrants/{uid}__{lessonId}` instead of obsolete fields in `lessonReports`.
+- Added compatibility for branch managers acting as teachers and teacher IDs stored in user profiles.
+- Kept the 8 MB/image and image MIME restrictions.
+- Added specific diagnostics for Storage-rule and Firestore-rule deployment failures.
+- Deployment now requires both Firestore and Storage rules.
+
+# V15.27.3 — Owner 補交申請中心
 
 - 新增 Owner 專用「補交申請」側邊入口與待處理數量。
 - 新增待處理／已核准／已拒絕／全部清單。

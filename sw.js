@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-27-2-owner-extension-inbox';
+const CACHE_NAME='danbridge-v15-27-4-storage-fallback';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.27.2: dedicated extension-request inbox and multi-lesson batch requests.
+// V15.27.5: lesson-report text remains savable when Firebase Storage is unavailable.
