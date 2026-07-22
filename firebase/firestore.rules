@@ -51,36 +51,21 @@ service cloud.firestore {
     function metaExists(companyId, lessonId) { return exists(metaPath(companyId, lessonId)); }
     function meta(companyId, lessonId) { return get(metaPath(companyId, lessonId)).data; }
     function extensionOpen(companyId, lessonId) {
+      let grant = get(extensionGrantPath(companyId, lessonId)).data;
       return exists(extensionGrantPath(companyId, lessonId))
-        && metaExists(companyId, lessonId)
-        && meta(companyId, lessonId).active == true
-        && meta(companyId, lessonId).teacherIds is list
-        && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
-        && get(extensionGrantPath(companyId, lessonId)).data.lessonId == lessonId
-        && get(extensionGrantPath(companyId, lessonId)).data.extensionStatus == 'approved'
-        && get(extensionGrantPath(companyId, lessonId)).data.approvedForTeacherId == ownTeacherId()
-        && get(extensionGrantPath(companyId, lessonId)).data.approvedAt is timestamp
-        && request.time <= get(extensionGrantPath(companyId, lessonId)).data.approvedAt + duration.value(10, 'm');
+        && grant.lessonId == lessonId
+        && grant.extensionStatus == 'approved'
+        && grant.approvedForTeacherId == ownTeacherId()
+        && grant.extensionUntil is timestamp
+        && request.time <= grant.extensionUntil;
+    }
+    function originalReportWindowOpen(companyId, lessonId) {
+      return meta(companyId, lessonId).editableUntil is timestamp
+        && request.time <= meta(companyId, lessonId).editableUntil;
     }
     function withinReportWindow(companyId, lessonId) {
-      return request.time <= meta(companyId, lessonId).editableUntil || extensionOpen(companyId, lessonId);
-    }
-    function matchesTrustedLesson(companyId, lessonId, data) {
-      return metaExists(companyId, lessonId)
-        && meta(companyId, lessonId).active == true
-        && data.companyId == companyId
-        && data.lessonId == lessonId
-        && data.branchId == meta(companyId, lessonId).branchId
-        && data.reportedForTeacherIds == meta(companyId, lessonId).teacherIds
-        && data.editableUntil == meta(companyId, lessonId).editableUntil;
-    }
-    function trustedIdentityUpdate(companyId, lessonId) {
-      return matchesTrustedLesson(companyId, lessonId, request.resource.data)
-        && (!('companyId' in resource.data) || request.resource.data.companyId == resource.data.companyId)
-        && (!('lessonId' in resource.data) || request.resource.data.lessonId == resource.data.lessonId)
-        && (!('branchId' in resource.data) || request.resource.data.branchId == resource.data.branchId)
-        && (!('reportedForTeacherIds' in resource.data) || request.resource.data.reportedForTeacherIds == resource.data.reportedForTeacherIds)
-        && (!('editableUntil' in resource.data) || request.resource.data.editableUntil == resource.data.editableUntil);
+      return originalReportWindowOpen(companyId, lessonId)
+        || extensionOpen(companyId, lessonId);
     }
     function canSubmitOwnTeacherRequest(companyId, lessonId, data) {
       return activeMember(companyId)
@@ -102,15 +87,7 @@ service cloud.firestore {
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }
-    function extensionRequestFieldsOnly() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'companyId','lessonId','branchId','reportedForTeacherIds','editableUntil',
-        'extensionStatus','extensionMinutes','requesterTeacherId','requesterUid',
-        'requesterEmail','requesterName','lessonDate','lessonStart','lessonEnd','studentId','teacherIds',
-        'extensionRequestedAt','extensionRequestedAtClient','extensionUntil',
-        'extensionUntilClient','approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
-      ]);
-    }
+
 
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOwner());

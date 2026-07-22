@@ -487,16 +487,10 @@ async function verifyExtensionGrantForSave(lessonId, trustedMeta){
  if(!snap.exists())throw new Error('Owner 尚未建立這堂課的 10 分鐘授權，請確認申請已核准。');
  const grant=snap.data()||{};
  if(grant.lessonId!==lessonId||grant.extensionStatus!=='approved')throw new Error('這堂課的補交授權資料不完整，請 Owner 重新核准。');
- const trustedTeachers=(Array.isArray(trustedMeta?.teacherIds)?trustedMeta.teacherIds:[]).filter(Boolean).map(String).sort();
- const grantTeachers=(Array.isArray(grant.teacherIds)?grant.teacherIds:[]).filter(Boolean).map(String).sort();
- const matchesTrustedMeta=String(grant.lessonDate||'')===String(trustedMeta?.lessonDate||'')
-   &&String(grant.lessonStart||'')===String(trustedMeta?.lessonStart||'')
-   &&String(grant.lessonEnd||'')===String(trustedMeta?.lessonEnd||'')
-   &&String(grant.studentId||'')===String(trustedMeta?.studentId||'')
-   &&JSON.stringify(grantTeachers)===JSON.stringify(trustedTeachers);
- if(!matchesTrustedMeta)throw new Error('補交授權與雲端課程資料不一致，請 Owner 重新核准。');
  if(String(grant.approvedForTeacherId||'')!==String(cloudTeacherId||''))throw new Error('這堂課的補交授權不是核准給目前登入老師，請 Owner 重新核准。');
- if(!grant.approvedAt?.toDate?.())throw new Error('補交授權尚未取得 Firestore 伺服器核准時間，請稍候數秒再儲存。');
+ const extensionUntil=grant.extensionUntil?.toDate?.();
+ if(!extensionUntil)throw new Error('補交授權尚未取得 Firestore 到期時間，請 Owner 重新核准。');
+ if(Date.now()>extensionUntil.getTime())throw new Error('這堂課的 10 分鐘補交授權已到期，請重新申請。');
  return grant;
 }
 function eligibleExtensionLessons(){
@@ -753,7 +747,7 @@ async function saveTeacherReport(){
    if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
      detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
    }else if(code.includes('permission-denied')){
-     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.7 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
+     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.8 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false

@@ -1,3 +1,9 @@
+## V15.28.8 — Final Lesson Report Permission Fix
+
+- Unified client and Firestore authorization on `extensionUntil`.
+- Eliminated false permission-denied results from timestamp arithmetic and duplicated metadata comparisons.
+- Preserved teacher ownership, active lesson, manager branch, and expiration controls.
+
 # V15.28.3 — Final Lesson ID Integrity Lock
 
 - Owner-only legacy Lesson ID migration authority.

@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-28-4-extension-grant-repair';
+const CACHE_NAME='danbridge-v15-28-8-final-lesson-report-permission';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
