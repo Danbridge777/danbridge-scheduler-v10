@@ -1,3 +1,8 @@
+
+## V16.4 — Premium Teacher Payroll UI
+- Redesigned teacher work-hour and payroll cards.
+- Teacher full names now wrap and remain fully visible.
+- Visual-only change; calculations and functionality unchanged.
 ## V15.28.8 — Final Lesson Report Permission Fix
 
 - Unified client and Firestore authorization on `extensionUntil`.
