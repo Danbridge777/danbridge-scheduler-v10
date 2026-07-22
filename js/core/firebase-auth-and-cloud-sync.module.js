@@ -59,6 +59,7 @@ let lessonMetaCacheReady=false;
 let scopedViewHashCache=new Map();
 let companyAccessCache=null;
 let companyAccessCacheAt=0;
+let legacyMigrationStarted=false;
 const COMPANY_ACCESS_CACHE_TTL=30000;
 let originalSaveDB=window.saveDB;
 const originalEditLesson=window.editLesson;
@@ -67,6 +68,7 @@ function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes
 function deepCopy(x){return JSON.parse(JSON.stringify(x||emptyDB()))}
 function cloudStatus(text,kind=''){let el=document.getElementById('firebaseCloudStatus');if(!el){el=document.createElement('div');el.id='firebaseCloudStatus';el.style.cssText='position:fixed;left:12px;bottom:12px;z-index:10001;padding:8px 11px;border-radius:10px;background:#172033;color:#fff;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.2)';document.body.appendChild(el)}el.textContent=text;el.dataset.kind=kind||'';el.style.background=kind==='error'?'#991b1b':kind==='ok'?'#18794e':kind==='pending'?'#9a6700':kind==='offline'?'#475569':'#172033'}
 function dataHash(value){try{const text=JSON.stringify(value||{});let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+':'+text.length}catch{return String(Date.now())}}
+function withSyncTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('雲端連線逾時，將自動重試')),ms))])}
 function scheduleOwnerRetry(){clearTimeout(ownerRetryTimer);if(cloudRole!=='owner'||!ownerUploadQueued)return;const delay=Math.min(30000,1000*Math.pow(2,Math.min(ownerRetryCount,5)));ownerRetryTimer=setTimeout(()=>uploadOwnerState(),delay)}
 function setOfflineStatus(){if(!navigator.onLine){cloudStatus('目前離線；所有變更已先保存在這台裝置，恢復網路後會自動同步。','offline')}}
 function setAuthCard(message='請使用 Google 帳號登入排課系統'){
@@ -809,36 +811,37 @@ async function uploadOwnerState(force=false){
  ownerUploadQueued=true;
  if(ownerUploadInFlight)return;
  if(!navigator.onLine){setOfflineStatus();return}
- await migrateLegacyLessonCloudDocuments();
  const current=deepCopy(window.__danbridgeGetDB());
  const currentScore=window.__danbridgeDataScore?.(current)||0;
  if(currentScore===0){cloudStatus('已阻止空白資料上傳；請先確認本機或版本紀錄中的資料。','error');ownerUploadQueued=false;return}
  const hash=dataHash(current);
  const uploadMutationVersion=localMutationVersion;
- if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;cloudStatus('資料已是最新版本','ok');return}
+ if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;localDirtyHash='';cloudStatus('資料已是最新版本','ok');return}
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
  let syncStage='主資料';
  try{
-   // 主資料與角色檢視同時送出，減少老師端等待時間。
-   syncStage='主資料與角色檢視';
-   const mainWrite=setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false});
-   const scopedWrite=publishScopedViews();
-   await Promise.all([mainWrite,scopedWrite]);
+   // V15.29.2：主資料是同步成功的唯一必要條件。老師／校區檢視與舊 ID 遷移改為背景工作，
+   // 避免任何附屬文件或歷史遷移卡住，讓畫面永久停在「準備同步」。
+   await withSyncTimeout(setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false}),15000);
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
-   // 只有上傳期間沒有新修改時，才能解除 dirty 狀態。
    const latestHash=dataHash(window.__danbridgeGetDB());
    if(localMutationVersion===uploadMutationVersion&&latestHash===hash){localDirtyHash='';}
    else{ownerUploadQueued=true;}
    cloudStatus(localDirtyHash?'目前變更已同步，另有新變更準備同步…':'已同步到雲端','ok');
-   // 課程索引改為背景同步，不阻塞一般課表與資料更新。
+
+   publishScopedViews().catch(e=>console.error('Scoped view background sync failed',e));
    publishLessonMeta().catch(e=>{console.error('Lesson meta background sync failed',e);lessonMetaCacheReady=false});
+   if(!legacyMigrationStarted){
+     legacyMigrationStarted=true;
+     migrateLegacyLessonCloudDocuments().catch(e=>console.error('Legacy lesson migration background task failed',e));
+   }
  }catch(e){
    console.error('Owner cloud sync failed at '+syncStage,e);ownerUploadQueued=true;ownerRetryCount++;
    cloudStatus((navigator.onLine?`雲端同步暫時失敗（${syncStage}），系統會自動重試：`:'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?'error':'offline');
    scheduleOwnerRetry();
  }finally{
    ownerUploadInFlight=false;
-   if(ownerUploadQueued&&navigator.onLine)scheduleOwnerRetry();
+   if(ownerUploadQueued&&navigator.onLine){clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),80);}
  }
 }
 function installCloudSave(){

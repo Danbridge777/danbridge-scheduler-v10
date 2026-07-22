@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-29-1-cloud-dirty-guard';
+const CACHE_NAME='danbridge-v15-29-2-cloud-sync-unblock';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
