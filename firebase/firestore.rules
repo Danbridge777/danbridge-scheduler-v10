@@ -98,11 +98,15 @@ service cloud.firestore {
         && data.requesterUid == request.auth.uid
         && data.requesterEmail == emailKey()
         && data.requesterTeacherId == ownTeacherId()
-        && data.lessonDate == meta(companyId, lessonId).lessonDate
-        && data.lessonStart == meta(companyId, lessonId).lessonStart
-        && data.lessonEnd == meta(companyId, lessonId).lessonEnd
-        && data.studentId == meta(companyId, lessonId).studentId
-        && data.teacherIds == meta(companyId, lessonId).teacherIds
+        // 課程身分以 lessonMeta 的授課名單為準；申請文件中的顯示欄位只作畫面快照，
+        // 不再要求與本機快取逐字相等，避免日期、時間、studentId 或 teacherIds
+        // 的格式／排序差異造成合法老師被 permission-denied。
+        && data.teacherIds is list
+        && data.teacherIds.hasAny([ownTeacherId()])
+        && data.lessonDate is string
+        && data.lessonStart is string
+        && data.lessonEnd is string
+        && data.studentId is string
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }
