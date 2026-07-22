@@ -48,3 +48,11 @@
 - Fixed permission-denied when an authorized teacher or branch manager submits a new extension request for a lesson that already has an older request document.
 - Removed fragile exact date/time/student/teacher-array comparisons from request authorization.
 - Added branch scope validation for branch managers.
+
+
+## V15.29.1 Cloud Sync Dirty Guard
+- Fixed schedule drag changes reverting before cloud upload completed.
+- Added a local dirty-state guard so stale Firestore snapshots cannot overwrite unsynced local changes.
+- Added immediate retry when a stale snapshot arrives during the save/upload window.
+- Preserved all existing features; no removed application/request feature was restored.
+- Bumped module and service-worker cache versions.

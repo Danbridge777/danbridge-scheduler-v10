@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-29-fast-sync-cleanup';
+const CACHE_NAME='danbridge-v15-29-1-cloud-dirty-guard';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.29 Fast Sync Cleanup: same-day reporting only; original realtime listeners retained.
+// V15.29.1: prevent stale cloud snapshots from overwriting pending local schedule changes.

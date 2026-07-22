@@ -49,11 +49,17 @@ let ownerRetryTimer=null;
 let ownerRetryCount=0;
 let lastUploadedHash='';
 let lastCloudSnapshotHash='';
+// 本機資料一旦修改，在雲端確認寫入前禁止舊 snapshot 倒灌覆蓋。
+let localDirtyHash='';
+let localMutationVersion=0;
 let reportSyncTimer=null;
 let teacherReportExistingPhotos=[];
 let lessonMetaSignatureCache=new Map();
 let lessonMetaCacheReady=false;
 let scopedViewHashCache=new Map();
+let companyAccessCache=null;
+let companyAccessCacheAt=0;
+const COMPANY_ACCESS_CACHE_TTL=30000;
 let originalSaveDB=window.saveDB;
 const originalEditLesson=window.editLesson;
 
@@ -140,6 +146,7 @@ async function renderCloudUserManager(){
    const teacherId=sel.value,email=document.getElementById('cloudTeacherEmail').value.trim().toLowerCase();
    if(!teacherId||!email)return alert('請選老師並輸入 Gmail');
    const t=window.__danbridgeGetDB().teachers.find(x=>x.id===teacherId);
+   invalidateCompanyAccessCache();
    await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:t?.name||'',active:true,updatedAt:serverTimestamp()},{merge:true});
    try{const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:t?.name||'',updatedAt:serverTimestamp()},{merge:true})))}catch(e){console.warn('重新啟用老師帳號失敗：',e)}
    await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),updatedAt:serverTimestamp(),teacherId,email},{merge:false});
@@ -158,6 +165,7 @@ async function removeCloudTeacherAccess(email,teacherName='老師'){
    // 先停用已建立的 users 登入資料，避免只刪 companyAccess 後仍可登入。
    const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
    await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:false,updatedAt:serverTimestamp()},{merge:true})));
+   invalidateCompanyAccessCache();
    await Promise.all([
      deleteDoc(doc(cloud,'companyAccess',email)),
      deleteDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email))
@@ -226,6 +234,7 @@ async function saveCloudBranchManagerAccess(){
    // 將管理者可讀取的校區快照直接存進自己的 companyAccess 文件。
    // 這條路徑已被現有登入規則允許，避免新 branchViews 路徑因規則尚未部署而失敗。
    const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:managerTeacher.name||'',managerName:managerTeacher.name||'',active:true,readOnly:true,canSubmitOwnReports:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
+   invalidateCompanyAccessCache();
    await setDoc(doc(cloud,'companyAccess',email),payload,{merge:true});
    try{
      const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
@@ -303,6 +312,7 @@ async function removeCloudBranchManagerAccess(email){
  if(!confirm(`確定刪除 ${email} 的校區管理權限？`))return;
  const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));
  await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:false,updatedAt:serverTimestamp()},{merge:true})));
+ invalidateCompanyAccessCache();
  await deleteDoc(doc(cloud,'companyAccess',email));
  // 舊檢視只做清理，不讓未部署的 Firestore 規則阻斷刪除流程。
  await Promise.allSettled([
@@ -712,13 +722,22 @@ async function publishLessonMeta(){
  }
  await Promise.all(jobs);
 }
+async function getCompanyAccessDocs(){
+ const now=Date.now();
+ if(companyAccessCache&&now-companyAccessCacheAt<COMPANY_ACCESS_CACHE_TTL)return companyAccessCache;
+ const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID)));
+ companyAccessCache=qs.docs;
+ companyAccessCacheAt=now;
+ return companyAccessCache;
+}
+function invalidateCompanyAccessCache(){companyAccessCache=null;companyAccessCacheAt=0}
 async function publishScopedViews(){
  if(cloudRole!=='owner')return;
  try{
    const sourceDb=window.__danbridgeGetDB();
-   const qs=await getDocs(query(collection(cloud,'companyAccess'),where('companyId','==',COMPANY_ID)));
+   const accessDocs=await getCompanyAccessDocs();
    const jobs=[];
-   for(const d of qs.docs){
+   for(const d of accessDocs){
      const p=d.data();
      const email=(p.email||d.id||'').trim().toLowerCase();
      if(p.active===false||!email)continue;
@@ -795,16 +814,24 @@ async function uploadOwnerState(force=false){
  const currentScore=window.__danbridgeDataScore?.(current)||0;
  if(currentScore===0){cloudStatus('已阻止空白資料上傳；請先確認本機或版本紀錄中的資料。','error');ownerUploadQueued=false;return}
  const hash=dataHash(current);
+ const uploadMutationVersion=localMutationVersion;
  if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;cloudStatus('資料已是最新版本','ok');return}
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
  let syncStage='主資料';
  try{
-   syncStage='主資料';
-   await setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false});
-   syncStage='權限索引與角色檢視';
-   await Promise.all([publishLessonMeta(),publishScopedViews()]);
+   // 主資料與角色檢視同時送出，減少老師端等待時間。
+   syncStage='主資料與角色檢視';
+   const mainWrite=setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false});
+   const scopedWrite=publishScopedViews();
+   await Promise.all([mainWrite,scopedWrite]);
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
-   cloudStatus('已同步到雲端','ok');
+   // 只有上傳期間沒有新修改時，才能解除 dirty 狀態。
+   const latestHash=dataHash(window.__danbridgeGetDB());
+   if(localMutationVersion===uploadMutationVersion&&latestHash===hash){localDirtyHash='';}
+   else{ownerUploadQueued=true;}
+   cloudStatus(localDirtyHash?'目前變更已同步，另有新變更準備同步…':'已同步到雲端','ok');
+   // 課程索引改為背景同步，不阻塞一般課表與資料更新。
+   publishLessonMeta().catch(e=>{console.error('Lesson meta background sync failed',e);lessonMetaCacheReady=false});
  }catch(e){
    console.error('Owner cloud sync failed at '+syncStage,e);ownerUploadQueued=true;ownerRetryCount++;
    cloudStatus((navigator.onLine?`雲端同步暫時失敗（${syncStage}），系統會自動重試：`:'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?'error':'offline');
@@ -818,9 +845,11 @@ function installCloudSave(){
  window.saveDB=function(){
    if(cloudRole==='teacher'||cloudRole==='branch_manager'){alert(cloudRole==='teacher'?'老師帳號目前為唯讀，只能查看自己的課表。':'校區管理者目前為唯讀，只能查看指定校區資料。');return}
    originalSaveDB?.();
+   localMutationVersion++;
+   localDirtyHash=dataHash(window.__danbridgeGetDB());
    ownerUploadQueued=true;
    cloudStatus(navigator.onLine?'變更已儲存，準備同步…':'變更已保存在本機；恢復網路後自動同步。',navigator.onLine?'pending':'offline');
-   clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),650);
+   clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),120);
  };
 }
 function subscribeOwner(){
@@ -851,7 +880,15 @@ function subscribeOwner(){
      return;
    }
    if(snap.metadata.hasPendingWrites)return;
-   if(incomingHash===lastCloudSnapshotHash&&incomingHash===dataHash(window.__danbridgeGetDB()))return;
+   const currentHash=dataHash(window.__danbridgeGetDB());
+   // 本機尚有未確認上傳的修改時，任何不同版本的遠端快照都視為舊資料。
+   // 這可防止拖曳、編輯或批次操作在 debounce / 網路延遲期間被倒灌復原。
+   if(localDirtyHash&&incomingHash!==localDirtyHash){
+     cloudStatus('本機變更等待雲端確認，已忽略較舊的雲端資料…','pending');
+     if(!ownerUploadInFlight){clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),80);}
+     return;
+   }
+   if(incomingHash===lastCloudSnapshotHash&&incomingHash===currentHash)return;
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    applyCachedLessonReportsToCurrentDB();
@@ -861,6 +898,7 @@ function subscribeOwner(){
    setTimeout(()=>window.renderDashboard?.(),150);
    applyingCloud=false;
    lastCloudSnapshotHash=incomingHash;lastUploadedHash=incomingHash;
+   if(localDirtyHash===incomingHash)localDirtyHash='';
    cloudStatus(`雲端資料已更新：學生 ${incoming.students?.length||0}、老師 ${incoming.teachers?.length||0}、課程 ${incoming.lessons?.length||0}`,'ok');
  },err=>{console.error('owner snapshot',err);cloudStatus('讀取雲端主資料失敗：'+(err.message||err),'error')});
 }
