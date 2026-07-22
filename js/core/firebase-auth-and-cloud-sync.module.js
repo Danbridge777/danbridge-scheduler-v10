@@ -623,7 +623,7 @@ async function writeCanonicalExtensionGrant(req,{repair=false}={}){
  if(!metaSnap.exists())throw new Error('找不到這堂課的 lessonMeta，請先由 Owner 重新同步課表。');
  const meta=metaSnap.data()||{};
  if(meta.active!==true)throw new Error('這堂課目前未啟用回報，無法核准。');
- const teacherIds=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String).sort();
+ const teacherIds=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String);
  const requesterTeacherId=String(req.requesterTeacherId||'');
  if(!requesterTeacherId||!teacherIds.includes(requesterTeacherId))throw new Error('申請老師已不在這堂課的授課名單中，請重新申請。');
  const approvedAtClient=new Date();
@@ -753,7 +753,7 @@ async function saveTeacherReport(){
    if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
      detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
    }else if(code.includes('permission-denied')){
-     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.27.11 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
+     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.6 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false

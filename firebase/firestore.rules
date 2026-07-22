@@ -53,16 +53,12 @@ service cloud.firestore {
     function extensionOpen(companyId, lessonId) {
       return exists(extensionGrantPath(companyId, lessonId))
         && metaExists(companyId, lessonId)
+        && meta(companyId, lessonId).active == true
         && meta(companyId, lessonId).teacherIds is list
         && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
         && get(extensionGrantPath(companyId, lessonId)).data.lessonId == lessonId
         && get(extensionGrantPath(companyId, lessonId)).data.extensionStatus == 'approved'
         && get(extensionGrantPath(companyId, lessonId)).data.approvedForTeacherId == ownTeacherId()
-        && get(extensionGrantPath(companyId, lessonId)).data.lessonDate == meta(companyId, lessonId).lessonDate
-        && get(extensionGrantPath(companyId, lessonId)).data.lessonStart == meta(companyId, lessonId).lessonStart
-        && get(extensionGrantPath(companyId, lessonId)).data.lessonEnd == meta(companyId, lessonId).lessonEnd
-        && get(extensionGrantPath(companyId, lessonId)).data.studentId == meta(companyId, lessonId).studentId
-        && get(extensionGrantPath(companyId, lessonId)).data.teacherIds == meta(companyId, lessonId).teacherIds
         && get(extensionGrantPath(companyId, lessonId)).data.approvedAt is timestamp
         && request.time <= get(extensionGrantPath(companyId, lessonId)).data.approvedAt + duration.value(10, 'm');
     }
@@ -98,15 +94,11 @@ service cloud.firestore {
         && data.requesterUid == request.auth.uid
         && data.requesterEmail == emailKey()
         && data.requesterTeacherId == ownTeacherId()
-        // 課程身分以 lessonMeta 的授課名單為準；申請文件中的顯示欄位只作畫面快照，
-        // 不再要求與本機快取逐字相等，避免日期、時間、studentId 或 teacherIds
-        // 的格式／排序差異造成合法老師被 permission-denied。
-        && data.teacherIds is list
-        && data.teacherIds.hasAny([ownTeacherId()])
-        && data.lessonDate is string
-        && data.lessonStart is string
-        && data.lessonEnd is string
-        && data.studentId is string
+        && data.lessonDate == meta(companyId, lessonId).lessonDate
+        && data.lessonStart == meta(companyId, lessonId).lessonStart
+        && data.lessonEnd == meta(companyId, lessonId).lessonEnd
+        && data.studentId == meta(companyId, lessonId).studentId
+        && data.teacherIds == meta(companyId, lessonId).teacherIds
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }

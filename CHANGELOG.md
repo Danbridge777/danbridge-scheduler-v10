@@ -1,10 +1,3 @@
-# V15.28.5 Firestore Extension Request Permission Fix
-
-- 修正老師送出 10 分鐘回報申請時因本機課程快照與 lessonMeta 格式／排序差異而被 Firestore Rules 拒絕。
-- 權限仍以登入公司、角色、requesterUid、requesterTeacherId，以及 lessonMeta 授課名單為準。
-- lessonDate、lessonStart、lessonEnd、studentId、teacherIds 保留為申請畫面快照，但不再要求與 lessonMeta 逐字完全相等。
-- 此版本必須部署 `firebase/firestore.rules`；只更新 GitHub Pages 不會生效。
-
 # V15.28.3 — Final Lesson ID Integrity Lock
 
 - Owner-only legacy Lesson ID migration authority.
