@@ -338,7 +338,9 @@ function currentReportExtension(lesson){
  const now=Date.now();
  return reportExtensionGrants.find(g=>{
    if(String(g.lessonId||g.id||'')!==String(lesson.id||''))return false;
-   if(g.extensionStatus!=='approved'||String(g.approvedForTeacherId||'')!==String(cloudTeacherId||''))return false;
+   // A grant belongs to one exact lesson identity only. This protects against legacy/duplicate IDs.
+   if(!lessonIdentityMatchesRecord(lesson,g))return false;
+   if(g.extensionStatus!=='approved'||g.consumedAt||String(g.approvedForTeacherId||'')!==String(cloudTeacherId||''))return false;
    const until=g.extensionUntil?.toDate?.()||((g.extensionUntilClient)?new Date(g.extensionUntilClient):null);
    return !!until&&!Number.isNaN(until.getTime())&&now<=until.getTime();
  })||null;
@@ -658,12 +660,15 @@ async function repairApprovedExtensionGrants(){
  for(const req of approved){
   try{
    const existing=reportExtensionGrants.find(g=>String(g.lessonId||g.id||'')===String(req.lessonId));
+   // Never renew or extend an existing grant during repair. Repair is only for a genuinely missing
+   // document; consumed and expired grants are terminal until a new pending request is approved.
+   if(existing)continue;
    const metaSnap=await getDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',req.lessonId));
    if(!metaSnap.exists())continue;
    const meta=metaSnap.data()||{};
    const expectedTeachers=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String).sort();
    const actualTeachers=(Array.isArray(existing?.teacherIds)?existing.teacherIds:[]).filter(Boolean).map(String).sort();
-   const valid=existing&&existing.extensionStatus==='approved'&&String(existing.approvedForTeacherId||'')===String(req.requesterTeacherId||'')&&String(existing.lessonDate||'')===String(meta.lessonDate||'')&&String(existing.lessonStart||'')===String(meta.lessonStart||'')&&String(existing.lessonEnd||'')===String(meta.lessonEnd||'')&&String(existing.studentId||'')===String(meta.studentId||'')&&JSON.stringify(actualTeachers)===JSON.stringify(expectedTeachers)&&!!existing.approvedAt;
+   const valid=!!existing;
    if(!valid){
     const repaired=await writeCanonicalExtensionGrant(req,{repair:true});
     const index=reportExtensionGrants.findIndex(g=>String(g.lessonId||g.id||'')===String(req.lessonId));
@@ -734,7 +739,21 @@ async function saveTeacherReport(){
    const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
    const trustedDeadline=trustedMeta.editableUntil?.toDate?.()||null;
    const report={companyId:COMPANY_ID,lessonId,branchId:trustedMeta.branchId,teacherId:cloudRole==='owner'?(cloudTeacherId||lessonTeacherId):cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:reporterName,reportedByRole:cloudRole,reportedForTeacherIds:Array.isArray(trustedMeta.teacherIds)?trustedMeta.teacherIds:[],isOwnerReport:cloudRole==='owner',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),editableUntil:trustedMeta.editableUntil,editableUntilClient:trustedDeadline?.toISOString()||'',updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
-   await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
+   const activeGrant=cloudRole==='owner'?null:currentReportExtension(lesson);
+   if(activeGrant){
+     // Saving through an Owner-approved extension consumes it atomically. The report closes immediately
+     // and the same grant can never reopen this or another lesson, even if time remains.
+     const batch=writeBatch(cloud);
+     batch.set(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
+     batch.update(doc(cloud,'companies',COMPANY_ID,'reportExtensionGrants',extensionGrantDocId(lessonId)),{
+       extensionStatus:'consumed',consumedAt:serverTimestamp(),consumedAtClient:new Date().toISOString(),
+       consumedByUid:cloudUid,consumedByTeacherId:cloudTeacherId
+     });
+     await batch.commit();
+     reportExtensionGrants=reportExtensionGrants.map(g=>String(g.lessonId||g.id||'')===String(lessonId)?{...g,extensionStatus:'consumed',consumedAtClient:new Date().toISOString(),consumedByUid:cloudUid,consumedByTeacherId:cloudTeacherId}:g);
+   }else{
+     await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
+   }
    applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();
    if(failedPhotoUploads.length){
      const uploadedCount=uploaded.length;
@@ -754,7 +773,7 @@ async function saveTeacherReport(){
    if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
      detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
    }else if(code.includes('permission-denied')){
-     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.10 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
+     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.12 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false

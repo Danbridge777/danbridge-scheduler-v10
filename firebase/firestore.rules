@@ -183,13 +183,30 @@ service cloud.firestore {
 
     match /companies/{companyId}/reportExtensionGrants/{lessonId} {
       allow read: if isOwner() || activeMember(companyId);
-      allow create, update: if isOwner()
+      allow create: if isOwner()
         && request.resource.data.lessonId == lessonId
         && request.resource.data.lessonDate == meta(companyId, lessonId).lessonDate
         && request.resource.data.lessonStart == meta(companyId, lessonId).lessonStart
         && request.resource.data.lessonEnd == meta(companyId, lessonId).lessonEnd
         && request.resource.data.studentId == meta(companyId, lessonId).studentId
         && request.resource.data.teacherIds == meta(companyId, lessonId).teacherIds;
+
+      // Owner may maintain grants. The assigned teacher/manager may only consume their own currently
+      // approved grant while saving the report; all identity, approval and expiry fields stay immutable.
+      allow update: if isOwner() || (
+        (isTeacher(companyId) || isManager(companyId))
+        && resource.data.lessonId == lessonId
+        && resource.data.extensionStatus == 'approved'
+        && resource.data.approvedForTeacherId == ownTeacherId()
+        && request.time <= resource.data.extensionUntil
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'extensionStatus','consumedAt','consumedAtClient','consumedByUid','consumedByTeacherId'
+        ])
+        && request.resource.data.extensionStatus == 'consumed'
+        && request.resource.data.consumedByUid == request.auth.uid
+        && request.resource.data.consumedByTeacherId == ownTeacherId()
+        && request.resource.data.consumedAt == request.time
+      );
       allow delete: if isOwner();
     }
 
