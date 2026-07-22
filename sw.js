@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v15-28-8-final-lesson-report-permission';
+const CACHE_NAME='danbridge-v15-29-fast-sync-cleanup';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.29: lesson reports use the lesson-date editing window published in lessonMeta.
+// V15.29 Fast Sync Cleanup: same-day reporting only; original realtime listeners retained.

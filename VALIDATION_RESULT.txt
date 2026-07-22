@@ -1,2 +1,0 @@
-Checked 74 local references, 34 JavaScript files, 299 HTML ids.
-PASS: baseline validation completed successfully.

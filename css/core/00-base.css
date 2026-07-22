@@ -255,4 +255,8 @@ body.class-focus-open{overflow:hidden}
 /* V3.5 CRM + 智慧排課 */
 .crm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.crm-form-grid .span-2{grid-column:1/-1}.crm-profile{display:grid;gap:10px}.crm-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}.crm-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#eef5ff;color:#0f4c81;font-size:11px;font-weight:800}.crm-actions{display:flex;gap:6px;flex-wrap:wrap}.smart-layout{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);gap:14px}.smart-results{display:grid;gap:8px;max-height:470px;overflow:auto}.smart-slot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:12px;background:#fff}.smart-slot.best{border-color:#60a5fa;background:#eff6ff}.smart-slot b{display:block}.crm-history{max-height:260px;overflow:auto}.crm-history-item{padding:8px 0;border-bottom:1px dashed var(--line)}@media(max-width:800px){.crm-form-grid,.smart-layout{grid-template-columns:1fr}.crm-form-grid .span-2{grid-column:auto}}
 
+/* V15.26.4.15：逾時回報時，將補交申請固定顯示在表單上方。 */
+.teacher-report-locked-actions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;padding:12px;border:1px solid #f3c56b;border-radius:14px;background:#fff8e8;position:sticky;top:0;z-index:4}
+.teacher-report-locked-actions[hidden]{display:none!important}
+.teacher-report-locked-actions .btn{flex:1 1 210px}
 #teacherReportModal .modal-head{position:sticky;top:-22px;z-index:6;background:#fff;padding-top:12px}
