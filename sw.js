@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v162-global-design-system';
+const CACHE_NAME='danbridge-v163-premium-crm-pages';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

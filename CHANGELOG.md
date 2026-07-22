@@ -62,3 +62,7 @@
 - Added sidebar visual grouping while preserving the original navigation buttons and permission logic.
 - Preserved all V16.1 synchronization and no-overlay fixes.
 - Updated the PWA cache key.
+
+## V16.3 Premium CRM and Pages
+- Added visual-only premium refinement for Student / Parent CRM and related management pages.
+- Preserved all IDs, handlers, synchronization, permissions, calculations, and data behavior.
