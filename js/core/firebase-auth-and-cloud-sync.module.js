@@ -753,7 +753,7 @@ async function saveTeacherReport(){
    if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
      detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
    }else if(code.includes('permission-denied')){
-     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.6 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
+     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.7 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false

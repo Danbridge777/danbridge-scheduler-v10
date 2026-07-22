@@ -31,3 +31,9 @@
 - 多堂課分開申請與核准時，每堂課的授權完全獨立。
 - 儲存前驗證正式 grant，錯誤訊息可區分未核准、資料不完整與伺服器時間尚未回寫。
 - Firestore request create rules 驗證 requesterTeacherId 與 lessonMeta.teacherIds。
+
+
+## V15.28.7 — Lesson Report Authorization Source Fix
+- Lesson report writes now authorize from authenticated membership plus trusted lessonMeta.
+- Removed payload identity fields as authorization gates to prevent false permission-denied.
+- Teacher/manager scope, lesson ownership, branch scope, and report time window remain enforced.
