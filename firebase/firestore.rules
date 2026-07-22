@@ -45,45 +45,13 @@ service cloud.firestore {
     function metaPath(companyId, lessonId) {
       return /databases/$(database)/documents/companies/$(companyId)/lessonMeta/$(lessonId);
     }
-    function extensionGrantPath(companyId, lessonId) {
-      return /databases/$(database)/documents/companies/$(companyId)/reportExtensionGrants/$(lessonId);
-    }
     function metaExists(companyId, lessonId) { return exists(metaPath(companyId, lessonId)); }
     function meta(companyId, lessonId) { return get(metaPath(companyId, lessonId)).data; }
-    function extensionOpen(companyId, lessonId) {
-      let grant = get(extensionGrantPath(companyId, lessonId)).data;
-      return exists(extensionGrantPath(companyId, lessonId))
-        && grant.lessonId == lessonId
-        && grant.extensionStatus == 'approved'
-        && grant.approvedForTeacherId == ownTeacherId()
-        && grant.extensionUntil is timestamp
-        && request.time <= grant.extensionUntil;
-    }
-    function originalReportWindowOpen(companyId, lessonId) {
-      return meta(companyId, lessonId).editableUntil is timestamp
-        && request.time <= meta(companyId, lessonId).editableUntil;
-    }
     function withinReportWindow(companyId, lessonId) {
-      return originalReportWindowOpen(companyId, lessonId)
-        || extensionOpen(companyId, lessonId);
-    }
-    function canSubmitOwnTeacherRequest(companyId, lessonId, data) {
-      return activeMember(companyId)
-        && (isTeacher(companyId) || isManager(companyId))
-        && metaExists(companyId, lessonId)
-        && meta(companyId, lessonId).active == true
-        && meta(companyId, lessonId).teacherIds is list
-        && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
-        && (isTeacher(companyId)
-          || (meta(companyId, lessonId).branchId is string
-            && effectiveBranchIds().hasAny([meta(companyId, lessonId).branchId])))
-        && data.companyId == companyId
-        && data.lessonId == lessonId
-        && data.requesterUid == request.auth.uid
-        && data.requesterEmail == emailKey()
-        && data.requesterTeacherId == ownTeacherId()
-        && data.extensionStatus == 'pending'
-        && data.extensionMinutes == 10;
+      return meta(companyId, lessonId).editableFrom is timestamp
+        && meta(companyId, lessonId).editableUntil is timestamp
+        && request.time >= meta(companyId, lessonId).editableFrom
+        && request.time <= meta(companyId, lessonId).editableUntil;
     }
 
 
@@ -147,67 +115,6 @@ service cloud.firestore {
     match /companies/{companyId}/lessonMeta/{lessonId} {
       allow read: if isOwner() || activeMember(companyId);
       allow write: if isOwner();
-    }
-
-    match /companies/{companyId}/reportExtensionRequests/{lessonId} {
-      allow read: if isOwner()
-        || (activeMember(companyId) && resource.data.requesterUid == request.auth.uid);
-
-      allow create: if request.resource.data.lessonId is string
-        && lessonId == request.resource.data.lessonId
-        && canSubmitOwnTeacherRequest(companyId, lessonId, request.resource.data)
-        && request.resource.data.keys().hasOnly([
-          'companyId','lessonId','requesterUid','requesterTeacherId','requesterEmail','requesterName',
-          'lessonDate','lessonStart','lessonEnd','studentId','teacherIds','extensionStatus','extensionMinutes',
-          'extensionRequestedAt','extensionRequestedAtClient','extensionUntil','extensionUntilClient',
-          'approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
-        ]);
-
-      // A request document is keyed by lessonId, so a later authorized assigned teacher/manager
-      // must be allowed to replace an older request for the same lesson. Authorization is checked
-      // against current lessonMeta and the new requester identity, not the previous requesterUid.
-      allow update: if isOwner()
-        || (
-          activeMember(companyId)
-          && lessonId == request.resource.data.lessonId
-          && canSubmitOwnTeacherRequest(companyId, lessonId, request.resource.data)
-          && request.resource.data.keys().hasOnly([
-            'companyId','lessonId','requesterUid','requesterTeacherId','requesterEmail','requesterName',
-            'lessonDate','lessonStart','lessonEnd','studentId','teacherIds','extensionStatus','extensionMinutes',
-            'extensionRequestedAt','extensionRequestedAtClient','extensionUntil','extensionUntilClient',
-            'approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
-          ])
-        );
-      allow delete: if isOwner();
-    }
-
-    match /companies/{companyId}/reportExtensionGrants/{lessonId} {
-      allow read: if isOwner() || activeMember(companyId);
-      allow create: if isOwner()
-        && request.resource.data.lessonId == lessonId
-        && request.resource.data.lessonDate == meta(companyId, lessonId).lessonDate
-        && request.resource.data.lessonStart == meta(companyId, lessonId).lessonStart
-        && request.resource.data.lessonEnd == meta(companyId, lessonId).lessonEnd
-        && request.resource.data.studentId == meta(companyId, lessonId).studentId
-        && request.resource.data.teacherIds == meta(companyId, lessonId).teacherIds;
-
-      // Owner may maintain grants. The assigned teacher/manager may only consume their own currently
-      // approved grant while saving the report; all identity, approval and expiry fields stay immutable.
-      allow update: if isOwner() || (
-        (isTeacher(companyId) || isManager(companyId))
-        && resource.data.lessonId == lessonId
-        && resource.data.extensionStatus == 'approved'
-        && resource.data.approvedForTeacherId == ownTeacherId()
-        && request.time <= resource.data.extensionUntil
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'extensionStatus','consumedAt','consumedAtClient','consumedByUid','consumedByTeacherId'
-        ])
-        && request.resource.data.extensionStatus == 'consumed'
-        && request.resource.data.consumedByUid == request.auth.uid
-        && request.resource.data.consumedByTeacherId == ownTeacherId()
-        && request.resource.data.consumedAt == request.time
-      );
-      allow delete: if isOwner();
     }
 
     match /companies/{companyId}/lessonReports/{lessonId} {
