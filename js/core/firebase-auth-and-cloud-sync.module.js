@@ -335,20 +335,24 @@ function lessonReportDeadline(lesson){
 }
 function currentReportExtension(lesson){
  if(!lesson||cloudRole==='owner')return null;
- // 授權文件本身由 Firestore Rules 以 lessonMeta 驗證；前端不可再用可能尚未同步的本機課程欄位否決有效授權。
- return reportExtensionGrants.find(g=>String(g.lessonId||g.id||'')===String(lesson.id||'')&&g.extensionStatus==='approved'&&String(g.approvedForTeacherId||'')===String(cloudTeacherId||''))||null;
+ const now=Date.now();
+ return reportExtensionGrants.find(g=>{
+   if(String(g.lessonId||g.id||'')!==String(lesson.id||''))return false;
+   if(g.extensionStatus!=='approved'||String(g.approvedForTeacherId||'')!==String(cloudTeacherId||''))return false;
+   const until=g.extensionUntil?.toDate?.()||((g.extensionUntilClient)?new Date(g.extensionUntilClient):null);
+   return !!until&&!Number.isNaN(until.getTime())&&now<=until.getTime();
+ })||null;
 }
 function effectiveReportDeadline(lesson){
  const base=lessonReportDeadline(lesson),extension=currentReportExtension(lesson);
- const approvedAt=extension?.approvedAt?.toDate?.()||((extension?.approvedAtClient)?new Date(extension.approvedAtClient):null);
- const serverBasedUntil=approvedAt&&!Number.isNaN(approvedAt.getTime())?new Date(approvedAt.getTime()+10*60*1000):null;
- const legacyUntil=extension?.extensionUntil?.toDate?.()||((extension?.extensionUntilClient)?new Date(extension.extensionUntilClient):null);
- const extra=serverBasedUntil||legacyUntil;
- return extra&&(!base||extra>base)?extra:base;
+ const extra=extension?.extensionUntil?.toDate?.()||((extension?.extensionUntilClient)?new Date(extension.extensionUntilClient):null);
+ if(extra&&!Number.isNaN(extra.getTime())&&(!base||extra>base))return extra;
+ return base;
 }
 function teacherReportWindowOpen(lesson){
  const deadline=effectiveReportDeadline(lesson);
- return !deadline||Date.now()<=deadline.getTime();
+ // Fail closed: malformed or incomplete lesson date/time must never unlock reporting.
+ return !!deadline&&!Number.isNaN(deadline.getTime())&&Date.now()<=deadline.getTime();
 }
 function canReportLesson(lesson){
  if(cloudRole==='owner')return !!lesson;
@@ -420,11 +424,14 @@ function openTeacherReportModal(lessonId,options={}){
    const ownRequests=reportExtensionRequests.filter(r=>r.lessonId===lesson.id&&String(r.requesterTeacherId||'')===String(cloudTeacherId||''));
    const pending=ownRequests.find(r=>r.extensionStatus==='pending');
    const approved=ownRequests.find(r=>r.extensionStatus==='approved');
-   const waitingForGrant=locked&&!extension&&!!approved;
+   const approvedAt=approved?.approvedAt?.toDate?.()||((approved?.approvedAtClient)?new Date(approved.approvedAtClient):null);
+   const approvedAge=approvedAt&&!Number.isNaN(approvedAt.getTime())?Date.now()-approvedAt.getTime():Infinity;
+   const waitingForGrant=locked&&!extension&&!!approved&&approvedAge<30000;
+   const staleApproved=locked&&!extension&&!!approved&&!waitingForGrant;
    const canRequest=locked&&!waitingForGrant&&cloudRole!=='owner'&&canActAsTeacherForLesson(lesson);
    requestBtn.hidden=!canRequest;
    requestBtn.disabled=!!pending;
-   requestBtn.textContent=pending?'已送出申請，等待 Owner':'申請開放 10 分鐘';
+   requestBtn.textContent=pending?'已送出申請，等待 Owner':(staleApproved?'授權未建立，重新申請 10 分鐘':'申請開放 10 分鐘');
    const lockedActions=document.getElementById('teacherReportLockedActions');
    if(lockedActions)lockedActions.hidden=!canRequest;
    if(waitingForGrant){
@@ -747,7 +754,7 @@ async function saveTeacherReport(){
    if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
      detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules；補交核准後的照片上傳權限由 reportExtensionGrants 驗證。';
    }else if(code.includes('permission-denied')){
-     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.8 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
+     detail='課程回報寫入被 Firestore 拒絕。請部署 V15.28.10 的 firebase/firestore.rules；本版改為每堂課各自一份獨立授權，不會因連續申請其他課程而互相覆蓋。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false

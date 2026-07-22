@@ -194,16 +194,11 @@ service cloud.firestore {
     }
 
     match /companies/{companyId}/lessonReports/{lessonId} {
+      // Read rules must match the listener query fields. Firestore queries are not filters:
+      // a collection listener cannot be authorized from lessonMeta lookups alone.
       allow read: if isOwner()
-        || (
-          (isTeacher(companyId) || isManager(companyId))
-          && metaExists(companyId, lessonId)
-          && meta(companyId, lessonId).teacherIds is list
-          && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
-          && (isTeacher(companyId)
-            || (meta(companyId, lessonId).branchId is string
-              && effectiveBranchIds().hasAny([meta(companyId, lessonId).branchId])))
-        );
+        || (isTeacher(companyId) && ownLessonReport(resource.data))
+        || (isManager(companyId) && managerBranch(resource.data));
 
       // The trusted lessonMeta document and the authenticated account determine permission.
       // Report payload display fields are not used as authorization inputs, preventing harmless
