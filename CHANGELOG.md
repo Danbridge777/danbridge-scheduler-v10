@@ -1,10 +1,9 @@
-# V16.5 Luxury Teacher Payroll UI
+# V16.6 — Payroll KPI single-line refinement
 
-- Removed the heavy blue teacher initial tile from payroll cards.
-- Added a restrained Danbridge gold identity accent.
-- Preserved full teacher names with wrapping and no truncation.
-- Refined KPI tiles, branch rows, weekly tables and card shadows.
-- Visual-only change; calculations, sync, permissions, IDs and handlers are unchanged.
+- Keep teacher difference values such as `多 10.8 hr` and `少 94.3 hr` on one line.
+- Use responsive KPI typography and numeric alignment.
+- Adjust KPI grid breakpoints so values retain adequate width.
+- Visual-only change; calculations, data, permissions, sync and event handlers are unchanged.
 
 
 ## V16.4 — Premium Teacher Payroll UI
