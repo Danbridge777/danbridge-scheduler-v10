@@ -101,6 +101,9 @@ function openCourseDrawer(id){
   $('courseDrawerBackdrop').classList.add('show');$('courseDrawer').classList.add('show');$('courseDrawer').setAttribute('aria-hidden','false');document.body.classList.add('course-drawer-open');
 }
 
+window.__danbridgeActiveCourseDrawerId=()=>activeCourseDrawerId||'';
+window.openCourseDrawer=openCourseDrawer;
+
 function closeCourseDrawer(){
   $('courseDrawerBackdrop')?.classList.remove('show');$('courseDrawer')?.classList.remove('show');$('courseDrawer')?.setAttribute('aria-hidden','true');document.body.classList.remove('course-drawer-open');activeCourseDrawerId='';
 }

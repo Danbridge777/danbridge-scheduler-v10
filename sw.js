@@ -67,4 +67,4 @@ self.addEventListener('fetch',event=>{
   );
 });
 
-// V15.27.9: extension windows use Firestore server approval time, eliminating client-clock drift.
+// V15.27.11: extension windows use Firestore server approval time, eliminating client-clock drift.

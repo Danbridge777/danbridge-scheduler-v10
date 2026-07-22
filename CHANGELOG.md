@@ -1,4 +1,12 @@
-# V15.27.9 — Lesson Report Workflow Stability
+# V15.27.11 — Approved Grant UI Synchronization Fix
+
+- Fixes the approval loop where an approved request arrived before the matching grant snapshot.
+- Approved requests no longer show the request button again while grant synchronization is pending.
+- Teacher schedule and open course drawer re-render immediately after grants arrive.
+- Approved grants are filtered by the currently signed-in teacher.
+- A direct Firestore grant refresh is triggered after approval to remove listener timing races.
+
+# V15.27.11 — Lesson Report Workflow Stability
 
 ## Fixed
 - 核准不再使用兩個平行寫入，避免申請已核准但 grant 未建立的半完成狀態。
