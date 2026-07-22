@@ -1,3 +1,21 @@
+# V15.28.3 — Final Lesson ID Integrity Lock
+
+- Owner-only legacy Lesson ID migration authority.
+- Teacher and branch-manager cloud views never generate local replacement IDs.
+- Backup restore and every save pass through the same identity normalization guard.
+- Duplicate legacy IDs are remapped only by exact lesson fingerprint; ambiguous records are preserved and logged instead of being attached to the wrong lesson.
+- Grant, request, lessonMeta, Firestore Rules, and Storage Rules verify the same lesson date, time, student, and teacher fingerprint.
+- Existing scheduling, reporting, finance, camp, backup, and permission behavior remains unchanged.
+
+# V15.28.2 — Unified Lesson Identity Core
+
+- All new lesson IDs use canonical `lsn_<UUID>` format.
+- Existing lesson IDs are migrated once with local references rewritten.
+- Firestore lessonMeta, lessonReports, reportExtensionRequests and reportExtensionGrants share the exact lesson ID as document ID.
+- Single and batch requests write one canonical request document per lesson.
+- Lesson copy/recurrence/camp creation always generates a new lesson ID.
+- Existing non-lesson entity IDs and application behavior remain unchanged.
+
 # V15.27.11 — Approved Grant UI Synchronization Fix
 
 - Fixes the approval loop where an approved request arrived before the matching grant snapshot.

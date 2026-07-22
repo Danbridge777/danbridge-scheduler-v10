@@ -13,6 +13,6 @@ window.__danbridgeRecoverBestLocalDB=()=>{
   candidates.sort((a,b)=>b.score-a.score);
   return candidates[0]||null;
 };
-window.__danbridgeSetDB=(value)=>{db=value};
+window.__danbridgeSetDB=(value)=>{db=typeof normalizeBranchData==='function'?normalizeBranchData(value):value};
 window.__danbridgeIsDraft=()=>false;
 window.teacherReportLabel=v=>({completed:'已完成',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'}[v]||'尚未回報');

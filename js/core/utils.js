@@ -44,7 +44,13 @@
  * V15.3：從大型業務檔抽出的純共用工具。
  * 函式名稱及回傳結果維持原樣。
  */
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function newUuid(){
+  try{return crypto.randomUUID()}catch{return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)})}
+}
+function uid(){return 'ent_'+newUuid()}
+function createLessonId(){return 'lsn_'+newUuid()}
+function createSeriesId(){return 'ser_'+newUuid()}
+function isCanonicalLessonId(value){return /^lsn_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))}
 
 function money(n){return 'NT$'+Math.round(n||0).toLocaleString('zh-TW')}
 

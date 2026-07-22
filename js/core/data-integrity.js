@@ -27,7 +27,7 @@
   db=normalizeBranchData(db);
   const lessonByStudent=new Map(),lessonByTeacher=new Map();
   (db.lessons||[]).forEach(l=>{
-   l.id=l.id||uid();l.deliveryMode=deliveryModeForRecord(l);l.branchId=branchIdForRecord(l);
+   l.id=l.id||createLessonId();l.deliveryMode=deliveryModeForRecord(l);l.branchId=branchIdForRecord(l);
    l.teacherIds=normalizeIdList(Array.isArray(l.teacherIds)&&l.teacherIds.length?l.teacherIds:[l.teacherId]);l.teacherId=l.teacherIds[0]||'';
    if(l.studentId){const a=lessonByStudent.get(l.studentId)||[];a.push(l.branchId);lessonByStudent.set(l.studentId,a)}
    l.teacherIds.forEach(id=>{const a=lessonByTeacher.get(id)||[];a.push(l.branchId);lessonByTeacher.set(id,a)});

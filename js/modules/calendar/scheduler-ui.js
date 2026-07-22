@@ -53,7 +53,7 @@ function copySelectedLessons(){
   snapshot();
   const keys=new Set(db.lessons.map(keyOf));let added=0,skipped=0;
   for(const old of source){
-    const candidate={...old,id:uid(),date:mapDateByCalendarWeek(old.date,fromMonth,toMonth),status:'未上課',paymentStatus:'unpaid',teacherIds:[...lessonTeacherIds(old)]};
+    const candidate={...old,id:createLessonId(),date:mapDateByCalendarWeek(old.date,fromMonth,toMonth),status:'未上課',paymentStatus:'unpaid',teacherIds:[...lessonTeacherIds(old)]};
     if(keys.has(keyOf(candidate))||conflictDetail(candidate,'')){skipped++;continue}
     db.lessons.push(candidate);keys.add(keyOf(candidate));logChange('複製選取到下個月',candidate,old);added++;
   }
@@ -174,7 +174,7 @@ function contextPasteLessons(){
     const targetDateStr=shiftDate(old.date,dateDelta);
     const ns=shiftTime(old.start,timeDelta),ne=shiftTime(old.end,timeDelta);
     if(!ns||!ne){skipped++;continue}
-    const n={...old,id:uid(),date:targetDateStr,start:ns,end:ne,status:'未上課',paymentStatus:'unpaid',teacherIds:[...lessonTeacherIds(old)]};
+    const n={...old,id:createLessonId(),date:targetDateStr,start:ns,end:ne,status:'未上課',paymentStatus:'unpaid',teacherIds:[...lessonTeacherIds(old)]};
     if(keys.has(keyOf(n))||conflictDetail(n,'')){skipped++;continue}
     if(teacherConflictDetail(n,''))teacherWarnings++;
     db.lessons.push(n);keys.add(keyOf(n));logChange('依日期間距貼上課程',n,old);added++;

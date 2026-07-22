@@ -1,5 +1,88 @@
 /** Danbridge Scheduler V15.20 — local persistence, backup, and branch migration layer. */
 
+
+const LESSON_ID_MIGRATION_KEY='danbridge_lesson_id_migration_v15_28_3';
+const LESSON_ID_MIGRATION_ISSUES_KEY='danbridge_lesson_id_migration_issues_v15_28_3';
+function lessonIdentityFingerprint(lesson={}){
+ const teacherIds=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean).map(String).sort();
+ return {
+   lessonDate:String(lesson.date||lesson.lessonDate||''),
+   lessonStart:String(lesson.start||lesson.lessonStart||''),
+   lessonEnd:String(lesson.end||lesson.lessonEnd||''),
+   studentId:String(lesson.studentId||''),
+   teacherIds
+ };
+}
+function lessonFingerprintKey(value={}){
+ const f=lessonIdentityFingerprint(value);
+ return [f.lessonDate,f.lessonStart,f.lessonEnd,f.studentId,f.teacherIds.join(',')].join('|');
+}
+function recordLessonMigrationIssue(issue){
+ try{
+   const previous=JSON.parse(localStorage.getItem(LESSON_ID_MIGRATION_ISSUES_KEY)||'[]');
+   const next=[...previous,{...issue,at:new Date().toISOString()}].slice(-200);
+   localStorage.setItem(LESSON_ID_MIGRATION_ISSUES_KEY,JSON.stringify(next));
+ }catch(e){console.warn('Lesson ID migration issue record failed',e)}
+}
+function lessonIdMigrationAllowed(){return window.__danbridgeLessonIdMigrationAuthority===true}
+function normalizeLessonIdentityData(x,{allowMigration=lessonIdMigrationAllowed()}={}){
+ const lessons=Array.isArray(x?.lessons)?x.lessons:[];
+ const originalGroups=new Map();
+ for(const lesson of lessons){
+   const oldId=String(lesson?.id||'').trim();
+   if(!originalGroups.has(oldId))originalGroups.set(oldId,[]);
+   originalGroups.get(oldId).push(lesson);
+ }
+ if(!allowMigration){
+   const seen=new Set();
+   for(const lesson of lessons){
+     const id=String(lesson?.id||'').trim();
+     if(!id||seen.has(id)||!isCanonicalLessonId(id))lesson.__lessonIdMigrationRequired=true;
+     seen.add(id);
+   }
+   return x;
+ }
+ const used=new Set(),migration=[];
+ for(const lesson of lessons){
+   const oldId=String(lesson?.id||'').trim();
+   let newId=oldId;
+   if(!isCanonicalLessonId(oldId)||used.has(oldId))newId=createLessonId();
+   while(used.has(newId))newId=createLessonId();
+   used.add(newId);lesson.id=newId;delete lesson.__lessonIdMigrationRequired;
+   if(oldId!==newId){migration.push({oldId,newId,fingerprint:lessonIdentityFingerprint(lesson),fingerprintKey:lessonFingerprintKey(lesson)});}
+ }
+ const migrationsByOld=new Map();
+ for(const item of migration){if(!migrationsByOld.has(item.oldId))migrationsByOld.set(item.oldId,[]);migrationsByOld.get(item.oldId).push(item)}
+ const remapRecord=(record,oldId)=>{
+   const candidates=migrationsByOld.get(String(oldId||''))||[];
+   if(!candidates.length)return oldId;
+   if(candidates.length===1)return candidates[0].newId;
+   const key=lessonFingerprintKey(record||{});
+   const exact=candidates.filter(c=>c.fingerprintKey===key);
+   if(exact.length===1)return exact[0].newId;
+   recordLessonMigrationIssue({type:'ambiguous-related-record',oldId:String(oldId||''),fingerprintKey:key,candidateIds:candidates.map(c=>c.newId)});
+   return oldId;
+ };
+ const walk=value=>{
+   if(Array.isArray(value)){value.forEach(walk);return}
+   if(!value||typeof value!=='object')return;
+   for(const [k,v] of Object.entries(value)){
+     if(k==='lessonId'&&typeof v==='string')value[k]=remapRecord(value,v);
+     else if(k==='lessonIds'&&Array.isArray(v))value[k]=v.map(id=>remapRecord(value,id));
+     else walk(v);
+   }
+ };
+ for(const [k,v] of Object.entries(x||{})){if(k!=='lessons')walk(v)}
+ if(migration.length){
+   try{
+     const previous=JSON.parse(localStorage.getItem(LESSON_ID_MIGRATION_KEY)||'[]');
+     const merged=[...previous,...migration].filter((m,i,a)=>a.findIndex(x=>x.oldId===m.oldId&&x.newId===m.newId)===i);
+     localStorage.setItem(LESSON_ID_MIGRATION_KEY,JSON.stringify(merged));
+   }catch(e){console.warn('Lesson ID migration record failed',e)}
+ }
+ return x;
+}
+
 function defaultBranches(){return (window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).map(x=>({...x}))}
 function deliveryModeForRecord(x={}){return x.deliveryMode||(x.location==='到府'?'home':x.location==='線上課'?'online':'onsite')}
 function branchIdForRecord(x){if(x?.branchId)return x.branchId;const mode=deliveryModeForRecord(x);return mode==='onsite'?(window.DanbridgeAccess?.branchIdFromLocation?.(x?.location||'')||'art_museum'):'unassigned'}
@@ -11,12 +94,12 @@ function normalizeBranchData(x){
  x.makeups=(x.makeups||[]).map(m=>({...m,branchId:m.branchId||branchIdForRecord((x.lessons||[]).find(l=>l.id===m.lessonId)||m)}));
  x.fixedExpenses=(x.fixedExpenses||[]).map(e=>({...e,branchId:e.branchId||'company'}));
  x.oneTimeExpenses=(x.oneTimeExpenses||[]).map(e=>({...e,branchId:e.branchId||'company'}));
- return x;
+ return normalizeLessonIdentityData(x);
 }
 
 function loadDB(){try{const raw=localStorage.getItem(LS_KEY);const x=JSON.parse(raw||'{"students":[],"teachers":[],"lessons":[],"makeups":[],"changes":[],"teacherGroups":[],"winterTeacherGroups":[],"summerCampClasses":[],"winterCampClasses":[],"settlementRecords":[],"fixedExpenses":[],"oneTimeExpenses":[]}');x.students||=[];x.teachers||=[];x.lessons||=[];x.makeups||=[];x.changes||=[];x.teacherGroups||=[];x.winterTeacherGroups||=[];x.summerCampClasses||=[];x.winterCampClasses||=[];x.settlementRecords||=[];x.fixedExpenses||=[];x.oneTimeExpenses||=[];x.students=x.students.map(st=>({...st,homeAddress:st.homeAddress||''}));x.teachers=x.teachers.map(t=>({...t,minWeeklyHours:+t.minWeeklyHours||0,workDays:Array.isArray(t.workDays)&&t.workDays.length?[...new Set(t.workDays.map(Number))]:[1,2,3,4,5]}));x.lessons=x.lessons.map(l=>({...l,room:l.room||'',paymentStatus:l.paymentStatus||'unpaid',chargeStudent:l.chargeStudent||'yes',payTeacher:l.payTeacher||'yes',seriesId:l.seriesId||'',location:l.location||'美術東四路',address:l.address||'',campId:normalizeCampCode(l.campId||''),teacherIds:Array.isArray(l.teacherIds)&&l.teacherIds.length?[...new Set(l.teacherIds)]:[l.teacherId].filter(Boolean),lessonState:(l.lessonState||(l.isDraft?'draft':'active')),isDraft:(l.lessonState?l.lessonState==='draft':!!l.isDraft),draftOriginal:null}));return normalizeBranchData(x)}catch{return normalizeBranchData({students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]})}}
 function normalizeLessonStates(){db.lessons=(db.lessons||[]).map(l=>{const state=l.lessonState||(l.isDraft?'draft':'active');return{...l,lessonState:state,isDraft:state==='draft',draftOriginal:null}})}
-function saveDB(){normalizeLessonStates();localStorage.setItem(LS_KEY,JSON.stringify(db));renderAll();updateLastBackupInfo();updateUndoRedoButtons()}
+function saveDB(){normalizeLessonStates();db=normalizeBranchData(db);localStorage.setItem(LS_KEY,JSON.stringify(db));renderAll();updateLastBackupInfo();updateUndoRedoButtons()}
 function ensureV81Migration(){if(localStorage.getItem(MIGRATION_KEY))return;try{const raw=localStorage.getItem(LS_KEY);if(raw){const versions=getVersions();versions.unshift({id:uid(),createdAt:new Date().toISOString(),reason:'V8.1 升級前自動備份',data:JSON.parse(raw)});setVersions(versions)}localStorage.setItem(MIGRATION_KEY,new Date().toISOString());localStorage.setItem(LS_KEY,JSON.stringify(db))}catch(e){console.error('Migration backup failed',e)}}
 function getVersions(){try{return JSON.parse(localStorage.getItem(VERSION_KEY)||'[]')}catch{return[]}}
 function setVersions(v){localStorage.setItem(VERSION_KEY,JSON.stringify(v.slice(0,20)))}
@@ -24,7 +107,7 @@ function versionStats(data){return `${(data.students||[]).length}位學生・${(
 function createVersion(reason='手動版本'){const versions=getVersions(),now=new Date();versions.unshift({id:uid(),createdAt:now.toISOString(),reason,data:JSON.parse(JSON.stringify(db))});setVersions(versions);renderBackupHistory();toast('已建立安全版本')}
 function createManualVersion(){createVersion('手動建立')}
 function renderBackupHistory(){const box=$('backupHistory');if(!box)return;const versions=getVersions();box.innerHTML=versions.length?`<table class="backup-history-table"><thead><tr><th>版本時間</th><th>來源／原因</th><th>內容</th><th>操作</th></tr></thead><tbody>${versions.map(v=>{const d=new Date(v.createdAt);return `<tr><td>${d.toLocaleString('zh-TW')}</td><td><b>${esc(v.reason||'安全版本')}</b></td><td>${versionStats(v.data)}</td><td class="row-actions"><button class="btn" onclick="restoreVersion('${v.id}')">復原</button><button class="btn danger" onclick="deleteVersion('${v.id}')">刪除</button></td></tr>`}).join('')}</tbody></table>`:'<div class="small" style="padding:12px">目前沒有版本紀錄。</div>'}
-function restoreVersion(id){const v=getVersions().find(x=>x.id===id);if(!v)return;if(!confirm(`確定復原到「${v.reason}」？目前資料會先自動備份。`))return;createVersion('復原前自動備份');db=JSON.parse(JSON.stringify(v.data));saveDB();toast('版本已復原')}
+function restoreVersion(id){const v=getVersions().find(x=>x.id===id);if(!v)return;if(!confirm(`確定復原到「${v.reason}」？目前資料會先自動備份。`))return;createVersion('復原前自動備份');db=normalizeBranchData(JSON.parse(JSON.stringify(v.data)));saveDB();toast('版本已復原')}
 function deleteVersion(id){if(!confirm('刪除此版本紀錄？'))return;setVersions(getVersions().filter(x=>x.id!==id));renderBackupHistory()}
 function timestampName(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`}
 function updateLastBackupInfo(){const el=$('lastBackupInfo');if(!el)return;const x=localStorage.getItem(LAST_EXPORT_KEY);el.textContent=x?`上次匯出：${new Date(x).toLocaleString('zh-TW')}`:'尚未匯出備份。'}

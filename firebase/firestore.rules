@@ -58,6 +58,11 @@ service cloud.firestore {
         && get(extensionGrantPath(companyId, lessonId)).data.lessonId == lessonId
         && get(extensionGrantPath(companyId, lessonId)).data.extensionStatus == 'approved'
         && get(extensionGrantPath(companyId, lessonId)).data.approvedForTeacherId == ownTeacherId()
+        && get(extensionGrantPath(companyId, lessonId)).data.lessonDate == meta(companyId, lessonId).lessonDate
+        && get(extensionGrantPath(companyId, lessonId)).data.lessonStart == meta(companyId, lessonId).lessonStart
+        && get(extensionGrantPath(companyId, lessonId)).data.lessonEnd == meta(companyId, lessonId).lessonEnd
+        && get(extensionGrantPath(companyId, lessonId)).data.studentId == meta(companyId, lessonId).studentId
+        && get(extensionGrantPath(companyId, lessonId)).data.teacherIds == meta(companyId, lessonId).teacherIds
         && get(extensionGrantPath(companyId, lessonId)).data.approvedAt is timestamp
         && request.time <= get(extensionGrantPath(companyId, lessonId)).data.approvedAt + duration.value(10, 'm');
     }
@@ -93,6 +98,11 @@ service cloud.firestore {
         && data.requesterUid == request.auth.uid
         && data.requesterEmail == emailKey()
         && data.requesterTeacherId == ownTeacherId()
+        && data.lessonDate == meta(companyId, lessonId).lessonDate
+        && data.lessonStart == meta(companyId, lessonId).lessonStart
+        && data.lessonEnd == meta(companyId, lessonId).lessonEnd
+        && data.studentId == meta(companyId, lessonId).studentId
+        && data.teacherIds == meta(companyId, lessonId).teacherIds
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }
@@ -100,7 +110,7 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'companyId','lessonId','branchId','reportedForTeacherIds','editableUntil',
         'extensionStatus','extensionMinutes','requesterTeacherId','requesterUid',
-        'requesterEmail','requesterName','lessonDate','lessonStart','lessonEnd',
+        'requesterEmail','requesterName','lessonDate','lessonStart','lessonEnd','studentId','teacherIds',
         'extensionRequestedAt','extensionRequestedAtClient','extensionUntil',
         'extensionUntilClient','approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
       ]);
@@ -168,25 +178,46 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
-    match /companies/{companyId}/reportExtensionRequests/{requestId} {
+    match /companies/{companyId}/reportExtensionRequests/{lessonId} {
       allow read: if isOwner()
         || (activeMember(companyId) && resource.data.requesterUid == request.auth.uid);
 
       allow create: if request.resource.data.lessonId is string
-        && canSubmitOwnTeacherRequest(companyId, request.resource.data.lessonId, request.resource.data)
+        && lessonId == request.resource.data.lessonId
+        && canSubmitOwnTeacherRequest(companyId, lessonId, request.resource.data)
         && request.resource.data.keys().hasOnly([
           'companyId','lessonId','requesterUid','requesterTeacherId','requesterEmail','requesterName',
-          'lessonDate','lessonStart','lessonEnd','extensionStatus','extensionMinutes',
+          'lessonDate','lessonStart','lessonEnd','studentId','teacherIds','extensionStatus','extensionMinutes',
           'extensionRequestedAt','extensionRequestedAtClient','extensionUntil','extensionUntilClient',
           'approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
         ]);
 
-      allow update, delete: if isOwner();
+      allow update: if isOwner()
+        || (
+          activeMember(companyId)
+          && resource.data.requesterUid == request.auth.uid
+          && lessonId == request.resource.data.lessonId
+          && canSubmitOwnTeacherRequest(companyId, lessonId, request.resource.data)
+          && request.resource.data.keys().hasOnly([
+            'companyId','lessonId','requesterUid','requesterTeacherId','requesterEmail','requesterName',
+            'lessonDate','lessonStart','lessonEnd','studentId','teacherIds','extensionStatus','extensionMinutes',
+            'extensionRequestedAt','extensionRequestedAtClient','extensionUntil','extensionUntilClient',
+            'approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
+          ])
+        );
+      allow delete: if isOwner();
     }
 
-    match /companies/{companyId}/reportExtensionGrants/{grantId} {
+    match /companies/{companyId}/reportExtensionGrants/{lessonId} {
       allow read: if isOwner() || activeMember(companyId);
-      allow create, update, delete: if isOwner();
+      allow create, update: if isOwner()
+        && request.resource.data.lessonId == lessonId
+        && request.resource.data.lessonDate == meta(companyId, lessonId).lessonDate
+        && request.resource.data.lessonStart == meta(companyId, lessonId).lessonStart
+        && request.resource.data.lessonEnd == meta(companyId, lessonId).lessonEnd
+        && request.resource.data.studentId == meta(companyId, lessonId).studentId
+        && request.resource.data.teacherIds == meta(companyId, lessonId).teacherIds;
+      allow delete: if isOwner();
     }
 
     match /companies/{companyId}/lessonReports/{lessonId} {

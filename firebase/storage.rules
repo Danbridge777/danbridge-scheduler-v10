@@ -71,6 +71,11 @@ service firebase.storage {
         && grant(lessonId).lessonId == lessonId
         && grant(lessonId).extensionStatus == 'approved'
         && grant(lessonId).approvedForTeacherId == effectiveTeacherId()
+        && grant(lessonId).lessonDate == lessonMeta(lessonId).lessonDate
+        && grant(lessonId).lessonStart == lessonMeta(lessonId).lessonStart
+        && grant(lessonId).lessonEnd == lessonMeta(lessonId).lessonEnd
+        && grant(lessonId).studentId == lessonMeta(lessonId).studentId
+        && grant(lessonId).teacherIds == lessonMeta(lessonId).teacherIds
         && grant(lessonId).approvedAt is timestamp
         && request.time <= grant(lessonId).approvedAt + duration.value(10, 'm');
     }
