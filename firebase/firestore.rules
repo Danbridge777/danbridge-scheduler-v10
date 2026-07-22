@@ -74,16 +74,14 @@ service cloud.firestore {
         && meta(companyId, lessonId).active == true
         && meta(companyId, lessonId).teacherIds is list
         && meta(companyId, lessonId).teacherIds.hasAny([ownTeacherId()])
+        && (isTeacher(companyId)
+          || (meta(companyId, lessonId).branchId is string
+            && effectiveBranchIds().hasAny([meta(companyId, lessonId).branchId])))
         && data.companyId == companyId
         && data.lessonId == lessonId
         && data.requesterUid == request.auth.uid
         && data.requesterEmail == emailKey()
         && data.requesterTeacherId == ownTeacherId()
-        && data.lessonDate == meta(companyId, lessonId).lessonDate
-        && data.lessonStart == meta(companyId, lessonId).lessonStart
-        && data.lessonEnd == meta(companyId, lessonId).lessonEnd
-        && data.studentId == meta(companyId, lessonId).studentId
-        && data.teacherIds == meta(companyId, lessonId).teacherIds
         && data.extensionStatus == 'pending'
         && data.extensionMinutes == 10;
     }
@@ -165,10 +163,12 @@ service cloud.firestore {
           'approvedAt','approvedAtClient','approvedByUid','approvedByEmail'
         ]);
 
+      // A request document is keyed by lessonId, so a later authorized assigned teacher/manager
+      // must be allowed to replace an older request for the same lesson. Authorization is checked
+      // against current lessonMeta and the new requester identity, not the previous requesterUid.
       allow update: if isOwner()
         || (
           activeMember(companyId)
-          && resource.data.requesterUid == request.auth.uid
           && lessonId == request.resource.data.lessonId
           && canSubmitOwnTeacherRequest(companyId, lessonId, request.resource.data)
           && request.resource.data.keys().hasOnly([

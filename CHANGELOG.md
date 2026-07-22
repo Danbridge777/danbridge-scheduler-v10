@@ -43,3 +43,8 @@
 - Lesson report writes now authorize from authenticated membership plus trusted lessonMeta.
 - Removed payload identity fields as authorization gates to prevent false permission-denied.
 - Teacher/manager scope, lesson ownership, branch scope, and report time window remain enforced.
+
+## V15.28.11
+- Fixed permission-denied when an authorized teacher or branch manager submits a new extension request for a lesson that already has an older request document.
+- Removed fragile exact date/time/student/teacher-array comparisons from request authorization.
+- Added branch scope validation for branch managers.
