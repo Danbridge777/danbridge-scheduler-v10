@@ -56,3 +56,9 @@
 - Added immediate retry when a stale snapshot arrives during the save/upload window.
 - Preserved all existing features; no removed application/request feature was restored.
 - Bumped module and service-worker cache versions.
+
+## V16.2 — Global Design System
+- Added a visual-only final CSS layer for consistent navigation, cards, forms, buttons, tables, KPI panels and dialogs.
+- Added sidebar visual grouping while preserving the original navigation buttons and permission logic.
+- Preserved all V16.1 synchronization and no-overlay fixes.
+- Updated the PWA cache key.
