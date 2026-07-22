@@ -335,7 +335,8 @@ function lessonReportDeadline(lesson){
 }
 function currentReportExtension(lesson){
  if(!lesson||cloudRole==='owner')return null;
- return reportExtensionGrants.find(g=>lessonIdentityMatchesRecord(lesson,g)&&g.extensionStatus==='approved'&&String(g.approvedForTeacherId||'')===String(cloudTeacherId||''))||null;
+ // 授權文件本身由 Firestore Rules 以 lessonMeta 驗證；前端不可再用可能尚未同步的本機課程欄位否決有效授權。
+ return reportExtensionGrants.find(g=>String(g.lessonId||g.id||'')===String(lesson.id||'')&&g.extensionStatus==='approved'&&String(g.approvedForTeacherId||'')===String(cloudTeacherId||''))||null;
 }
 function effectiveReportDeadline(lesson){
  const base=lessonReportDeadline(lesson),extension=currentReportExtension(lesson);
@@ -486,8 +487,14 @@ async function verifyExtensionGrantForSave(lessonId, trustedMeta){
  if(!snap.exists())throw new Error('Owner 尚未建立這堂課的 10 分鐘授權，請確認申請已核准。');
  const grant=snap.data()||{};
  if(grant.lessonId!==lessonId||grant.extensionStatus!=='approved')throw new Error('這堂課的補交授權資料不完整，請 Owner 重新核准。');
- const localLesson=window.__danbridgeGetDB?.().lessons.find(x=>x.id===lessonId);
- if(!localLesson||!lessonIdentityMatchesRecord(localLesson,grant))throw new Error('補交授權與目前課程資料不一致，請 Owner 重新同步並核准。');
+ const trustedTeachers=(Array.isArray(trustedMeta?.teacherIds)?trustedMeta.teacherIds:[]).filter(Boolean).map(String).sort();
+ const grantTeachers=(Array.isArray(grant.teacherIds)?grant.teacherIds:[]).filter(Boolean).map(String).sort();
+ const matchesTrustedMeta=String(grant.lessonDate||'')===String(trustedMeta?.lessonDate||'')
+   &&String(grant.lessonStart||'')===String(trustedMeta?.lessonStart||'')
+   &&String(grant.lessonEnd||'')===String(trustedMeta?.lessonEnd||'')
+   &&String(grant.studentId||'')===String(trustedMeta?.studentId||'')
+   &&JSON.stringify(grantTeachers)===JSON.stringify(trustedTeachers);
+ if(!matchesTrustedMeta)throw new Error('補交授權與雲端課程資料不一致，請 Owner 重新核准。');
  if(String(grant.approvedForTeacherId||'')!==String(cloudTeacherId||''))throw new Error('這堂課的補交授權不是核准給目前登入老師，請 Owner 重新核准。');
  if(!grant.approvedAt?.toDate?.())throw new Error('補交授權尚未取得 Firestore 伺服器核准時間，請稍候數秒再儲存。');
  return grant;
@@ -610,22 +617,60 @@ function renderOwnerExtensionInbox(){
   return `<article class="extension-request-card status-${status}"><div class="extension-request-main"><div class="extension-request-title"><b>${esc(r.requesterName||'老師')}</b><span class="extension-status">${extensionRequestStatusLabel(status)}</span></div><div class="extension-request-course">${esc(r.lessonDate||'')} ${esc(r.lessonStart||'')}–${esc(r.lessonEnd||'')} ${studentName?'｜'+esc(studentName):''}</div><div class="extension-request-meta">申請時間：${esc(requested||'—')}${decided?`｜處理時間：${esc(decided)}`:''}</div></div>${actions}</article>`
  }).join('');
 }
+async function writeCanonicalExtensionGrant(req,{repair=false}={}){
+ const lessonId=extensionGrantDocId(req.lessonId);
+ const metaSnap=await getDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',lessonId));
+ if(!metaSnap.exists())throw new Error('找不到這堂課的 lessonMeta，請先由 Owner 重新同步課表。');
+ const meta=metaSnap.data()||{};
+ if(meta.active!==true)throw new Error('這堂課目前未啟用回報，無法核准。');
+ const teacherIds=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String).sort();
+ const requesterTeacherId=String(req.requesterTeacherId||'');
+ if(!requesterTeacherId||!teacherIds.includes(requesterTeacherId))throw new Error('申請老師已不在這堂課的授課名單中，請重新申請。');
+ const approvedAtClient=new Date();
+ const until=new Date(approvedAtClient.getTime()+10*60*1000);
+ const requestRef=doc(cloud,'companies',COMPANY_ID,'reportExtensionRequests',req.id);
+ const grantRef=doc(cloud,'companies',COMPANY_ID,'reportExtensionGrants',lessonId);
+ const grant={companyId:COMPANY_ID,lessonId,lessonDate:String(meta.lessonDate||''),lessonStart:String(meta.lessonStart||''),lessonEnd:String(meta.lessonEnd||''),studentId:String(meta.studentId||''),teacherIds,approvedForTeacherId:requesterTeacherId,extensionStatus:'approved',extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedAt:serverTimestamp(),approvedAtClient:approvedAtClient.toISOString(),approvedByUid:cloudUid,approvedByEmail:auth.currentUser?.email?.toLowerCase()||''};
+ const batch=writeBatch(cloud);
+ batch.set(grantRef,grant,{merge:false});
+ batch.set(requestRef,{extensionStatus:'approved',approvedAt:serverTimestamp(),approvedAtClient:approvedAtClient.toISOString(),extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedByUid:cloudUid,approvedByEmail:auth.currentUser?.email?.toLowerCase()||'',grantRepaired:repair===true},{merge:true});
+ await batch.commit();
+ const verify=await getDoc(grantRef);
+ if(!verify.exists())throw new Error('核准已送出，但授權文件未建立，請重新操作。');
+ return {grant:{id:verify.id,...verify.data()},until};
+}
 async function approveReportExtensionById(requestId){
  if(cloudRole!=='owner')return alert('只有 Owner 可以核准。');
  const req=reportExtensionRequests.find(r=>r.id===requestId);
  if(!req)return alert('找不到這筆申請，可能已被處理。');
  if(req.extensionStatus!=='pending')return alert('這筆申請已經處理。');
- const until=new Date(Date.now()+10*60*1000);
  try{
-  const requestRef=doc(cloud,'companies',COMPANY_ID,'reportExtensionRequests',req.id);
-  const grantId=extensionGrantDocId(req.lessonId);
-  const grantRef=doc(cloud,'companies',COMPANY_ID,'reportExtensionGrants',grantId);
-  const batch=writeBatch(cloud);
-  batch.set(requestRef,{extensionStatus:'approved',approvedAt:serverTimestamp(),approvedAtClient:new Date().toISOString(),extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedByUid:cloudUid,approvedByEmail:auth.currentUser?.email?.toLowerCase()||''},{merge:true});
-  batch.set(grantRef,{companyId:COMPANY_ID,lessonId:req.lessonId,lessonDate:String(req.lessonDate||''),lessonStart:String(req.lessonStart||''),lessonEnd:String(req.lessonEnd||''),studentId:String(req.studentId||''),teacherIds:Array.isArray(req.teacherIds)?req.teacherIds.map(String).sort():[],approvedForTeacherId:String(req.requesterTeacherId||''),extensionStatus:'approved',extensionUntil:Timestamp.fromDate(until),extensionUntilClient:until.toISOString(),approvedAt:serverTimestamp(),approvedByUid:cloudUid},{merge:false});
-  await batch.commit();
+  const result=await writeCanonicalExtensionGrant(req);
+  const index=reportExtensionGrants.findIndex(g=>String(g.lessonId||g.id||'')===String(req.lessonId));
+  if(index>=0)reportExtensionGrants[index]=result.grant;else reportExtensionGrants.push(result.grant);
   cloudStatus(`已開放 ${req.requesterName||'老師'} 10 分鐘`,'ok');
  }catch(e){console.error(e);alert('核准失敗：'+e.message)}
+}
+async function repairApprovedExtensionGrants(){
+ if(cloudRole!=='owner')return;
+ const approved=reportExtensionRequests.filter(r=>r.extensionStatus==='approved'&&r.lessonId&&r.requesterTeacherId);
+ for(const req of approved){
+  try{
+   const existing=reportExtensionGrants.find(g=>String(g.lessonId||g.id||'')===String(req.lessonId));
+   const metaSnap=await getDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',req.lessonId));
+   if(!metaSnap.exists())continue;
+   const meta=metaSnap.data()||{};
+   const expectedTeachers=(Array.isArray(meta.teacherIds)?meta.teacherIds:[]).filter(Boolean).map(String).sort();
+   const actualTeachers=(Array.isArray(existing?.teacherIds)?existing.teacherIds:[]).filter(Boolean).map(String).sort();
+   const valid=existing&&existing.extensionStatus==='approved'&&String(existing.approvedForTeacherId||'')===String(req.requesterTeacherId||'')&&String(existing.lessonDate||'')===String(meta.lessonDate||'')&&String(existing.lessonStart||'')===String(meta.lessonStart||'')&&String(existing.lessonEnd||'')===String(meta.lessonEnd||'')&&String(existing.studentId||'')===String(meta.studentId||'')&&JSON.stringify(actualTeachers)===JSON.stringify(expectedTeachers)&&!!existing.approvedAt;
+   if(!valid){
+    const repaired=await writeCanonicalExtensionGrant(req,{repair:true});
+    const index=reportExtensionGrants.findIndex(g=>String(g.lessonId||g.id||'')===String(req.lessonId));
+    if(index>=0)reportExtensionGrants[index]=repaired.grant;else reportExtensionGrants.push(repaired.grant);
+    cloudStatus(`已修復 ${req.requesterName||'老師'} 的補交授權`,'ok');
+   }
+  }catch(e){console.error('repair approved extension grant failed',req.lessonId,e)}
+ }
 }
 async function rejectReportExtensionById(requestId){
  if(cloudRole!=='owner')return alert('只有 Owner 可以拒絕。');
@@ -864,6 +909,7 @@ function subscribeReportExtensionRequests(){
    }
    window.DanbridgeNotifications?.render?.();
    renderOwnerExtensionInbox();
+   if(cloudRole==='owner')setTimeout(()=>repairApprovedExtensionGrants().catch(e=>console.error('extension repair sweep failed',e)),0);
    const modal=document.getElementById('teacherReportModal');
    if(modal?.classList.contains('show')){const id=document.getElementById('teacherReportLessonId')?.value;const l=window.__danbridgeGetDB?.().lessons.find(x=>x.id===id);if(l)setTimeout(()=>openTeacherReportModal(id,{readOnly:modal.dataset.readOnly==='true'&&cloudRole==='branch_manager'&&!canActAsTeacherForLesson(l)}),0)}
  },e=>{console.error('reportExtensionRequests listener',e);cloudStatus('補交申請同步失敗：'+e.message,'error')});
