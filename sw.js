@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v16-calendar-ui-refresh';
+const CACHE_NAME='danbridge-v16-calendar-ui-refresh-v161';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

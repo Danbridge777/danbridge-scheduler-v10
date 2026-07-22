@@ -79,3 +79,52 @@
   #calendar .calendar-date-field,#calendar #calendarDate{min-width:0!important;width:100%!important}
   #calendar .calendar-toolbar-tools .btn{grid-column:1!important}
 }
+
+/* V16.1 — Settlement / Finance toolbar containment
+   The legacy desktop rule made every generic .toolbar sticky. These business
+   pages must stay in normal document flow so their controls never cover KPI
+   cards, tables, or forms while scrolling. */
+#settlement > .card > .toolbar,
+#finance > .card > .toolbar{
+  position:static!important;
+  top:auto!important;
+  z-index:auto!important;
+  box-shadow:none!important;
+  margin-bottom:18px!important;
+  align-items:end!important;
+  flex-wrap:wrap!important;
+}
+#settlement > .card > .toolbar > div,
+#finance > .card > .toolbar > div{
+  min-width:190px!important;
+  flex:0 1 220px!important;
+}
+#settlement > .card > .toolbar .btn,
+#finance > .card > .toolbar .btn{
+  min-height:44px!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+@media(max-width:900px){
+  #settlement > .card > .toolbar,
+  #finance > .card > .toolbar{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  #settlement > .card > .toolbar > div,
+  #finance > .card > .toolbar > div{
+    min-width:0!important;
+    width:100%!important;
+  }
+  #settlement > .card > .toolbar .btn,
+  #finance > .card > .toolbar .btn{
+    width:100%!important;
+  }
+}
+@media(max-width:560px){
+  #settlement > .card > .toolbar,
+  #finance > .card > .toolbar{
+    grid-template-columns:1fr!important;
+  }
+}
