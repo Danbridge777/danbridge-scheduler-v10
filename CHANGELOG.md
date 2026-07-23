@@ -1,3 +1,19 @@
+# V16.8 — Teacher Schedule Change Notifications
+
+- Owner schedule changes now notify only affected teachers in real time.
+- Added, modified, reassigned, and removed lessons include readable change details.
+- Teachers can acknowledge a notification so it does not reappear.
+- Existing scheduling, synchronization, payroll, finance, permissions, and removed request features remain unchanged.
+
+# V16.7 — Payroll Fluid KPI Layout
+
+- Fixed long salary values being clipped or pushing teacher cards outside the viewport.
+- Removed fixed KPI minimum widths and switched to fluid zero-minimum grid columns.
+- Added responsive and container-aware KPI typography.
+- Kept hour units on the same line while preserving full salary values.
+- Reduced teacher card vertical spacing and weekly-row height.
+- No calculation, data, permission, sync, ID, or event-handler changes.
+
 # V16.6 — Payroll KPI single-line refinement
 
 - Keep teacher difference values such as `多 10.8 hr` and `少 94.3 hr` on one line.

@@ -117,6 +117,22 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    match /companies/{companyId}/scheduleNotifications/{notificationId} {
+      allow read: if isOwner()
+        || ((isTeacher(companyId) || isManager(companyId))
+          && resource.data.teacherId == ownTeacherId());
+      allow create, delete: if isOwner();
+      allow update: if isOwner()
+        || ((isTeacher(companyId) || isManager(companyId))
+          && resource.data.teacherId == ownTeacherId()
+          && request.resource.data.teacherId == resource.data.teacherId
+          && request.resource.data.recipientEmail == resource.data.recipientEmail
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'read','acknowledgedAt','acknowledgedBy'
+          ]));
+    }
+
     match /companies/{companyId}/lessonReports/{lessonId} {
       // Read rules must match the listener query fields. Firestore queries are not filters:
       // a collection listener cannot be authorized from lessonMeta lookups alone.

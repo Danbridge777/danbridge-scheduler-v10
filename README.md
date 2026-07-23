@@ -7,3 +7,7 @@
 - 老師儲存逾時回報前，先確認該堂課的正式 grant、lessonId、狀態與 Firestore 伺服器核准時間。
 - 申請規則確認登入老師確實屬於該堂課，避免錯誤或交叉授權。
 - 10 分鐘最終有效性仍由 Firestore Rules 的 `request.time` 判斷。
+
+
+## V16.8 Teacher Schedule Notifications
+Owner schedule changes create real-time notifications for affected teachers. Deploy the included Firestore rules before testing teacher acknowledgement.
