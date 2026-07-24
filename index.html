@@ -120,14 +120,36 @@
 <link rel="stylesheet" href="./css/core/44-v166-payroll-kpi-nowrap.css?v=16.6">
 <link rel="stylesheet" href="./css/core/45-v167-payroll-fluid-kpi.css?v=16.7">
 <link rel="stylesheet" href="./css/core/46-v168-schedule-notifications.css?v=16.8">
+<link rel="stylesheet" href="./css/core/47-v169-premium-auth-screen.css?v=16.9">
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
-  <div class="auth-card">
-    <h1>Danbridge Scheduler Cloud</h1>
-    <p>請使用 Google 帳號登入排課系統</p>
-    <button type="button" class="btn primary" style="width:100%;font-size:17px" disabled>正在載入 Google 登入…</button>
-    <div class="small" style="margin-top:12px">登入後會依帳號套用老闆或老師權限。</div>
+  <div class="auth-shell">
+    <section class="auth-brand-panel" aria-label="Danbridge platform introduction">
+      <div class="auth-brand-mark"><div class="auth-brand-monogram">D</div><div class="auth-brand-word">DANBRIDGE</div></div>
+      <div class="auth-eyebrow">Education Operations Platform</div>
+      <h1 class="auth-title">Danbridge <span>Scheduler Cloud</span></h1>
+      <p class="auth-description">將課表、師資、薪資與營運管理整合於同一個安全平台，讓教學團隊保持同步，讓每一次安排更精準。</p>
+      <div class="auth-module-grid">
+        <div class="auth-module"><div class="auth-module-icon">▦</div><div><strong>智慧課表</strong><small>拖曳排課與衝突檢查</small></div></div>
+        <div class="auth-module"><div class="auth-module-icon">◎</div><div><strong>師資管理</strong><small>課務紀錄與即時時數</small></div></div>
+        <div class="auth-module"><div class="auth-module-icon">$</div><div><strong>薪資結算</strong><small>自動計算與月底彙整</small></div></div>
+        <div class="auth-module"><div class="auth-module-icon">↗</div><div><strong>營運分析</strong><small>財務報表與營運指標</small></div></div>
+      </div>
+      <div class="auth-trust-row"><div class="auth-trust-item"><span class="auth-trust-dot"></span>安全權限控管</div><div class="auth-trust-item"><span class="auth-trust-dot"></span>Firebase 雲端同步</div><div class="auth-trust-item"><span class="auth-trust-dot"></span>多裝置支援</div></div>
+    </section>
+    <section class="auth-login-column">
+      <div class="auth-card">
+        <div class="auth-login-logo">D</div>
+        <h1>Welcome back</h1>
+        <p class="auth-message">正在載入安全登入服務…</p>
+        <button type="button" class="btn auth-google-button" disabled>正在載入 Google 登入…</button>
+        <div class="auth-divider">Secure access</div>
+        <div class="auth-security-note"><div class="auth-security-icon">⌁</div><div><strong>僅限已授權帳號使用</strong><span>登入後將依帳號自動套用 Owner、管理者或老師權限。</span></div></div>
+        <div class="small">Protected by Google Authentication</div>
+      </div>
+      <div class="auth-footer">Danbridge English Co., Ltd. · Operations System</div>
+    </section>
   </div>
 </div>
 

@@ -1,0 +1,65 @@
+/* Danbridge V16.9 — premium authentication screen, visual-only */
+:root{
+  --db-auth-navy:#071426;
+  --db-auth-navy-2:#0b1d35;
+  --db-auth-panel:rgba(11,29,53,.72);
+  --db-auth-line:rgba(255,255,255,.12);
+  --db-auth-gold:#d8ad57;
+  --db-auth-gold-soft:#f0d18a;
+  --db-auth-text:#f8fafc;
+  --db-auth-muted:#9eacc0;
+}
+body.auth-locked{overflow:hidden!important;background:var(--db-auth-navy)!important}
+.auth-screen{
+  position:fixed!important;inset:0!important;z-index:10000!important;display:block!important;
+  padding:0!important;overflow:auto!important;background:
+    radial-gradient(circle at 18% 20%,rgba(44,99,157,.22),transparent 34%),
+    radial-gradient(circle at 84% 12%,rgba(216,173,87,.10),transparent 26%),
+    linear-gradient(135deg,#061120 0%,#0a1a30 48%,#071426 100%)!important;
+  color:var(--db-auth-text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+}
+.auth-screen::before,.auth-screen::after{content:"";position:fixed;pointer-events:none;z-index:0}
+.auth-screen::before{width:760px;height:760px;left:-380px;bottom:-520px;border:1px solid rgba(216,173,87,.23);border-radius:50%;box-shadow:0 0 0 46px rgba(216,173,87,.018),0 0 0 110px rgba(216,173,87,.012);transform:rotate(-18deg)}
+.auth-screen::after{width:520px;height:1px;right:-80px;top:110px;background:linear-gradient(90deg,transparent,rgba(216,173,87,.45),transparent);transform:rotate(-18deg);box-shadow:0 18px 50px rgba(216,173,87,.2)}
+.auth-shell{position:relative;z-index:1;min-height:100%;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(420px,.85fr);max-width:1540px;margin:0 auto;padding:clamp(26px,4vw,64px);gap:clamp(40px,6vw,100px);align-items:center}
+.auth-brand-panel{min-width:0;display:flex;flex-direction:column;justify-content:center;padding:20px 0}
+.auth-brand-mark{display:flex;align-items:center;gap:14px;margin-bottom:clamp(56px,9vh,110px)}
+.auth-brand-monogram{width:48px;height:48px;border:1px solid rgba(216,173,87,.55);border-radius:15px;display:grid;place-items:center;color:var(--db-auth-gold-soft);font-family:Georgia,serif;font-weight:700;font-size:24px;background:linear-gradient(145deg,rgba(216,173,87,.16),rgba(216,173,87,.025));box-shadow:inset 0 1px rgba(255,255,255,.15),0 14px 36px rgba(0,0,0,.22)}
+.auth-brand-word{font-size:15px;letter-spacing:.24em;font-weight:800;color:#f4cf7a}
+.auth-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--db-auth-gold-soft);font-weight:800;margin-bottom:18px}
+.auth-eyebrow::before{content:"";width:34px;height:1px;background:var(--db-auth-gold)}
+.auth-title{margin:0!important;max-width:780px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(52px,6.5vw,92px)!important;line-height:.98!important;letter-spacing:-.045em!important;color:#fff!important;font-weight:600!important}
+.auth-title span{display:block;color:var(--db-auth-gold-soft);font-style:italic}
+.auth-description{max-width:610px;margin:28px 0 34px!important;color:#b7c2d2!important;font-size:clamp(15px,1.25vw,18px)!important;line-height:1.85!important}
+.auth-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:700px}
+.auth-module{display:grid;grid-template-columns:42px minmax(0,1fr);gap:13px;align-items:center;padding:15px 16px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.035);backdrop-filter:blur(12px);box-shadow:inset 0 1px rgba(255,255,255,.035);transition:.25s ease}
+.auth-module:hover{transform:translateY(-2px);border-color:rgba(216,173,87,.28);background:rgba(255,255,255,.055)}
+.auth-module-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;border:1px solid rgba(216,173,87,.28);color:#efcc7d;background:rgba(216,173,87,.08);font-size:18px;font-weight:800}
+.auth-module strong{display:block;color:#f8fafc;font-size:14px;line-height:1.3}
+.auth-module small{display:block;margin-top:3px;color:#8493a8;font-size:11px;line-height:1.45}
+.auth-trust-row{display:flex;gap:28px;flex-wrap:wrap;margin-top:34px;color:#7f8ea4;font-size:11px;font-weight:700;letter-spacing:.04em}
+.auth-trust-item{display:flex;align-items:center;gap:8px}.auth-trust-dot{width:7px;height:7px;border-radius:50%;background:#d9b35f;box-shadow:0 0 16px rgba(216,173,87,.75)}
+.auth-login-column{display:flex;flex-direction:column;align-items:stretch;justify-content:center;min-width:0}
+.auth-card{position:relative!important;width:100%!important;max-width:560px!important;margin:auto!important;padding:clamp(34px,4vw,58px)!important;border-radius:30px!important;border:1px solid rgba(255,255,255,.13)!important;background:linear-gradient(145deg,rgba(18,39,66,.86),rgba(7,20,38,.80))!important;backdrop-filter:blur(28px) saturate(125%)!important;-webkit-backdrop-filter:blur(28px) saturate(125%)!important;box-shadow:0 40px 100px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.08)!important;overflow:hidden}
+.auth-card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(140deg,rgba(240,209,138,.48),rgba(255,255,255,.035) 40%,rgba(216,173,87,.16));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.auth-card::after{content:"";position:absolute;width:230px;height:230px;right:-110px;top:-140px;border-radius:50%;background:rgba(216,173,87,.12);filter:blur(50px);pointer-events:none}
+.auth-login-logo{position:relative;width:72px;height:72px;margin:0 auto 26px;border-radius:22px;display:grid;place-items:center;border:1px solid rgba(216,173,87,.42);background:linear-gradient(145deg,rgba(216,173,87,.18),rgba(216,173,87,.03));color:#f0ce82;font-family:Georgia,serif;font-size:34px;font-weight:700;box-shadow:0 20px 50px rgba(0,0,0,.3),0 0 42px rgba(216,173,87,.12)}
+.auth-card h1{position:relative;margin:0!important;text-align:center;font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,3vw,46px)!important;line-height:1.12!important;color:#fff!important;letter-spacing:-.035em!important}
+.auth-card>p,.auth-card .auth-message{position:relative;text-align:center;margin:12px auto 28px!important;color:#9faec1!important;font-size:15px!important;line-height:1.65!important}
+.auth-google-button{position:relative!important;width:100%!important;min-height:60px!important;border-radius:15px!important;background:#f8fafc!important;color:#15233a!important;border:1px solid rgba(255,255,255,.8)!important;box-shadow:0 16px 38px rgba(0,0,0,.28)!important;font-size:16px!important;font-weight:800!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;transition:.22s ease!important}
+.auth-google-button:hover{transform:translateY(-2px)!important;background:#fff!important;box-shadow:0 20px 44px rgba(0,0,0,.34)!important}
+.auth-google-button:active{transform:translateY(0)!important}.auth-google-button:disabled{opacity:.7!important;cursor:wait!important;transform:none!important}
+.auth-google-logo{width:22px;height:22px;display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:2px;transform:rotate(45deg);border-radius:50%;overflow:hidden}.auth-google-logo i:nth-child(1){background:#4285f4}.auth-google-logo i:nth-child(2){background:#34a853}.auth-google-logo i:nth-child(3){background:#fbbc05}.auth-google-logo i:nth-child(4){background:#ea4335}
+.auth-divider{position:relative;display:flex;align-items:center;gap:14px;margin:26px 0;color:#65748a;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}.auth-divider::before,.auth-divider::after{content:"";height:1px;flex:1;background:rgba(255,255,255,.1)}
+.auth-security-note{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);gap:13px;align-items:start;padding:16px;border:1px solid rgba(255,255,255,.085);border-radius:15px;background:rgba(255,255,255,.035)}
+.auth-security-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#efca73;border:1px solid rgba(216,173,87,.24);background:rgba(216,173,87,.07);font-size:17px}.auth-security-note strong{display:block;color:#e8edf5;font-size:13px}.auth-security-note span{display:block;color:#79899f;font-size:11px;line-height:1.55;margin-top:4px}
+.auth-error{position:relative!important;margin:16px 0 0!important;border-radius:13px!important;background:rgba(127,29,29,.34)!important;color:#fecaca!important;border:1px solid rgba(248,113,113,.34)!important}
+.auth-card .small{position:relative;text-align:center!important;margin-top:20px!important;color:#687990!important;font-size:11px!important}
+.auth-footer{margin:25px auto 0;text-align:center;color:#637188;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.auth-status-badge{position:fixed;left:20px;bottom:18px;z-index:10002;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(5,15,29,.56);backdrop-filter:blur(16px);color:#8594a9;font-size:10px;font-weight:800;letter-spacing:.05em}
+.auth-status-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#d5ad56;box-shadow:0 0 12px rgba(216,173,87,.75)}
+#firebaseCloudStatus{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif!important;left:20px!important;bottom:18px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:999px!important;background:rgba(5,15,29,.72)!important;backdrop-filter:blur(14px)!important;color:#dce4ee!important;font-size:10px!important;letter-spacing:.03em!important;box-shadow:0 10px 30px rgba(0,0,0,.25)!important}
+@media(max-width:1050px){.auth-shell{grid-template-columns:1fr;max-width:760px;padding:36px 28px}.auth-brand-panel{text-align:center;align-items:center;padding-bottom:0}.auth-brand-mark{margin-bottom:42px}.auth-title{font-size:clamp(48px,10vw,76px)!important}.auth-description{margin-left:auto!important;margin-right:auto!important}.auth-module-grid{width:100%}.auth-trust-row{justify-content:center}.auth-login-column{padding-bottom:30px}.auth-card{max-width:620px!important}}
+@media(max-width:620px){.auth-shell{display:block;padding:22px 16px 38px}.auth-brand-panel{padding:4px 2px 30px}.auth-brand-mark{align-self:flex-start;margin-bottom:42px}.auth-title{font-size:clamp(43px,14vw,60px)!important;text-align:left}.auth-eyebrow,.auth-description{text-align:left;align-self:stretch}.auth-description{font-size:14px!important;line-height:1.72!important;margin:22px 0 26px!important}.auth-module-grid{grid-template-columns:1fr 1fr;gap:9px}.auth-module{grid-template-columns:34px minmax(0,1fr);padding:11px 10px;gap:9px}.auth-module-icon{width:34px;height:34px;border-radius:10px;font-size:14px}.auth-module strong{font-size:12px}.auth-module small{display:none}.auth-trust-row{display:none}.auth-card{padding:32px 22px!important;border-radius:24px!important}.auth-login-logo{width:60px;height:60px;border-radius:18px;font-size:28px;margin-bottom:22px}.auth-card h1{font-size:34px!important}.auth-google-button{min-height:56px!important;font-size:15px!important}.auth-footer{padding-bottom:12px}.auth-status-badge{display:none}}
+@media(max-height:760px) and (min-width:1051px){.auth-shell{padding-top:28px;padding-bottom:28px}.auth-brand-mark{margin-bottom:42px}.auth-title{font-size:64px!important}.auth-description{margin:20px 0 24px!important}.auth-module{padding:11px 13px}.auth-trust-row{margin-top:22px}.auth-card{padding:34px 40px!important}}
+@media(prefers-reduced-motion:no-preference){.auth-card{animation:authCardIn .62s cubic-bezier(.2,.8,.2,1) both}.auth-brand-panel{animation:authBrandIn .72s cubic-bezier(.2,.8,.2,1) both}.auth-login-logo{animation:authFloat 4.5s ease-in-out infinite}@keyframes authCardIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}@keyframes authBrandIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}@keyframes authFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}}

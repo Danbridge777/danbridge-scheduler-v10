@@ -77,8 +77,35 @@ function scheduleOwnerRetry(){clearTimeout(ownerRetryTimer);if(cloudRole!=='owne
 function setOfflineStatus(){if(!navigator.onLine){cloudStatus('目前離線；所有變更已先保存在這台裝置，恢復網路後會自動同步。','offline')}}
 function setAuthCard(message='請使用 Google 帳號登入排課系統'){
  const screen=document.getElementById('authScreen');
- screen.innerHTML=`<div class="auth-card"><h1>Danbridge Scheduler Cloud</h1><p>${message}</p><button id="googleCloudLogin" type="button" class="btn primary" style="width:100%;font-size:17px">使用 Google 登入</button><div id="cloudLoginError" class="auth-error"></div><div class="small" style="margin-top:12px">登入後會依帳號套用老闆或老師權限。</div></div>`;
- document.getElementById('googleCloudLogin').onclick=async()=>{const btn=document.getElementById('googleCloudLogin');btn.disabled=true;btn.textContent='登入中…';try{await signInWithPopup(auth,provider)}catch(e){console.error(e);if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user'].includes(e.code)){try{await signInWithRedirect(auth,provider);return}catch(e2){showCloudLoginError(e2.message)}}else showCloudLoginError(e.message);btn.disabled=false;btn.textContent='使用 Google 登入'}};
+ screen.innerHTML=`<div class="auth-shell">
+  <section class="auth-brand-panel" aria-label="Danbridge platform introduction">
+    <div class="auth-brand-mark"><div class="auth-brand-monogram">D</div><div class="auth-brand-word">DANBRIDGE</div></div>
+    <div class="auth-eyebrow">Education Operations Platform</div>
+    <h1 class="auth-title">Danbridge <span>Scheduler Cloud</span></h1>
+    <p class="auth-description">將課表、師資、薪資與營運管理整合於同一個安全平台，讓教學團隊保持同步，讓每一次安排更精準。</p>
+    <div class="auth-module-grid">
+      <div class="auth-module"><div class="auth-module-icon">▦</div><div><strong>智慧課表</strong><small>拖曳排課與衝突檢查</small></div></div>
+      <div class="auth-module"><div class="auth-module-icon">◎</div><div><strong>師資管理</strong><small>課務紀錄與即時時數</small></div></div>
+      <div class="auth-module"><div class="auth-module-icon">$</div><div><strong>薪資結算</strong><small>自動計算與月底彙整</small></div></div>
+      <div class="auth-module"><div class="auth-module-icon">↗</div><div><strong>營運分析</strong><small>財務報表與營運指標</small></div></div>
+    </div>
+    <div class="auth-trust-row"><div class="auth-trust-item"><span class="auth-trust-dot"></span>安全權限控管</div><div class="auth-trust-item"><span class="auth-trust-dot"></span>Firebase 雲端同步</div><div class="auth-trust-item"><span class="auth-trust-dot"></span>多裝置支援</div></div>
+  </section>
+  <section class="auth-login-column">
+    <div class="auth-card">
+      <div class="auth-login-logo">D</div>
+      <h1>Welcome back</h1>
+      <p class="auth-message">${message}</p>
+      <button id="googleCloudLogin" type="button" class="btn auth-google-button"><span class="auth-google-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="auth-google-label">使用 Google 帳號登入</span></button>
+      <div id="cloudLoginError" class="auth-error"></div>
+      <div class="auth-divider">Secure access</div>
+      <div class="auth-security-note"><div class="auth-security-icon">⌁</div><div><strong>僅限已授權帳號使用</strong><span>登入後將依帳號自動套用 Owner、管理者或老師權限。</span></div></div>
+      <div class="small">Protected by Google Authentication</div>
+    </div>
+    <div class="auth-footer">Danbridge English Co., Ltd. · Operations System</div>
+  </section>
+</div>`;
+ document.getElementById('googleCloudLogin').onclick=async()=>{const btn=document.getElementById('googleCloudLogin');btn.disabled=true;const label=btn.querySelector('.auth-google-label');if(label)label.textContent='登入中…';else btn.textContent='登入中…';try{await signInWithPopup(auth,provider)}catch(e){console.error(e);if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user'].includes(e.code)){try{await signInWithRedirect(auth,provider);return}catch(e2){showCloudLoginError(e2.message)}}else showCloudLoginError(e.message);btn.disabled=false;{const label=btn.querySelector('.auth-google-label');if(label)label.textContent='使用 Google 帳號登入';else btn.textContent='使用 Google 登入'}}};
 }
 function showCloudLoginError(msg){const e=document.getElementById('cloudLoginError');if(e){e.textContent=msg;e.classList.add('show')}}
 function showCloudApp(){document.body.classList.remove('auth-locked');document.getElementById('authScreen')?.classList.add('hidden')}
