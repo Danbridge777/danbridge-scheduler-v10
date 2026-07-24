@@ -100,3 +100,8 @@
 ## V16.3 Premium CRM and Pages
 - Added visual-only premium refinement for Student / Parent CRM and related management pages.
 - Preserved all IDs, handlers, synchronization, permissions, calculations, and data behavior.
+
+## V17.3 — Authentication Card Alignment Polish
+- Corrected the Danbridge logo lockup alignment in the authentication card.
+- Enlarged the right-side login panel for stronger visual balance.
+- Preserved all authentication and cloud-sync behavior.
