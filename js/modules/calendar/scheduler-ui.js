@@ -237,12 +237,17 @@ function attachDragHandlers(){
   const DRAG_HOLD_MS=550, MOVE_CANCEL_PX=12;
   document.querySelectorAll('[data-id]').forEach(el=>{
     let pointerId=null,startX=0,startY=0,dragStarted=false,suppressClick=false;
+    let globalPointerCleanup=null;
+    const removeGlobalPointerListeners=()=>{
+      if(globalPointerCleanup){globalPointerCleanup();globalPointerCleanup=null}
+    };
     const clearTouchDrag=()=>{
       clearTimeout(touchTimer);touchTimer=null;
       el.classList.remove('drag-arming');
       if(!dragStarted)el.classList.remove('dragging');
       document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
       if(!dragStarted){dragState=null;document.body.classList.remove('touch-drag-active')}
+      removeGlobalPointerListeners();
     };
     el.addEventListener('click',e=>{
       e.stopPropagation();
@@ -256,6 +261,7 @@ function attachDragHandlers(){
     el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragState=null;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))});
     el.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse'||selectionMode)return;
+      removeGlobalPointerListeners();
       pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragStarted=false;suppressClick=false;
       el.classList.add('drag-arming');
       touchTimer=setTimeout(()=>{
@@ -282,10 +288,32 @@ function attachDragHandlers(){
       const target=wasDragging?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-date]'):null;
       el.classList.remove('dragging');document.body.classList.remove('touch-drag-active');document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
       if(target)moveLessonTo(dragState,target.dataset.date,target.dataset.time);
-      dragState=null;dragStarted=false;pointerId=null
+      dragState=null;dragStarted=false;pointerId=null;
+      removeGlobalPointerListeners();
+    };
+    const cancelPointer=e=>{
+      if(pointerId!==e.pointerId)return;
+      clearTimeout(touchTimer);touchTimer=null;
+      el.classList.remove('drag-arming','dragging');
+      document.body.classList.remove('touch-drag-active');
+      document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+      dragState=null;dragStarted=false;pointerId=null;suppressClick=true;
+      removeGlobalPointerListeners();
     };
     el.addEventListener('pointerup',finishPointer);
-    el.addEventListener('pointercancel',e=>{if(pointerId!==e.pointerId)return;clearTouchDrag();el.classList.remove('dragging');document.body.classList.remove('touch-drag-active');dragStarted=false;pointerId=null;suppressClick=true});
+    el.addEventListener('pointercancel',cancelPointer);
+    el.addEventListener('lostpointercapture',cancelPointer);
+    el.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse'||selectionMode||pointerId!==e.pointerId)return;
+      const onGlobalUp=event=>finishPointer(event);
+      const onGlobalCancel=event=>cancelPointer(event);
+      window.addEventListener('pointerup',onGlobalUp,true);
+      window.addEventListener('pointercancel',onGlobalCancel,true);
+      globalPointerCleanup=()=>{
+        window.removeEventListener('pointerup',onGlobalUp,true);
+        window.removeEventListener('pointercancel',onGlobalCancel,true);
+      };
+    },{passive:true});
   });
   if(selectionMode)return;
   document.querySelectorAll('[data-date]').forEach(c=>{

@@ -111,3 +111,9 @@
 - Expanded the dashboard vertically for a balanced two-column enterprise composition.
 - Enlarged the access card, logo and Google sign-in control while preserving all authentication behavior.
 - Responsive tablet and mobile layouts remain stacked and fully usable.
+
+## V17.5 — iPad Drag Recovery and Lesson Record Toolbar
+- Fixed iPad touch drags remaining in a locked/dragging state after pointer release outside the lesson card.
+- Added pointer cancellation, lost-capture, and global release cleanup.
+- Prevented lesson-record Month and Student filters from overlapping at iPad widths.
+- No Firebase, permission, payroll, or lesson business logic was changed.
