@@ -1,3 +1,9 @@
+# V17.2 Executive Authentication UI
+
+- Upgraded the login screen to a full-width black-and-gold executive workspace.
+- Added a code-rendered operations dashboard, status cards, schedule chart, and trust indicators.
+- Preserved Google authentication, Firebase synchronization, roles, and permissions without logic changes.
+
 # V16.8 — Teacher Schedule Change Notifications
 
 - Owner schedule changes now notify only affected teachers in real time.
