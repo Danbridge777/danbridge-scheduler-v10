@@ -86,7 +86,9 @@ function setAuthCard(message='請使用 Google 帳號登入排課系統'){
       <p class="auth-subtitle">A private operating system for modern education — unifying schedules, people, payroll and performance in one secure workspace.</p>
     </div>
 
-    <div class="auth-executive-board" aria-hidden="true">
+    <div class="auth-aligned-stage">
+      <div class="auth-operations-column">
+        <div class="auth-executive-board" aria-hidden="true">
       <div class="auth-board-top">
         <div><small>EXECUTIVE OVERVIEW</small><b>Danbridge Operations</b></div>
         <div class="auth-live"><i></i> LIVE CLOUD</div>
@@ -109,12 +111,12 @@ function setAuthCard(message='請使用 Google 帳號登入排課系統'){
       </div>
     </div>
 
-    <div class="auth-trust-row">
-      <span>PRIVATE CLOUD WORKSPACE</span><i></i><span>ROLE-BASED ACCESS</span><i></i><span>REAL-TIME SYNCHRONIZATION</span>
-    </div>
-  </section>
+        <div class="auth-trust-row">
+          <span>PRIVATE CLOUD WORKSPACE</span><i></i><span>ROLE-BASED ACCESS</span><i></i><span>REAL-TIME SYNCHRONIZATION</span>
+        </div>
+      </div>
 
-  <div class="auth-panel-wrap"><div class="auth-card auth-card-v172">
+      <div class="auth-panel-wrap"><div class="auth-card auth-card-v172">
     <div class="auth-card-head"><div class="auth-card-logo"><span>D</span><small>DANBRIDGE</small></div><div class="auth-card-seal"><i></i> SECURE ACCESS</div></div>
     <div class="auth-card-kicker">AUTHORIZED PERSONNEL</div>
     <h1>Welcome back.</h1>
@@ -125,7 +127,9 @@ function setAuthCard(message='請使用 Google 帳號登入排課系統'){
     <div class="auth-access-note"><span>02</span><div><b>Role-based Workspace</b><small>Display only authorized modules and data</small></div></div>
     <div class="auth-security"><span class="auth-security-icon">⌾</span><div><b>僅限已授權帳號使用</b><small>登入後將依您的角色顯示對應功能與資料。</small></div></div>
     <div class="auth-meta"><span>Danbridge English Co., Ltd.</span><strong>Protected by Danbridge Cloud</strong></div>
-  </div></div>
+      </div></div>
+    </div>
+  </section>
 </div>`;
  document.getElementById('googleCloudLogin').onclick=async()=>{const btn=document.getElementById('googleCloudLogin');btn.disabled=true;btn.querySelector('.auth-google-label').textContent='登入中…';try{await signInWithPopup(auth,provider)}catch(e){console.error(e);if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user'].includes(e.code)){try{await signInWithRedirect(auth,provider);return}catch(e2){showCloudLoginError(e2.message)}}else showCloudLoginError(e.message);btn.disabled=false;btn.querySelector('.auth-google-label').textContent='使用 Google 帳號登入'}};
 }

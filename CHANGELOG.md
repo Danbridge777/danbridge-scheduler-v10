@@ -105,3 +105,9 @@
 - Corrected the Danbridge logo lockup alignment in the authentication card.
 - Enlarged the right-side login panel for stronger visual balance.
 - Preserved all authentication and cloud-sync behavior.
+
+## V17.4 — Aligned Authentication Stage
+- Aligned the executive dashboard and secure access panel to the same top and bottom edges.
+- Expanded the dashboard vertically for a balanced two-column enterprise composition.
+- Enlarged the access card, logo and Google sign-in control while preserving all authentication behavior.
+- Responsive tablet and mobile layouts remain stacked and fully usable.
