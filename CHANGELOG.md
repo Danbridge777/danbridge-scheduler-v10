@@ -148,3 +148,6 @@
 - Added viewport-aware height recalculation for resize, orientation change, and iPad visual viewport changes.
 - Preserved normal document scrolling on stacked tablet and mobile layouts.
 - No CRM data, permissions, synchronization, or business logic changed.
+
+## V17.18
+- Added per-teacher company revenue KPI calculated from scheduled chargeable lessons.
