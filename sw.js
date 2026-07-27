@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v1718-teacher-revenue-kpi';
+const CACHE_NAME='danbridge-v17201-owner-display-name-fix';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

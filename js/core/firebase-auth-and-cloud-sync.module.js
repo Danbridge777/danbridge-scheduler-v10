@@ -686,12 +686,18 @@ function subscribeLessonReports(){
  },e=>{console.error('lessonReports listener',e);cloudStatus('課程回報同步失敗：'+e.message,'error')});
 }
 
+const OWNER_DISPLAY_NAME='Daniel';
 function applyRoleUI(profile,user){
- cloudRole=profile.role;cloudTeacherId=profile.teacherId==null?'':String(profile.teacherId);cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();window.__danbridgeLessonIdMigrationAuthority=cloudRole==='owner';
+ const normalizedRole=String(profile?.role||'').trim().toLowerCase();
+ cloudRole=normalizedRole;cloudTeacherId=profile.teacherId==null?'':String(profile.teacherId);cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();window.__danbridgeLessonIdMigrationAuthority=cloudRole==='owner';
  if(cloudRole==='owner'){const current=window.__danbridgeGetDB?.();if(current)window.__danbridgeSetDB(deepCopy(current));}
  window.DanbridgeAccess?.setContext({role:cloudRole,branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:profile.readOnly===true||cloudRole==='branch_manager',canSubmitOwnReports:profile.canSubmitOwnReports!==false});
- const signedInName=(profile.role==='owner'?'Daniel':profile.role==='teacher'?(profile.teacherName||profile.displayName):profile.role==='branch_manager'?(profile.managerName||profile.teacherName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
+ const signedInName=(cloudRole==='owner'?OWNER_DISPLAY_NAME:cloudRole==='teacher'?(profile.teacherName||profile.displayName):cloudRole==='branch_manager'?(profile.managerName||profile.teacherName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
  document.body.dataset.cloudDisplayName=String(signedInName).trim();
+ if(cloudRole==='owner'&&profile.displayName!==OWNER_DISPLAY_NAME){
+   const ownerRef=doc(cloud,'companies',COMPANY_ID,'accounts',user.uid);
+   setDoc(ownerRef,{displayName:OWNER_DISPLAY_NAME,updatedAt:serverTimestamp()},{merge:true}).catch(error=>console.warn('owner display name sync failed',error));
+ }
  const header=document.querySelector('.header-auth-actions');
  if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${window.DanbridgeAccess?.ROLE_LABELS?.[profile.role]||profile.role}｜${String(signedInName).trim()}</span>${profile.role==='owner'?'<button type="button" class="btn notification-bell" onclick="DanbridgeNotifications.open()" aria-label="開啟通知中心"><span class="notification-bell-icon">🔔</span><span id="notificationCount" class="notification-count" hidden>0</span></button>':''}<button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
