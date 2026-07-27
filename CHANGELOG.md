@@ -141,3 +141,10 @@
 - Removed branch-specific fallback to legacy hourly payroll in settlement and finance.
 - Upgraded branch-manager teacher payroll cards to display full minimum hours, actual hours, difference, formula, breakdown and weekly details.
 - Left branch assignment and unassigned-branch data unchanged.
+
+## V17.17 — Student CRM Independent Scroll
+- Added separate vertical scrolling for the Student / Parent CRM editor and student list on desktop and landscape tablet layouts.
+- Kept the CRM search toolbar and student table header visible while the student list scrolls.
+- Added viewport-aware height recalculation for resize, orientation change, and iPad visual viewport changes.
+- Preserved normal document scrolling on stacked tablet and mobile layouts.
+- No CRM data, permissions, synchronization, or business logic changed.
