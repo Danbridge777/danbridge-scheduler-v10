@@ -178,6 +178,8 @@ async function ensureProfile(user){
    canSubmitOwnReports:a.canSubmitOwnReports!==false
  };
 }
+function teacherBadgeName(t){return String(t?.displayName||t?.name||'').trim()}
+
 function filteredTeacherDB(source,teacherId){
  const lessons=(source.lessons||[]).filter(l=>!l.isDraft&&(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).includes(teacherId));
  const studentIds=new Set(lessons.map(l=>l.studentId));
@@ -200,14 +202,14 @@ async function renderCloudUserManager(){
  let card=document.getElementById('cloudUserManager');
  if(!card){card=document.createElement('div');card.id='cloudUserManager';card.className='card col-4';sec.querySelector('.grid')?.appendChild(card)}
  card.innerHTML=`<h2>老師帳號</h2><div class="small">選擇老師並綁定 Gmail。老師登入後只能查看自己的課表。</div><label>老師</label><select id="cloudTeacherSelect"></select><label>老師 Gmail</label><input id="cloudTeacherEmail" type="email" placeholder="teacher@gmail.com"><br><button class="btn primary" id="saveCloudTeacherAccess">新增／更新老師權限</button><div id="cloudTeacherAccessList" class="backup-list" style="margin-top:12px"></div>`;
- const sel=document.getElementById('cloudTeacherSelect');sel.innerHTML='<option value="">請選擇老師</option>'+window.__danbridgeGetDB().teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+ const sel=document.getElementById('cloudTeacherSelect');sel.innerHTML='<option value="">請選擇老師</option>'+window.__danbridgeGetDB().teachers.map(t=>`<option value="${t.id}">${teacherBadgeName(t)||t.name}</option>`).join('');
  document.getElementById('saveCloudTeacherAccess').onclick=async()=>{
    const teacherId=sel.value,email=document.getElementById('cloudTeacherEmail').value.trim().toLowerCase();
    if(!teacherId||!email)return alert('請選老師並輸入 Gmail');
    const t=window.__danbridgeGetDB().teachers.find(x=>x.id===teacherId);
    invalidateCompanyAccessCache();
-   await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:t?.name||'',active:true,updatedAt:serverTimestamp()},{merge:true});
-   try{const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:t?.name||'',updatedAt:serverTimestamp()},{merge:true})))}catch(e){console.warn('重新啟用老師帳號失敗：',e)}
+   await setDoc(doc(cloud,'companyAccess',email),{email,role:'teacher',companyId:COMPANY_ID,teacherId,teacherName:teacherBadgeName(t),active:true,updatedAt:serverTimestamp()},{merge:true});
+   try{const userQs=await getDocs(query(collection(cloud,'users'),where('companyId','==',COMPANY_ID),where('email','==',email)));await Promise.all(userQs.docs.map(u=>setDoc(u.ref,{active:true,role:'teacher',teacherId,teacherName:teacherBadgeName(t),updatedAt:serverTimestamp()},{merge:true})))}catch(e){console.warn('重新啟用老師帳號失敗：',e)}
    await setDoc(doc(cloud,'companies',COMPANY_ID,'teacherViews',email),{db:filteredTeacherDB(window.__danbridgeGetDB(),teacherId),updatedAt:serverTimestamp(),teacherId,email},{merge:false});
    alert('老師權限與專屬課表已建立。請老師使用此 Gmail 登入。');
    document.getElementById('cloudTeacherEmail').value='';await listCloudTeacherAccess();
@@ -292,7 +294,7 @@ async function saveCloudBranchManagerAccess(){
    const scopedDb=filteredBranchDB(window.__danbridgeGetDB(),branchIds);
    // 將管理者可讀取的校區快照直接存進自己的 companyAccess 文件。
    // 這條路徑已被現有登入規則允許，避免新 branchViews 路徑因規則尚未部署而失敗。
-   const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:managerTeacher.name||'',managerName:managerTeacher.name||'',active:true,readOnly:true,canSubmitOwnReports:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
+   const payload={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:teacherBadgeName(managerTeacher),managerName:teacherBadgeName(managerTeacher),active:true,readOnly:true,canSubmitOwnReports:true,scopedDb,scopedUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()};
    invalidateCompanyAccessCache();
    await setDoc(doc(cloud,'companyAccess',email),payload,{merge:true});
    try{
@@ -302,7 +304,7 @@ async function saveCloudBranchManagerAccess(){
    // 不再把儲存成功綁在 branchViews / teacherViews 上。
    // 舊 Firebase 規則若不允許這些路徑，主權限仍已完整儲存在 companyAccess。
    // 先更新本機畫面，不等待下一次 Firestore 查詢或快取刷新。
-   const optimistic={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:managerTeacher.name||'',managerName:managerTeacher.name||'',active:true,readOnly:true,canSubmitOwnReports:true};
+   const optimistic={email,role:'branch_manager',companyId:COMPANY_ID,branchIds,branchNames,teacherId,teacherName:teacherBadgeName(managerTeacher),managerName:teacherBadgeName(managerTeacher),active:true,readOnly:true,canSubmitOwnReports:true};
    renderCloudBranchManagerList([...branchManagerAccessCache.filter(x=>String(x.email||x.id||'').toLowerCase()!==email),optimistic]);
    if(emailInput)emailInput.value='';
    const managerTeacherSelect=document.getElementById('cloudBranchManagerTeacher');if(managerTeacherSelect)managerTeacherSelect.value='';
@@ -688,7 +690,7 @@ function applyRoleUI(profile,user){
  cloudRole=profile.role;cloudTeacherId=profile.teacherId==null?'':String(profile.teacherId);cloudBranchIds=Array.isArray(profile.branchIds)?profile.branchIds:[];cloudUid=user.uid;cloudEmailKey=(user.email||'').trim().toLowerCase();window.__danbridgeLessonIdMigrationAuthority=cloudRole==='owner';
  if(cloudRole==='owner'){const current=window.__danbridgeGetDB?.();if(current)window.__danbridgeSetDB(deepCopy(current));}
  window.DanbridgeAccess?.setContext({role:cloudRole,branchIds:cloudBranchIds,teacherId:cloudTeacherId,email:cloudEmailKey,readOnly:profile.readOnly===true||cloudRole==='branch_manager',canSubmitOwnReports:profile.canSubmitOwnReports!==false});
- const signedInName=(profile.role==='teacher'?(profile.teacherName||profile.displayName):profile.role==='branch_manager'?(profile.managerName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
+ const signedInName=(profile.role==='owner'?'Daniel':profile.role==='teacher'?(profile.teacherName||profile.displayName):profile.role==='branch_manager'?(profile.managerName||profile.teacherName||profile.displayName):(profile.displayName||user.displayName))||user.displayName||user.email||'';
  document.body.dataset.cloudDisplayName=String(signedInName).trim();
  const header=document.querySelector('.header-auth-actions');
  if(header)header.innerHTML=`<span style="font-size:12px;font-weight:800">${window.DanbridgeAccess?.ROLE_LABELS?.[profile.role]||profile.role}｜${String(signedInName).trim()}</span>${profile.role==='owner'?'<button type="button" class="btn notification-bell" onclick="DanbridgeNotifications.open()" aria-label="開啟通知中心"><span class="notification-bell-icon">🔔</span><span id="notificationCount" class="notification-count" hidden>0</span></button>':''}<button type="button" class="btn" id="firebaseLogoutBtn">登出</button>`;
