@@ -133,3 +133,11 @@
 ## V17.12
 - Restored the missing right border on the lesson month field.
 - Forced month text centering across desktop Safari and iPadOS.
+
+## V17.16 — Unified Payroll Core
+- Added a single payroll calculation result shared by finance, settlement, dashboard payroll and exports.
+- Added per-teacher payroll mode, overtime rate and short-hours deduction rate fields.
+- Added fixed-salary deductions when actual hours are below the monthly minimum.
+- Removed branch-specific fallback to legacy hourly payroll in settlement and finance.
+- Upgraded branch-manager teacher payroll cards to display full minimum hours, actual hours, difference, formula, breakdown and weekly details.
+- Left branch assignment and unassigned-branch data unchanged.

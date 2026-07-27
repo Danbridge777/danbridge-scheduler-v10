@@ -11,7 +11,7 @@ function lessonPay(l){return lessonTeacherIds(l).reduce((sum,id)=>sum+lessonTeac
 
 function fixedExpenseApplies(x,m){const start=x.startMonth||'2026-07',end=x.endMonth||'';return m>=start&&(!end||m<=end)}
 
-function financeData(m){const lessons=db.lessons.filter(l=>l.date.startsWith(m));const revenue=lessons.reduce((a,l)=>a+lessonCharge(l),0);const fixed=(db.fixedExpenses||[]).filter(x=>fixedExpenseApplies(x,m));const one=(db.oneTimeExpenses||[]).filter(x=>x.month===m);const fixedTotal=fixed.reduce((a,x)=>a+(+x.amount||0),0);const oneTimeTotal=one.reduce((a,x)=>a+(+x.amount||0),0);const payrollRows=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),amount=teacherPayrollAmount(t,m,paid),h=paid.reduce((a,l)=>a+hours(l.start,l.end),0);return{teacher:t,h,amount}}).filter(x=>x.h||x.amount);const payroll=payrollRows.reduce((a,x)=>a+x.amount,0);const totalExpenses=fixedTotal+oneTimeTotal+payroll;return{m,revenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses}}
+function financeData(m){const lessons=db.lessons.filter(l=>l.date.startsWith(m));const revenue=lessons.reduce((a,l)=>a+lessonCharge(l),0);const fixed=(db.fixedExpenses||[]).filter(x=>fixedExpenseApplies(x,m));const one=(db.oneTimeExpenses||[]).filter(x=>x.month===m);const fixedTotal=fixed.reduce((a,x)=>a+(+x.amount||0),0);const oneTimeTotal=one.reduce((a,x)=>a+(+x.amount||0),0);const payrollRows=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),payroll=calculateTeacherPayroll(t,m,paid);return{teacher:t,h:payroll.actualHours,amount:payroll.amount,payroll}}).filter(x=>x.h||x.amount);const payroll=payrollRows.reduce((a,x)=>a+x.amount,0);const totalExpenses=fixedTotal+oneTimeTotal+payroll;return{m,revenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses}}
 
 function monthDateRange(m){const[y,mo]=m.split('-').map(Number);return{start:new Date(y,mo-1,1),end:new Date(y,mo,0)}}
 
@@ -21,17 +21,43 @@ function teacherExpectedHours(t,m){const days=(t.workDays||[]).length,weekly=+t.
 
 function teacherPaidLessons(t,m){return db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m)&&lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no')}
 
-function teacherBaseSalary(t){
-  const raw=t?.baseSalary;
+function payrollNumber(raw){
   if(raw===null||raw===undefined||raw==='')return null;
   const value=Number(raw);
   return Number.isFinite(value)&&value>=0?value:null;
 }
-function teacherPayrollAmount(t,m,paid){
-  const rows=paid||teacherPaidLessons(t,m),h=rows.reduce((a,l)=>a+hours(l.start,l.end),0),base=teacherBaseSalary(t);
-  if(base===null)return rows.reduce((a,l)=>a+lessonTeacherPay(l,t.id),0);
-  const overtime=Math.max(0,h-teacherExpectedHours(t,m));
-  return base+overtime*(+t.rate||0);
+function teacherBaseSalary(t){return payrollNumber(t?.baseSalary)}
+function teacherOvertimeRate(t){return payrollNumber(t?.overtimeRate)}
+function teacherDeductionRate(t){return payrollNumber(t?.deductionRate)}
+function teacherPayrollMode(t){
+  if(t?.payrollMode==='fixed'||t?.payrollMode==='hourly')return t.payrollMode;
+  return teacherBaseSalary(t)!==null?'fixed':'hourly';
+}
+function calculateTeacherPayroll(t,m,paid){
+  const rows=paid||teacherPaidLessons(t,m);
+  const actualHours=rows.reduce((a,l)=>a+hours(l.start,l.end),0);
+  const mode=teacherPayrollMode(t);
+  const expectedHours=teacherExpectedHours(t,m);
+  const diff=actualHours-expectedHours;
+  if(mode==='hourly'){
+    const hourlyRate=payrollNumber(t?.rate)??0;
+    const amount=rows.reduce((a,l)=>a+lessonTeacherPay(l,t.id),0);
+    return{teacher:t,month:m,mode,rows,actualHours,expectedHours:0,diff:actualHours,baseSalary:null,overtimeHours:0,shortHours:0,overtimeRate:null,deductionRate:null,hourlyRate,addition:amount,deduction:0,amount,configured:hourlyRate>0};
+  }
+  const baseSalary=teacherBaseSalary(t),overtimeRate=teacherOvertimeRate(t),deductionRate=teacherDeductionRate(t);
+  const overtimeHours=Math.max(0,diff),shortHours=Math.max(0,-diff);
+  const addition=overtimeHours*(overtimeRate??0),deduction=shortHours*(deductionRate??0);
+  const configured=baseSalary!==null&&overtimeRate!==null&&deductionRate!==null;
+  const amount=configured?Math.max(0,baseSalary+addition-deduction):0;
+  return{teacher:t,month:m,mode,rows,actualHours,expectedHours,diff,baseSalary,overtimeHours,shortHours,overtimeRate,deductionRate,hourlyRate:null,addition,deduction,amount,configured};
+}
+function teacherPayrollAmount(t,m,paid){return calculateTeacherPayroll(t,m,paid).amount}
+function teacherPayrollFormulaText(result){
+  if(result.mode==='hourly')return `純時薪：${fmtHours(result.actualHours)} hr × ${money(result.hourlyRate||0)}`;
+  if(!result.configured)return '薪資設定未完成：請填固定底薪、超時時薪與不足扣款時薪';
+  if(result.diff>0)return `底薪 ${money(result.baseSalary)}＋超時 ${fmtHours(result.overtimeHours)} hr × ${money(result.overtimeRate)}`;
+  if(result.diff<0)return `底薪 ${money(result.baseSalary)}－不足 ${fmtHours(result.shortHours)} hr × ${money(result.deductionRate)}`;
+  return `固定底薪 ${money(result.baseSalary)}`;
 }
 
 function teacherWeekBreakdown(t,m){const r=monthDateRange(m),daily=(+t.minWeeklyHours||0)/Math.max(1,(t.workDays||[]).length),rows=[];let cursor=new Date(r.start);cursor.setDate(cursor.getDate()-((cursor.getDay()+6)%7));while(cursor<=r.end){const ws=new Date(cursor),we=new Date(cursor);we.setDate(we.getDate()+6);const from=ws<r.start?r.start:ws,to=we>r.end?r.end:we,workCount=countTeacherWorkDaysInRange(t,from,to),expected=daily*workCount;const actual=teacherPaidLessons(t,m).filter(l=>{const d=new Date(l.date+'T00:00:00');return d>=from&&d<=to}).reduce((a,l)=>a+hours(l.start,l.end),0);rows.push({from:localDate(from),to:localDate(to),expected,actual,diff:actual-expected});cursor.setDate(cursor.getDate()+7)}return rows}
@@ -40,7 +66,7 @@ function diffClass(n){return n<-.001?'hours-short':n>.001?'hours-over':'hours-ev
 
 function diffText(n){return Math.abs(n)<.001?'剛好':n>0?`多 ${fmtHours(n)} hr`:`少 ${fmtHours(Math.abs(n))} hr`}
 
-function settleData(){const m=$('settleMonth').value||monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));const sr=db.students.map(s=>{const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status)),chg=x.filter(l=>l.chargeStudent==='yes');return{s,total:x.length,charged:chg.length,h:chg.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+lessonCharge(l),0)}}).filter(x=>x.total);const tr=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),h=paid.reduce((a,l)=>a+hours(l.start,l.end),0),expected=teacherExpectedHours(t,m),diff=h-expected,weeks=teacherWeekBreakdown(t,m);return{t,count:paid.length,h,expected,diff,weeks,amount:teacherPayrollAmount(t,m,paid)}});return{sr,tr}}
+function settleData(){const m=$('settleMonth').value||monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));const sr=db.students.map(s=>{const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status)),chg=x.filter(l=>l.chargeStudent==='yes');return{s,total:x.length,charged:chg.length,h:chg.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+lessonCharge(l),0)}}).filter(x=>x.total);const tr=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),payroll=calculateTeacherPayroll(t,m,paid),weeks=teacherWeekBreakdown(t,m);return{t,count:paid.length,h:payroll.actualHours,expected:payroll.expectedHours,diff:payroll.diff,weeks,amount:payroll.amount,payroll}});return{sr,tr}}
 
 function monthlySettlementSnapshot(m){
   const ls=db.lessons.filter(l=>l.date.startsWith(m));

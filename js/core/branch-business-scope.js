@@ -56,6 +56,10 @@
     });
     return [...grouped.values()].sort((a,b)=>scopeLabel(a.branchId).localeCompare(scopeLabel(b.branchId),'zh-Hant'));
   }
+  function teacherWeekBreakdownForLessons(t,m,paid){
+    const r=monthDateRange(m),daily=(+t.minWeeklyHours||0)/Math.max(1,(t.workDays||[]).length),rows=[];let cursor=new Date(r.start);cursor.setDate(cursor.getDate()-((cursor.getDay()+6)%7));
+    while(cursor<=r.end){const ws=new Date(cursor),we=new Date(cursor);we.setDate(we.getDate()+6);const from=ws<r.start?r.start:ws,to=we>r.end?r.end:we,workCount=countTeacherWorkDaysInRange(t,from,to),expected=daily*workCount;const actual=paid.filter(l=>{const d=new Date(l.date+'T00:00:00');return d>=from&&d<=to}).reduce((a,l)=>a+hours(l.start,l.end),0);rows.push({from:localDate(from),to:localDate(to),expected,actual,diff:actual-expected});cursor.setDate(cursor.getDate()+7)}return rows;
+  }
 
   window.financeData=function(m){
     const scope=allowedScope(scopes.finance),lessons=scopedLessons(scope,m),revenue=lessons.reduce((a,l)=>a+lessonCharge(l),0);
@@ -66,8 +70,8 @@
     const tids=new Set(lessons.flatMap(l=>lessonTeacherIds(l)));
     const payrollRows=(db.teachers||[]).filter(t=>tids.has(t.id)).map(t=>{
       const paid=lessons.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no');
-      const h=paid.reduce((a,l)=>a+hours(l.start,l.end),0),amount=scope==='all'?teacherPayrollAmount(t,m,paid):paid.reduce((a,l)=>a+lessonTeacherPay(l,t.id),0);
-      return{teacher:t,h,amount,branches:branchBreakdown(paid,t.id)};
+      const payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours,amount=payroll.amount;
+      return{teacher:t,h,amount,payroll,branches:branchBreakdown(paid,t.id)};
     }).filter(x=>x.h||x.amount);
     const payroll=payrollRows.reduce((a,x)=>a+x.amount,0),totalExpenses=fixedTotal+oneTimeTotal+payroll;
     return{m,scope,revenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses,branchRevenue:branchBreakdown(lessons)};
@@ -81,10 +85,10 @@
       return{s,total:x.length,charged:chg.length,h:chg.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+lessonCharge(l),0)};
     }).filter(x=>x.total);
     const tr=(db.teachers||[]).filter(t=>teacherIds.has(t.id)).map(t=>{
-      const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),h=paid.reduce((a,l)=>a+hours(l.start,l.end),0);
-      const companyWide=scope==='all',expected=companyWide?teacherExpectedHours(t,m):null,diff=companyWide?h-expected:null,weeks=companyWide?teacherWeekBreakdown(t,m):[];
-      const amount=companyWide?teacherPayrollAmount(t,m,paid):paid.reduce((a,l)=>a+lessonTeacherPay(l,t.id),0);
-      return{t,count:paid.length,h,expected,diff,weeks,amount,branches:branchBreakdown(paid,t.id),companyWide};
+      const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours;
+      const expected=payroll.expectedHours,diff=payroll.diff,weeks=teacherWeekBreakdownForLessons(t,m,paid);
+      const amount=payroll.amount;
+      return{t,count:paid.length,h,expected,diff,weeks,amount,payroll,branches:branchBreakdown(paid,t.id),companyWide:true};
     });
     return{sr,tr,scope,lessons:ls};
   };
@@ -97,7 +101,7 @@
     $('mStudents').textContent=people.students.length;$('mTeachers').textContent=people.teachers.length;$('mLessons').textContent=ls.length;
     $('mRevenue').textContent=money(ls.reduce((a,l)=>a+lessonCharge(l),0));
     $('mUnpaid').textContent=money(ls.filter(l=>(l.paymentStatus||'unpaid')==='unpaid').reduce((a,l)=>a+lessonCharge(l),0));
-    $('mPayroll').textContent=money(ls.reduce((a,l)=>a+lessonPay(l),0));
+    $('mPayroll').textContent=money(financeData(m).payroll);
     if($('mTeacherHours')){$('mTeacherHours').textContent=`${ls.filter(l=>l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed').reduce((s,l)=>s+hours(l.start,l.end),0).toFixed(1)} 小時`;}
     if($('mMakeups'))$('mMakeups').textContent=(db.makeups||[]).filter(x=>x.status==='pending'&&(scope==='all'||branchId((db.lessons||[]).find(l=>l.id===x.lessonId)||x)===scope)).length;
     const changes=(db.changes||[]).filter(c=>localDate(new Date(c.at))===tod).filter(c=>{const l=(db.lessons||[]).find(x=>x.id===c.lessonId);return scope==='all'||(l&&branchId(l)===scope)});
@@ -136,8 +140,8 @@
     syncSelectors();const{sr,tr,scope}=settleData(),totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0),totalLessons=sr.reduce((s,x)=>s+x.charged,0),totalAbsences=sr.reduce((s,x)=>s+x.abs,0),totalHours=tr.reduce((s,x)=>s+x.h,0);
     const summary=$('settlementExecutiveSummary');if(summary)summary.innerHTML=`<div class="settlement-summary-card good"><span>本月應收</span><b>${money(totalRevenue)}</b></div><div class="settlement-summary-card"><span>老師薪資</span><b>${money(totalPayroll)}</b></div><div class="settlement-summary-card"><span>完成收費堂數</span><b>${totalLessons} 堂</b></div><div class="settlement-summary-card"><span>老師總工時</span><b>${fmtHours(totalHours)} hr</b></div><div class="settlement-summary-card warn"><span>學生請假</span><b>${totalAbsences} 次</b></div>`;
     $('studentSettleRows').innerHTML=sr.map(x=>`<tr><td><b>${esc(x.s.name)}</b></td><td>${esc(x.s.parent)}</td><td>${x.total}</td><td>${x.charged} 堂／${fmtHours(x.h)} hr</td><td>${x.abs}</td><td>${x.rate.toFixed(1)}%</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="7" class="small">此校區本月沒有學生結算資料。</td></tr>';
-    $('teacherSettleRows').innerHTML=tr.map(x=>`<tr><td><b>${esc(x.t.name)}</b></td><td>${esc(workDayNames(x.t.workDays))}</td><td>${x.companyWide?fmtHours(x.t.minWeeklyHours)+' hr':'跨校合併'}</td><td>${x.companyWide?fmtHours(x.expected)+' hr':'—'}</td><td>${fmtHours(x.h)} hr</td><td class="${x.companyWide?diffClass(x.diff):''}"><b>${x.companyWide?diffText(x.diff):'僅校區 KPI'}</b></td><td>${money(x.t.rate)}</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="8" class="small">目前沒有老師工時資料。</td></tr>';
-    $('teacherPayCards').innerHTML=tr.map(x=>`<div class="teacher-pay-card"><div class="teacher-pay-head"><div class="teacher-pay-avatar">${esc((x.t.name||'?').trim().charAt(0).toUpperCase())}</div><div class="teacher-pay-identity"><h4 title="${esc(x.t.name)}">${esc(x.t.name)}</h4><div class="teacher-pay-role">教師工時與薪資</div></div></div><div class="teacher-work-summary">${x.companyWide?`固定工作日：${esc(workDayNames(x.t.workDays))}｜每週最低：${fmtHours(x.t.minWeeklyHours)} hr`:`${esc(scopeLabel(scope))} KPI｜最低工時與差額只在「全部校區」合併計算`}</div><div class="teacher-pay-grid"><div class="teacher-pay-stat">${x.companyWide?'本月最低':'校區堂數'}<b>${x.companyWide?fmtHours(x.expected)+' hr':x.count+' 堂'}</b></div><div class="teacher-pay-stat">實際上課<b>${fmtHours(x.h)} hr</b></div><div class="teacher-pay-stat">${x.companyWide?'多／少':'校區占比'}<b class="${x.companyWide?diffClass(x.diff):''}">${x.companyWide?diffText(x.diff):(totalHours?((x.h/totalHours)*100).toFixed(1)+'%':'0%')}</b></div><div class="teacher-pay-stat">應付薪資<b>${money(x.amount)}</b><small>${teacherBaseSalary(x.t)!==null?`底薪 ${money(teacherBaseSalary(x.t))}＋超時 ${fmtHours(Math.max(0,x.diff||0))} hr × ${money(x.t.rate)}`:`按實際工時 × ${money(x.t.rate)}`}</small></div></div>${x.companyWide&&x.branches.length?`<div class="branch-breakdown cards">${x.branches.map(b=>`<span><b>${esc(scopeLabel(b.branchId))}</b>${fmtHours(b.h)} hr／${money(b.amount)}</span>`).join('')}</div>`:''}${x.companyWide?`<div class="weekly-detail"><div class="weekly-row head"><span>週別</span><span>最低</span><span>實際</span><span>差額</span></div>${x.weeks.map(w=>`<div class="weekly-row"><span>${w.from.slice(5)}～${w.to.slice(5)}</span><span>${fmtHours(w.expected)}</span><span>${fmtHours(w.actual)}</span><span class="${diffClass(w.diff)}">${diffText(w.diff)}</span></div>`).join('')}</div>`:''}</div>`).join('')||'<span class="small">目前尚未建立老師。</span>';
+    $('teacherSettleRows').innerHTML=tr.map(x=>`<tr><td><b>${esc(x.t.name)}</b></td><td>${esc(workDayNames(x.t.workDays))}</td><td>${fmtHours(x.t.minWeeklyHours)} hr</td><td>${fmtHours(x.expected)} hr</td><td>${fmtHours(x.h)} hr</td><td class="${diffClass(x.diff)}"><b>${diffText(x.diff)}</b></td><td>${x.payroll.mode==='fixed'?`超時 ${x.payroll.overtimeRate===null?'未設定':money(x.payroll.overtimeRate)}<br><span class="small">不足 ${x.payroll.deductionRate===null?'未設定':money(x.payroll.deductionRate)}</span>`:money(x.payroll.hourlyRate||0)}</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="8" class="small">目前沒有老師工時資料。</td></tr>';
+    $('teacherPayCards').innerHTML=tr.map(x=>`<div class="teacher-pay-card"><div class="teacher-pay-head"><div class="teacher-pay-avatar">${esc((x.t.name||'?').trim().charAt(0).toUpperCase())}</div><div class="teacher-pay-identity"><h4 title="${esc(x.t.name)}">${esc(x.t.name)}</h4><div class="teacher-pay-role">教師工時與薪資｜${esc(scopeLabel(scope))}</div></div></div><div class="teacher-work-summary">固定工作日：${esc(workDayNames(x.t.workDays))}｜每週最低：${fmtHours(x.t.minWeeklyHours)} hr｜薪資制度：${x.payroll.mode==='fixed'?'固定底薪制':'純時薪制'}</div><div class="teacher-pay-grid"><div class="teacher-pay-stat">本月最低<b>${fmtHours(x.expected)} hr</b></div><div class="teacher-pay-stat">實際上課<b>${fmtHours(x.h)} hr</b></div><div class="teacher-pay-stat">多／少<b class="${diffClass(x.diff)}">${diffText(x.diff)}</b></div><div class="teacher-pay-stat">應付薪資<b>${money(x.amount)}</b><small>${esc(teacherPayrollFormulaText(x.payroll))}</small></div></div>${x.payroll.mode==='fixed'?`<div class="branch-breakdown cards"><span><b>固定底薪</b>${x.payroll.baseSalary===null?'未設定':money(x.payroll.baseSalary)}</span><span><b>超時加給</b>＋${money(x.payroll.addition)}</span><span><b>不足扣款</b>－${money(x.payroll.deduction)}</span></div>`:''}${x.branches.length?`<div class="branch-breakdown cards">${x.branches.map(b=>`<span><b>${esc(scopeLabel(b.branchId))}</b>${fmtHours(b.h)} hr</span>`).join('')}</div>`:''}<div class="weekly-detail"><div class="weekly-row head"><span>週別</span><span>最低</span><span>實際</span><span>差額</span></div>${x.weeks.map(w=>`<div class="weekly-row"><span>${w.from.slice(5)}～${w.to.slice(5)}</span><span>${fmtHours(w.expected)}</span><span>${fmtHours(w.actual)}</span><span class="${diffClass(w.diff)}">${diffText(w.diff)}</span></div>`).join('')}</div></div>`).join('')||'<span class="small">目前尚未建立老師。</span>';
     let text=`【${$('settleMonth').value} 月底結算｜${scopeLabel(scope)}】\n\n學生應收：\n`;sr.forEach(x=>text+=`${x.s.name}：${x.charged}堂／${fmtHours(x.h)}hr，請假率${x.rate.toFixed(1)}%，應收${money(x.amount)}\n`);text+='\n老師工時與薪資：\n';tr.forEach(x=>{text+=`\n${x.t.name}\n實際：${fmtHours(x.h)}hr\n應付：${money(x.amount)}\n`;if(x.companyWide){text+=`本月最低：${fmtHours(x.expected)}hr\n差額：${diffText(x.diff)}\n`;x.branches.forEach(b=>text+=`  ${scopeLabel(b.branchId)}：${fmtHours(b.h)}hr／${money(b.amount)}\n`)}});$('settlementText').value=text;renderSettlementHistory();
   };
 
