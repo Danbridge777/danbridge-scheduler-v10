@@ -52,7 +52,7 @@
     const grouped=new Map();
     lessons.filter(l=>!teacherId||lessonTeacherIds(l).includes(teacherId)).forEach(l=>{
       const id=branchId(l),row=grouped.get(id)||{branchId:id,h:0,amount:0,count:0};
-      row.h+=hours(l.start,l.end);row.amount+=teacherId?lessonTeacherPay(l,teacherId):lessonCharge(l);row.count++;grouped.set(id,row);
+      row.h+=hours(l.start,l.end);row.amount+=teacherId?lessonTeacherPay(l,teacherId):timetableRevenueCharge(l);row.count++;grouped.set(id,row);
     });
     return [...grouped.values()].sort((a,b)=>scopeLabel(a.branchId).localeCompare(scopeLabel(b.branchId),'zh-Hant'));
   }
@@ -62,7 +62,7 @@
   }
 
   window.financeData=function(m){
-    const scope=allowedScope(scopes.finance),lessons=scopedLessons(scope,m),revenue=lessons.reduce((a,l)=>a+lessonCharge(l),0);
+    const scope=allowedScope(scopes.finance),lessons=scopedLessons(scope,m),revenue=lessons.reduce((a,l)=>a+timetableRevenueCharge(l),0);
     const expenseMatch=x=>scope==='all'||(x.branchId||'unassigned')===scope;
     const fixed=(db.fixedExpenses||[]).filter(x=>fixedExpenseApplies(x,m)&&expenseMatch(x));
     const one=(db.oneTimeExpenses||[]).filter(x=>x.month===m&&expenseMatch(x));
@@ -82,7 +82,7 @@
     const studentIds=new Set(ls.map(l=>l.studentId)),teacherIds=new Set(ls.flatMap(l=>lessonTeacherIds(l)));
     const sr=(db.students||[]).filter(s=>studentIds.has(s.id)).map(s=>{
       const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status));
-      return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+lessonCharge(l),0)};
+      return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+timetableRevenueCharge(l),0)};
     }).filter(x=>x.total);
     const tr=(db.teachers||[]).filter(t=>teacherIds.has(t.id)).map(t=>{
       const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours;
@@ -99,7 +99,7 @@
     const scope=allowedScope(scopes.dashboard),m=monthNow(),tod=todayStr(),ls=scopedLessons(scope,m),today=ls.filter(l=>l.date===tod&&!['取消','停課'].includes(l.status));
     const people=scopedPeople(scope,ls),todayTeacherIds=new Set(today.flatMap(l=>lessonTeacherIds(l)));
     $('mStudents').textContent=people.students.length;$('mTeachers').textContent=people.teachers.length;$('mLessons').textContent=ls.length;
-    $('mRevenue').textContent=money(ls.reduce((a,l)=>a+lessonCharge(l),0));
+    $('mRevenue').textContent=money(ls.reduce((a,l)=>a+timetableRevenueCharge(l),0));
     $('mUnpaid').textContent=money(ls.filter(l=>(l.paymentStatus||'unpaid')==='unpaid').reduce((a,l)=>a+lessonCharge(l),0));
     $('mPayroll').textContent=money(financeData(m).payroll);
     if($('mTeacherHours')){$('mTeacherHours').textContent=`${ls.filter(l=>l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed').reduce((s,l)=>s+hours(l.start,l.end),0).toFixed(1)} 小時`;}
@@ -110,7 +110,7 @@
     $('todayLessons').innerHTML=today.sort((a,b)=>a.start.localeCompare(b.start)).map(l=>`<div class="lesson ${hasTeacherOverlap(l)?'teacher-overlap':''}" style="--teacher:${teacher(l.teacherId).color||'#2563eb'};--location-bg:${locationBg(l.location)}" onclick="editLesson('${l.id}')"><b>${l.start}–${l.end}｜${esc(student(l.studentId).name)}</b><span class="meta">${esc(lessonTeacherNames(l))}｜${esc(l.title)}｜${esc(locationLabel(l))}｜${esc(l.room||'未指定教室')}</span></div>`).join('')||'<span class="small">今天沒有課程。</span>';
     if($('dashboardBranchScopeNote'))$('dashboardBranchScopeNote').textContent=`目前顯示：${scopeLabel(scope)}`;
     if($('v33TodayLessons'))$('v33TodayLessons').textContent=today.length;if($('v33TodayHours'))$('v33TodayHours').textContent=`${today.reduce((a,l)=>a+hours(l.start,l.end),0).toFixed(1)} 小時`;
-    if($('v33TodayRevenue'))$('v33TodayRevenue').textContent=money(today.reduce((a,l)=>a+lessonCharge(l),0));if($('v33TodayTeachers'))$('v33TodayTeachers').textContent=todayTeacherIds.size;
+    if($('v33TodayRevenue'))$('v33TodayRevenue').textContent=money(today.reduce((a,l)=>a+timetableRevenueCharge(l),0));if($('v33TodayTeachers'))$('v33TodayTeachers').textContent=todayTeacherIds.size;
     const currentTime=`${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
     const roomLessons=today.filter(l=>l.room&&l.deliveryMode!=='online'&&l.deliveryMode!=='home'&&l.location!=='線上課'&&l.location!=='到府');
     const roomNames=[...new Set(roomLessons.map(l=>`${locationLabel(l)}｜${l.room}`))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
