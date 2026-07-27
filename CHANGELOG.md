@@ -1,3 +1,15 @@
+## V17.14 — 每位老師個別設定底薪
+- 移除所有正職老師共用 NT$35,000 的預設底薪。
+- 每位老師的固定底薪必須由管理者自行輸入並獨立儲存。
+- 正職老師未填固定底薪時禁止儲存，避免月底結算套用錯誤金額。
+- 兼職老師未設定底薪時維持按實際工時 × 時薪計算。
+- 老師清單在未設定底薪時顯示「尚未設定」。
+
+
+## V17.13 — 正職底薪＋超時薪資公式
+- 正職薪資改為：固定底薪＋超過本月最低工時的時數×超時時薪。
+- 既有正職老師未設定底薪時，預設使用 NT$35,000。
+- 兼職與未設定底薪老師維持按實際授課時數計薪。
 # V17.2 Executive Authentication UI
 
 - Upgraded the login screen to a full-width black-and-gold executive workspace.
@@ -117,3 +129,7 @@
 - Added pointer cancellation, lost-capture, and global release cleanup.
 - Prevented lesson-record Month and Student filters from overlapping at iPad widths.
 - No Firebase, permission, payroll, or lesson business logic was changed.
+
+## V17.12
+- Restored the missing right border on the lesson month field.
+- Forced month text centering across desktop Safari and iPadOS.

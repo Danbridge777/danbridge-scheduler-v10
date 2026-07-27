@@ -9,7 +9,7 @@ function normalizedWorkDays(days){const src=Array.isArray(days)?days:[1,2,3,4,5]
 function workDayNames(days){const names=['週日','週一','週二','週三','週四','週五','週六'];return normalizedWorkDays(days).map(d=>names[d]).join('、')}
 function selectedTeacherWorkDays(){return [...document.querySelectorAll('#teacherWorkDays input[type=checkbox]:checked')].map(x=>Number(x.value)).filter(n=>Number.isInteger(n)&&n>=0&&n<=6)}
 function clearTeacherForm(){
-  ['teacherId','teacherName','teacherRate','teacherMinWeeklyHours','teacherSubjects','teacherNote'].forEach(id=>{const e=$(id);if(e)e.value=''});
+  ['teacherId','teacherName','teacherRate','teacherBaseSalary','teacherMinWeeklyHours','teacherSubjects','teacherNote'].forEach(id=>{const e=$(id);if(e)e.value=''});
   if($('teacherType'))$('teacherType').value='兼職';
   if($('teacherColor'))$('teacherColor').value='#2563eb';
   const defaults=new Set([1,2,3,4,5]);
@@ -22,12 +22,18 @@ function saveTeacher(){
   if(!workDays.length)return alert('請至少選擇一個固定工作日');
   const id=$('teacherId')?.value||uid();
   const old=db.teachers.find(t=>String(t.id)===String(id));
+  const type=$('teacherType')?.value||'兼職';
+  const baseSalaryRaw=$('teacherBaseSalary')?.value.trim()||'';
+  if(type==='正職'&&!baseSalaryRaw)return alert('請輸入這位正職老師的固定底薪');
+  const baseSalary=baseSalaryRaw===''?null:Number(baseSalaryRaw);
+  if(baseSalary!==null&&(!Number.isFinite(baseSalary)||baseSalary<0))return alert('固定底薪必須是 0 或正數');
   const item={
     ...(old||{}),id,name,
     rate:+($('teacherRate')?.value||0),
+    baseSalary,
     minWeeklyHours:+($('teacherMinWeeklyHours')?.value||0),
     workDays,
-    type:$('teacherType')?.value||'兼職',
+    type,
     subjects:$('teacherSubjects')?.value.trim()||'',
     color:$('teacherColor')?.value||'#2563eb',
     note:$('teacherNote')?.value||''
@@ -44,6 +50,7 @@ function editTeacher(id){
   if(!t)return alert('找不到老師資料，請重新整理後再試');
   switchTab('teachers');
   $('teacherId').value=t.id||'';$('teacherName').value=t.name||'';$('teacherRate').value=t.rate??'';
+  $('teacherBaseSalary').value=t.baseSalary??'';
   $('teacherMinWeeklyHours').value=t.minWeeklyHours??'';$('teacherType').value=t.type||'兼職';
   $('teacherSubjects').value=t.subjects||'';$('teacherColor').value=t.color||'#2563eb';$('teacherNote').value=t.note||'';
   const days=new Set(normalizedWorkDays(t.workDays));
@@ -58,4 +65,4 @@ function deleteTeacher(id){
   if(!confirm(msg))return;
   snapshot();db.teachers=db.teachers.filter(x=>String(x.id)!==String(id));saveDB();
 }
-function renderTeachers(){$('teacherRows').innerHTML=db.teachers.map(t=>`<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${t.color||'#2563eb'}"></span> <b>${esc(t.name)}</b></td><td>${money(t.rate)}</td><td>${t.minWeeklyHours||0} hr／週<br><span class="small">${esc(workDayNames(t.workDays))}</span></td><td>${esc(t.type)}</td><td>${esc(t.subjects)}</td><td class="row-actions"><button class="btn" onclick="editTeacher('${t.id}')">編輯</button><button class="btn danger" onclick="deleteTeacher('${t.id}')">刪除</button></td></tr>`).join('')}
+function renderTeachers(){$('teacherRows').innerHTML=db.teachers.map(t=>{const base=teacherBaseSalary(t);return `<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${t.color||'#2563eb'}"></span> <b>${esc(t.name)}</b></td><td>${money(t.rate)}<br><span class="small">底薪 ${base===null?'尚未設定':money(base)}</span></td><td>${t.minWeeklyHours||0} hr／週<br><span class="small">${esc(workDayNames(t.workDays))}</span></td><td>${esc(t.type)}</td><td>${esc(t.subjects)}</td><td class="row-actions"><button class="btn" onclick="editTeacher('${t.id}')">編輯</button><button class="btn danger" onclick="deleteTeacher('${t.id}')">刪除</button></td></tr>`}).join('')}
