@@ -151,3 +151,8 @@
 
 ## V17.18
 - Added per-teacher company revenue KPI calculated from scheduled chargeable lessons.
+## V17.19
+- Enlarged each teacher company revenue KPI card and payable salary card.
+- Prevented the five-card payroll KPI row from becoming too narrow.
+- Preserved responsive tablet and mobile layouts.
+
