@@ -1,3 +1,11 @@
+# Changelog
+
+## V17.25 — Teacher Schedule Row Revenue Audit
+- Replaced teacher-count multiplication with explicit per-teacher timetable revenue rows.
+- Each timetable row calculates student hourly rate × scheduled duration.
+- Repeated lessons remain counted; no revenue deduplication.
+- Collection/payment/report/status fields do not affect revenue.
+
 ## V17.14 — 每位老師個別設定底薪
 - 移除所有正職老師共用 NT$35,000 的預設底薪。
 - 每位老師的固定底薪必須由管理者自行輸入並獨立儲存。
