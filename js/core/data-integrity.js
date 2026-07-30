@@ -38,6 +38,7 @@
   db.fixedExpenses=(db.fixedExpenses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   db.oneTimeExpenses=(db.oneTimeExpenses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   db.summerCampClasses=(db.summerCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
+  db.summerCampRegistrations=(db.summerCampRegistrations||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||((db.students||[]).find(s=>s.id===x.studentId)?.branchIds||[])[0]||'unassigned',dates:[...new Set(Array.isArray(x.dates)?x.dates:[])].sort(),dailyRate:+x.dailyRate||0,totalFee:[...new Set(Array.isArray(x.dates)?x.dates:[])].length*(+x.dailyRate||0)}));
   db.winterCampClasses=(db.winterCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   localStorage.setItem(LS_KEY,JSON.stringify(db));renderAll();window.__danbridgeQueueCloudSave?.();toast('資料完整性整理完成');
  }
