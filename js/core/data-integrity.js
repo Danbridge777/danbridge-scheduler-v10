@@ -38,7 +38,7 @@
   db.fixedExpenses=(db.fixedExpenses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   db.oneTimeExpenses=(db.oneTimeExpenses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   db.summerCampClasses=(db.summerCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
-  db.summerCampRegistrations=(db.summerCampRegistrations||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||((db.students||[]).find(s=>s.id===x.studentId)?.branchIds||[])[0]||'unassigned',dates:[...new Set(Array.isArray(x.dates)?x.dates:[])].sort(),dailyRate:+x.dailyRate||0,totalFee:[...new Set(Array.isArray(x.dates)?x.dates:[])].length*(+x.dailyRate||0)}));
+  db.summerCampRegistrations=(db.summerCampRegistrations||[]).map(x=>{const dates=[...new Set(Array.isArray(x.dates)?x.dates:[])].sort(),pricingMode=x.pricingMode||'daily',dailyRate=+x.dailyRate||0,weeklyRate=+x.weeklyRate||0,monthlyRate=+x.monthlyRate||0,weekCount=new Set(dates.map(d=>{const dt=new Date(d+'T00:00:00'),day=dt.getDay(),monday=new Date(dt);monday.setDate(dt.getDate()-(day===0?6:day-1));return monday.toISOString().slice(0,10)})).size,totalFee=pricingMode==='weekly'?weekCount*weeklyRate:pricingMode==='monthly'?(dates.length?monthlyRate:0):dates.length*dailyRate;return {...x,id:x.id||uid(),branchId:x.branchId||((db.students||[]).find(s=>s.id===x.studentId)?.branchIds||[])[0]||'unassigned',dates,pricingMode,dailyRate,weeklyRate,monthlyRate,totalFee}});
   db.winterCampClasses=(db.winterCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   localStorage.setItem(LS_KEY,JSON.stringify(db));renderAll();window.__danbridgeQueueCloudSave?.();toast('資料完整性整理完成');
  }
