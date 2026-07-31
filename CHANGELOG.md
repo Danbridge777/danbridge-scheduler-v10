@@ -164,3 +164,12 @@
 - Prevented the five-card payroll KPI row from becoming too narrow.
 - Preserved responsive tablet and mobile layouts.
 
+
+## V18.0 — Information Architecture & Finance Center
+- Dashboard now focuses on lesson counts, teaching hours, students, teachers, makeups and operational changes; monetary cards are hidden.
+- Consolidated Company Finance, Teacher KPI and Monthly Settlement into one Finance Center with internal tabs.
+- Added collapsible finance detail cards so expense and payroll details are loaded on demand visually.
+- Added teacher KPI search and sorting controls.
+- Renamed primary navigation around operations, CRM, course management and finance.
+- Added a global floating quick-action menu for lessons, students, teachers, expenses and camp registration.
+- Preserved existing finance, payroll, settlement and revenue calculation functions and data IDs.
