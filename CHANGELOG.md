@@ -219,3 +219,7 @@
 - Sized revenue cards for million-level totals and expense cards for hundred-thousand-level totals without overflow.
 - Restricted family billing groups to students with the same normalized parent name only.
 - Removed decorative brackets from parent-facing billing text.
+
+## V18.3.3 — Visible Family Billing Scope
+- Built each family message from the current month's visible settlement rows only.
+- Prevented archived or unrelated database records from entering a parent's copied LINE bill.

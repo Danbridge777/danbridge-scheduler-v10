@@ -59,14 +59,15 @@ function studentBillingSections(d,includeName=false){
   if(d.campRows.length){const dates=d.campDates.map(date=>`${+date.slice(5,7)}/${+date.slice(8,10)}`).join('、');lines.push('Summer Camp',`報名日期：${dates}`,billingCampFormula(d.campRows),`小計：${money(d.campAmount)}`,'')}
   if(includeName)lines.push(`小朋友小計：${money(d.total)}`,'');return lines;
 }
-function studentLineBillingText(studentId,m,scope='all'){
-  const family=billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=details.length>1;
+function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
+  const explicitIds=Array.isArray(familyStudentIds)?new Set(familyStudentIds.filter(Boolean)):null;
+  const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=details.length>1;
   const names=details.map(d=>d.student.name||'學生').join('、')||student(studentId).name||'學生',total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`媽咪好，以下是 ${names} ${billingMonthLabel(m)}的課程費用明細：`,''];
   details.forEach(d=>lines.push(...studentBillingSections(d,multiple)));
   lines.push(`${multiple?'家庭本月應收':'本月應收'}：${money(total)}`,'','以上請媽咪確認！');return lines.join('\n');
 }
-function copyStudentLineBilling(studentId,m,scope='all'){
-  const text=studentLineBillingText(studentId,m,scope),done=()=>toast('LINE 對帳內容已複製');
+function copyStudentLineBilling(studentId,m,scope='all',encodedFamilyIds=''){
+  const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds),done=()=>toast('LINE 對帳內容已複製');
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text).then(done).catch(()=>copyStudentLineBillingFallback(text,done));
   copyStudentLineBillingFallback(text,done);
 }
