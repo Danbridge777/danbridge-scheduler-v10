@@ -240,3 +240,10 @@
 ## V18.3.7 — Parent Search
 - Added a dedicated parent-name search field beside the student search in Student Collections.
 - Allowed student and parent filters to work independently or together.
+
+## V18.4 — Finance Reconciliation
+- Counted each tutoring lesson once for company revenue regardless of how many teachers share the lesson.
+- Kept Summer Camp revenue sourced only from student registrations.
+- Included all applicable teachers in KPI, payroll and salary detail lists, including zero-lesson and fixed-salary teachers.
+- Reconciled finance revenue with Student Collections receivables.
+- Standardized all five finance summary cards to the same height and reduced number typography to prevent clipping.

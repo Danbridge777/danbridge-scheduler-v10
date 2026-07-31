@@ -68,11 +68,11 @@
     const one=(db.oneTimeExpenses||[]).filter(x=>x.month===m&&expenseMatch(x));
     const fixedTotal=fixed.reduce((a,x)=>a+(+x.amount||0),0),oneTimeTotal=one.reduce((a,x)=>a+(+x.amount||0),0);
     const tids=new Set(lessons.flatMap(l=>lessonTeacherIds(l)));
-    const payrollRows=(db.teachers||[]).filter(t=>tids.has(t.id)).map(t=>{
+    const payrollRows=(db.teachers||[]).filter(t=>recordMatchesBranch(t,scope,tids)).map(t=>{
       const paid=lessons.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no');
       const payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours,amount=payroll.amount;
       return{teacher:t,h,amount,revenue:teacherCompanyRevenue(t,m,lessons),payroll,branches:branchBreakdown(paid,t.id)};
-    }).filter(x=>x.h||x.amount);
+    });
     const payroll=payrollRows.reduce((a,x)=>a+x.amount,0),totalExpenses=fixedTotal+oneTimeTotal+payroll;
     return{m,scope,revenue,lessonRevenue,campRevenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses,branchRevenue:branchBreakdown(lessons)};
   };
@@ -85,7 +85,7 @@
       const lessonAmount=x.reduce((a,l)=>a+timetableRevenueCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m,scope);
       return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount};
     });
-    const tr=(db.teachers||[]).filter(t=>teacherIds.has(t.id)).map(t=>{
+    const tr=(db.teachers||[]).filter(t=>recordMatchesBranch(t,scope,teacherIds)).map(t=>{
       const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours;
       const expected=payroll.expectedHours,diff=payroll.diff,weeks=teacherWeekBreakdownForLessons(t,m,paid);
       const amount=payroll.amount;

@@ -16,7 +16,8 @@ function teacherScheduleRevenueRows(l){
   return lessonTeacherIds(l).map(teacherId=>({teacherId,lesson:l,amount}));
 }
 function timetableRevenueCharge(l){
-  return teacherScheduleRevenueRows(l).reduce((sum,row)=>sum+row.amount,0);
+  if(!l||l.isDraft||effectiveCampId(l)||l.chargeStudent==='no')return 0;
+  return lessonCharge(l);
 }
 
 /* Summer-camp tuition is earned from the registration record, never from camp timetable rows.
