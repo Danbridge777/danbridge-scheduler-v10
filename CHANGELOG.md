@@ -191,3 +191,5 @@
 - Standardized finance headings, descriptions, tab labels and active-state alignment.
 - Locked all four Finance Center module controls to identical dimensions in both normal and active states.
 - Increased heading, description and module-label contrast for clearer reading.
+- Replaced circular teacher initials with slim accent rails and decorated name rows.
+- Added a light profile header, accent rule and stronger name hierarchy to Teacher KPI details.
