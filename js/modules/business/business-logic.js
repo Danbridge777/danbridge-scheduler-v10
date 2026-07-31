@@ -51,7 +51,7 @@ function billingCampFormula(rows){
 function billingFamilyStudents(studentId){
   const selected=student(studentId),parent=String(selected.parent||'').trim().toLocaleLowerCase();
   if(!parent)return[selected];
-  return(db.students||[]).filter(s=>!s.campSeason&&String(s.parent||'').trim().toLocaleLowerCase()===parent);
+  return(db.students||[]).filter(s=>!s.campSeason&&(s.status||'active')!=='inactive'&&String(s.parent||'').trim().toLocaleLowerCase()===parent);
 }
 function studentBillingSections(d,includeName=false){
   const lines=[];if(includeName)lines.push(`${d.student.name||'學生'}`);

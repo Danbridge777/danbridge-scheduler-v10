@@ -223,3 +223,7 @@
 ## V18.3.3 — Visible Family Billing Scope
 - Built each family message from the current month's visible settlement rows only.
 - Prevented archived or unrelated database records from entering a parent's copied LINE bill.
+
+## V18.3.4 — Complete Active Family Members
+- Included active siblings sharing the same parent name even when a sibling is absent from the tutoring settlement rows.
+- Continued excluding camp backing records and inactive student records.
