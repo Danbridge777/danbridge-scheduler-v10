@@ -247,3 +247,10 @@
 - Included all applicable teachers in KPI, payroll and salary detail lists, including zero-lesson and fixed-salary teachers.
 - Reconciled finance revenue with Student Collections receivables.
 - Standardized all five finance summary cards to the same height and reduced number typography to prevent clipping.
+
+## V18.5 — Interface Clarity Refresh
+- Separated calendar navigation, filters and tools into three visually distinct control bands.
+- Simplified the calendar student filter by removing the redundant inline search box.
+- Narrowed and condensed the Student CRM editor while widening the student directory.
+- Improved CRM table hierarchy with clearer headers, zebra rows and compact actions.
+- Reworked Lesson Records into a compact filter panel and scan-friendly fixed-column table.
