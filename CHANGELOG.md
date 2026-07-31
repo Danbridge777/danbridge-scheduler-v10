@@ -214,3 +214,8 @@
 ## V18.3.1 — Family LINE Billing
 - Grouped all children sharing the same parent into one LINE billing message.
 - Added a per-child subtotal and one combined family monthly total.
+
+## V18.3.2 — Finance Number Fit and Parent Matching
+- Sized revenue cards for million-level totals and expense cards for hundred-thousand-level totals without overflow.
+- Restricted family billing groups to students with the same normalized parent name only.
+- Removed decorative brackets from parent-facing billing text.
