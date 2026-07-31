@@ -62,7 +62,7 @@
   }
 
   window.financeData=function(m){
-    const scope=allowedScope(scopes.finance),lessons=scopedLessons(scope,m),revenue=lessons.reduce((a,l)=>a+timetableRevenueCharge(l),0);
+    const scope=allowedScope(scopes.finance),lessons=scopedLessons(scope,m),lessonRevenue=lessons.reduce((a,l)=>a+timetableRevenueCharge(l),0),campRevenue=summerCampRegistrationRevenue(m,scope),revenue=lessonRevenue+campRevenue;
     const expenseMatch=x=>scope==='all'||(x.branchId||'unassigned')===scope;
     const fixed=(db.fixedExpenses||[]).filter(x=>fixedExpenseApplies(x,m)&&expenseMatch(x));
     const one=(db.oneTimeExpenses||[]).filter(x=>x.month===m&&expenseMatch(x));
@@ -74,15 +74,16 @@
       return{teacher:t,h,amount,revenue:teacherCompanyRevenue(t,m,lessons),payroll,branches:branchBreakdown(paid,t.id)};
     }).filter(x=>x.h||x.amount);
     const payroll=payrollRows.reduce((a,x)=>a+x.amount,0),totalExpenses=fixedTotal+oneTimeTotal+payroll;
-    return{m,scope,revenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses,branchRevenue:branchBreakdown(lessons)};
+    return{m,scope,revenue,lessonRevenue,campRevenue,fixed,one,fixedTotal,oneTimeTotal,payrollRows,payroll,totalExpenses,profit:revenue-totalExpenses,branchRevenue:branchBreakdown(lessons)};
   };
 
   window.settleData=function(){
-    const m=$('settleMonth').value||monthNow(),scope=allowedScope(scopes.settlement),ls=scopedLessons(scope,m);
-    const studentIds=new Set(ls.map(l=>l.studentId)),teacherIds=new Set(ls.flatMap(l=>lessonTeacherIds(l)));
+    const m=$('settleMonth').value||monthNow(),scope=allowedScope(scopes.settlement),ls=scopedLessons(scope,m),campRows=summerCampRegistrationRows(m,scope);
+    const studentIds=new Set([...ls.map(l=>l.studentId),...campRows.map(r=>r.studentId)]),teacherIds=new Set(ls.flatMap(l=>lessonTeacherIds(l)));
     const sr=(db.students||[]).filter(s=>studentIds.has(s.id)).map(s=>{
       const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status));
-      return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,amount:x.reduce((a,l)=>a+timetableRevenueCharge(l),0)};
+      const lessonAmount=x.reduce((a,l)=>a+timetableRevenueCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m,scope);
+      return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount};
     }).filter(x=>x.total);
     const tr=(db.teachers||[]).filter(t=>teacherIds.has(t.id)).map(t=>{
       const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours;
@@ -99,7 +100,7 @@
     const scope=allowedScope(scopes.dashboard),m=monthNow(),tod=todayStr(),ls=scopedLessons(scope,m),today=ls.filter(l=>l.date===tod&&!['取消','停課'].includes(l.status));
     const people=scopedPeople(scope,ls),todayTeacherIds=new Set(today.flatMap(l=>lessonTeacherIds(l)));
     $('mStudents').textContent=people.students.length;$('mTeachers').textContent=people.teachers.length;$('mLessons').textContent=ls.length;
-    $('mRevenue').textContent=money(ls.reduce((a,l)=>a+timetableRevenueCharge(l),0));
+    $('mRevenue').textContent=money(ls.reduce((a,l)=>a+timetableRevenueCharge(l),0)+summerCampRegistrationRevenue(m,scope));
     $('mUnpaid').textContent=money(ls.filter(l=>(l.paymentStatus||'unpaid')==='unpaid').reduce((a,l)=>a+lessonCharge(l),0));
     $('mPayroll').textContent=money(financeData(m).payroll);
     if($('mTeacherHours')){$('mTeacherHours').textContent=`${ls.filter(l=>l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed').reduce((s,l)=>s+hours(l.start,l.end),0).toFixed(1)} 小時`;}

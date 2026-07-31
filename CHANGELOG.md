@@ -196,3 +196,10 @@
 - Aligned every teacher-list accent rail and name to fixed grid columns.
 - Removed teacher-initial avatars from complete payroll cards and replaced them with line-decorated headers.
 - Constrained desktop payroll cards and KPI grids to prevent horizontal overflow while preserving iPad stacking.
+
+## V18.2 — Unified Tutoring and Summer Camp Revenue
+- Defined total monthly revenue as tutoring timetable revenue plus summer-camp registration fees.
+- Excluded camp timetable rows from student revenue so multi-teacher camps never multiply tuition.
+- Preserved camp timetable rows for teacher hours and payroll calculations.
+- Added separate Tutoring Revenue and Summer Camp Revenue lines to the finance breakdown and copied summary.
+- Applied the same calculation to company-wide and branch-scoped finance views.
