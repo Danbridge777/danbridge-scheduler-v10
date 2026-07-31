@@ -236,3 +236,7 @@
 - Displayed every student record in Student Collections, including students with zero activity in the selected month.
 - Added the full student count to the expandable list heading.
 - Kept the average leave rate based on students with lesson activity so zero-activity rows do not dilute it.
+
+## V18.3.7 — Parent Search
+- Added a dedicated parent-name search field beside the student search in Student Collections.
+- Allowed student and parent filters to work independently or together.

@@ -38,13 +38,14 @@
     }
     const summary=document.createElement('div'); summary.id='v181CollectionSummary'; summary.className='v181-summary-grid'; module.append(summary);
     if(executive){executive.hidden=true;module.append(executive)}
-    const search=document.createElement('label'); search.className='v181-search'; search.innerHTML='<span>搜尋學生</span><input id="v181StudentSearch" type="search" placeholder="輸入學生或家長姓名">'; module.append(search);
+    const search=document.createElement('div');search.className='v181-search-grid';search.innerHTML='<label class="v181-search"><span>搜尋學生</span><input id="v181StudentSearch" type="search" placeholder="輸入學生姓名"></label><label class="v181-search"><span>搜尋家長</span><input id="v181ParentSearch" type="search" placeholder="輸入家長姓名"></label>';module.append(search);
     const details=document.createElement('details'); details.className='v181-student-details'; details.innerHTML='<summary><span>查看全部學生</span><small>點擊展開完整應收名單</small></summary>';
     move(studentTable,details); module.append(details);
     if(text)text.hidden=true;
     if(history)history.hidden=true;
     collections.append(module);
     $('#v181StudentSearch',module)?.addEventListener('input',filterStudentRows);
+    $('#v181ParentSearch',module)?.addEventListener('input',filterStudentRows);
   }
 
   function buildTeacherModule(kpiCard,settlementCard,kpiPane,financeRoot){
@@ -100,8 +101,8 @@
     filterStudentRows();
   }
   function filterStudentRows(){
-    const q=($('#v181StudentSearch')?.value||'').trim().toLowerCase();
-    $$('#studentSettleRows tr').forEach(r=>r.hidden=!!q&&!r.textContent.toLowerCase().includes(q));
+    const studentQuery=($('#v181StudentSearch')?.value||'').trim().toLowerCase(),parentQuery=($('#v181ParentSearch')?.value||'').trim().toLowerCase();
+    $$('#studentSettleRows tr').forEach(r=>{const studentText=(r.cells[0]?.textContent||'').toLowerCase(),parentText=(r.cells[1]?.textContent||'').toLowerCase();r.hidden=!!studentQuery&&!studentText.includes(studentQuery)||!!parentQuery&&!parentText.includes(parentQuery)});
   }
 
   function rebuildTeacherWorkspace(){
