@@ -189,3 +189,5 @@
 - Replaced the dark navy and gold finance treatment with a lighter blue-gray enterprise palette.
 - Isolated nested Finance Center navigation from global sidebar group labels that caused misalignment.
 - Standardized finance headings, descriptions, tab labels and active-state alignment.
+- Locked all four Finance Center module controls to identical dimensions in both normal and active states.
+- Increased heading, description and module-label contrast for clearer reading.
