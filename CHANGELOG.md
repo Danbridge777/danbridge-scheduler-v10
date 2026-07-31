@@ -254,3 +254,9 @@
 - Narrowed and condensed the Student CRM editor while widening the student directory.
 - Improved CRM table hierarchy with clearer headers, zebra rows and compact actions.
 - Reworked Lesson Records into a compact filter panel and scan-friendly fixed-column table.
+
+## V18.6 — One-click Chinese / English UI
+- Added a persistent EN / 中文 toggle for the complete application interface.
+- Translated navigation, forms, filters, buttons, statuses, finance, camps, CRM, reports and dynamic UI labels.
+- Preserved student, parent, teacher, course and financial data exactly as entered.
+- Remembered the selected language across reloads and translated newly rendered interface elements automatically.
