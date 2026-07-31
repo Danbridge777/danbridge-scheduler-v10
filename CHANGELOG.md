@@ -182,3 +182,10 @@
 - Restored reliable finance rendering by preserving every existing data target while moving it into the new modules.
 - Standardized card alignment, grid containment and responsive desktop, iPad and mobile layouts.
 - Preserved Firebase, permissions, synchronization, revenue formulas, payroll formulas and stored data structures.
+
+## V18.1.1 — Finance UI Cleanup
+- Removed the standalone Monthly Settlement navigation item and all settlement-only controls from the visible Student Collections workflow.
+- Renamed the remaining collection filters and refresh action around student receivables.
+- Replaced the dark navy and gold finance treatment with a lighter blue-gray enterprise palette.
+- Isolated nested Finance Center navigation from global sidebar group labels that caused misalignment.
+- Standardized finance headings, descriptions, tab labels and active-state alignment.

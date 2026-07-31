@@ -30,13 +30,18 @@
     const module=card('學生收款','先看本月應收、已收、未收與平均請假率；完整學生名單預設收合。');
     module.classList.add('v181-collections-module');
     move(toolbar,module);
+    if(toolbar){
+      const monthLabel=$('label',toolbar);if(monthLabel&&monthLabel.textContent.includes('結算月份'))monthLabel.textContent='收款月份';
+      const branchLabel=$$('#settlementBranchScope',toolbar)[0]?.closest('div')?.querySelector('label');if(branchLabel)branchLabel.textContent='收款校區';
+      $$('button',toolbar).forEach(button=>{if(button.textContent.trim()==='重新計算')button.textContent='重新整理';else button.remove()});
+    }
     const summary=document.createElement('div'); summary.id='v181CollectionSummary'; summary.className='v181-summary-grid'; module.append(summary);
     if(executive){executive.hidden=true;module.append(executive)}
     const search=document.createElement('label'); search.className='v181-search'; search.innerHTML='<span>搜尋學生</span><input id="v181StudentSearch" type="search" placeholder="輸入學生或家長姓名">'; module.append(search);
     const details=document.createElement('details'); details.className='v181-student-details'; details.innerHTML='<summary><span>查看全部學生</span><small>點擊展開完整應收名單</small></summary>';
     move(studentTable,details); module.append(details);
-    if(text){text.classList.add('v181-settlement-text');details.append(text)}
-    move(history,details);
+    if(text)text.hidden=true;
+    if(history)history.hidden=true;
     collections.append(module);
     $('#v181StudentSearch',module)?.addEventListener('input',filterStudentRows);
   }
