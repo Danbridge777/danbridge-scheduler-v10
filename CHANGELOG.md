@@ -193,3 +193,6 @@
 - Increased heading, description and module-label contrast for clearer reading.
 - Replaced circular teacher initials with slim accent rails and decorated name rows.
 - Added a light profile header, accent rule and stronger name hierarchy to Teacher KPI details.
+- Aligned every teacher-list accent rail and name to fixed grid columns.
+- Removed teacher-initial avatars from complete payroll cards and replaced them with line-decorated headers.
+- Constrained desktop payroll cards and KPI grids to prevent horizontal overflow while preserving iPad stacking.
