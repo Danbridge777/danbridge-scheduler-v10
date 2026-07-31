@@ -210,3 +210,7 @@
 - Kept parent tutoring charges independent of teacher headcount.
 - Omitted empty tutoring or Summer Camp sections automatically.
 - Used the approved opening, totals and confirmation wording for the copied message.
+
+## V18.3.1 — Family LINE Billing
+- Grouped all children sharing the same parent into one LINE billing message.
+- Added a per-child subtotal and one combined family monthly total.
