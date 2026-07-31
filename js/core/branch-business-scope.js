@@ -80,11 +80,11 @@
   window.settleData=function(){
     const m=$('settleMonth').value||monthNow(),scope=allowedScope(scopes.settlement),ls=scopedLessons(scope,m),campRows=summerCampRegistrationRows(m,scope);
     const studentIds=new Set([...ls.map(l=>l.studentId),...campRows.map(r=>r.studentId)]),teacherIds=new Set(ls.flatMap(l=>lessonTeacherIds(l)));
-    const sr=(db.students||[]).filter(s=>studentIds.has(s.id)).map(s=>{
+    const sr=(db.students||[]).filter(s=>recordMatchesBranch(s,scope,studentIds)).map(s=>{
       const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status));
       const lessonAmount=x.reduce((a,l)=>a+timetableRevenueCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m,scope);
       return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount};
-    }).filter(x=>x.total||x.campAmount);
+    });
     const tr=(db.teachers||[]).filter(t=>teacherIds.has(t.id)).map(t=>{
       const paid=ls.filter(l=>lessonTeacherIds(l).includes(t.id)&&l.payTeacher!=='no'),payroll=calculateTeacherPayroll(t,m,paid),h=payroll.actualHours;
       const expected=payroll.expectedHours,diff=payroll.diff,weeks=teacherWeekBreakdownForLessons(t,m,paid);

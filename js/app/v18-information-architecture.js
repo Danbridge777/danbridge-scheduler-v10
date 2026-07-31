@@ -89,13 +89,14 @@
     const target=$('#v181CollectionSummary');if(!target)return;
     const rows=$$('#studentSettleRows tr').filter(r=>r.cells.length>=7);
     const due=rows.reduce((n,r)=>n+parseMoney(r.cells[6]?.textContent),0);
-    const leave=rows.reduce((n,r)=>n+(parseFloat(r.cells[5]?.textContent)||0),0)/(rows.length||1);
+    const lessonRows=rows.filter(r=>(parseFloat(r.cells[2]?.textContent)||0)>0),leave=lessonRows.reduce((n,r)=>n+(parseFloat(r.cells[5]?.textContent)||0),0)/(lessonRows.length||1);
     const month=$('#settleMonth')?.value||'';const scope=$('#settlementBranchScope')?.value||'all';
     const branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
     const lessons=(typeof db!=='undefined'?(db.lessons||[]):[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&(scope==='all'||branchOf(l)===scope));
     const paid=lessons.filter(l=>l.paymentStatus==='paid').reduce((n,l)=>n+(typeof timetableRevenueCharge==='function'?timetableRevenueCharge(l):0),0);
     const collected=Math.min(due,paid),unpaid=Math.max(0,due-collected);
     target.innerHTML=`<div><span>本月應收</span><b>${money(due)}</b></div><div class="good"><span>已收</span><b>${money(collected)}</b></div><div class="warn"><span>未收</span><b>${money(unpaid)}</b></div><div><span>平均請假率</span><b>${leave.toFixed(1)}%</b></div>`;
+    const count=$('.v181-student-details>summary small');if(count)count.textContent=`共 ${rows.length} 位學生，點擊展開完整應收名單`;
     filterStudentRows();
   }
   function filterStudentRows(){

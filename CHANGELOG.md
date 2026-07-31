@@ -231,3 +231,8 @@
 ## V18.3.5 — Complete Student Collections List
 - Included Summer Camp registration-only students in the branch-scoped Student Collections table.
 - Kept every student with either monthly lesson rows or Summer Camp receivables visible.
+
+## V18.3.6 — Full Student Directory in Collections
+- Displayed every student record in Student Collections, including students with zero activity in the selected month.
+- Added the full student count to the expandable list heading.
+- Kept the average leave rate based on students with lesson activity so zero-activity rows do not dilute it.
