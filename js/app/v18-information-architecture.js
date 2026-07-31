@@ -28,6 +28,7 @@
     const history=$('.settlement-history',settlementCard);
     const text=$('#settlementText',settlementCard);
     const module=card('學生收款','先看本月應收、已收、未收與平均請假率；完整學生名單預設收合。');
+    const studentHead=studentTable?.querySelector('thead tr');if(studentHead&&!studentHead.querySelector('[data-line-billing]')){const th=document.createElement('th');th.dataset.lineBilling='1';th.textContent='LINE 對帳';studentHead.append(th)}
     module.classList.add('v181-collections-module');
     move(toolbar,module);
     if(toolbar){

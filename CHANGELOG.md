@@ -203,3 +203,10 @@
 - Preserved camp timetable rows for teacher hours and payroll calculations.
 - Added separate Tutoring Revenue and Summer Camp Revenue lines to the finance breakdown and copied summary.
 - Applied the same calculation to company-wide and branch-scoped finance views.
+
+## V18.3 — Student LINE Billing Copy
+- Added a per-student Copy LINE action to the monthly Student Collections table.
+- Combined tutoring hours and Summer Camp registration dates into one parent-facing monthly message.
+- Kept parent tutoring charges independent of teacher headcount.
+- Omitted empty tutoring or Summer Camp sections automatically.
+- Used the approved opening, totals and confirmation wording for the copied message.
