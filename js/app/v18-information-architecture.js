@@ -20,6 +20,18 @@
     return el;
   }
   function move(el,to){if(el&&to)to.append(el)}
+  function setNativeMonthValue(id,value){const el=$(id);if(!el)return;if(el.tagName==='SELECT'&&![...el.options].some(o=>o.value===value)){const option=document.createElement('option');option.value=value;option.textContent=value;el.append(option)}el.value=value}
+  function financeWorkspaceMonth(){return $('#v187FinanceMonthOverview')?.value||$('financeMonth')?.value||$('settleMonth')?.value||$('teacherKpiMonth')?.value||monthNow()}
+  function setFinanceWorkspaceMonth(value,render=true){
+    if(!/^\d{4}-\d{2}$/.test(value||''))return;$$('.v187-finance-month').forEach(input=>input.value=value);
+    ['financeMonth','settleMonth','teacherKpiMonth','oneTimeExpenseMonth'].forEach(id=>setNativeMonthValue(id,value));
+    if(render){renderFinance();renderSettlement();window.renderTeacherKpi?.()}
+  }
+  function addFinanceMonthControl(module,pane){
+    const bar=document.createElement('div');bar.className='v187-finance-month-bar';bar.innerHTML=`<label><span>資料月份</span><input class="v187-finance-month" id="v187FinanceMonth${pane[0].toUpperCase()+pane.slice(1)}" type="month"></label><small>切換後自動更新財務、老師 KPI、學生收款與支出資料</small>`;
+    $('.v181-card-title',module)?.after(bar);bar.querySelector('input').addEventListener('change',e=>setFinanceWorkspaceMonth(e.target.value,true));
+  }
+  window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 
   function buildStudentCollections(settlementCard,collections){
     const toolbar=$(':scope > .toolbar',settlementCard);
@@ -81,6 +93,9 @@
     if(expenseCards[0])move(expenseCards[0],expenses);if(expenseCards[1])move(expenseCards[1],expenses);panes.expenses.append(expenses);
     buildTeacherModule(kpiCard,settlement,panes.kpi,finance);
     buildStudentCollections(settlement,panes.collections);
+    addFinanceMonthControl(overview,'overview');addFinanceMonthControl($('.v181-teacher-module',panes.kpi),'kpi');addFinanceMonthControl($('.v181-collections-module',panes.collections),'collections');addFinanceMonthControl(expenses,'expenses');
+    [$('financeMonth')?.closest('div'),$('settleMonth')?.closest('div'),$('teacherKpiMonth')?.closest('div')].forEach(el=>{if(el)el.classList.add('v187-native-month-hidden')});
+    setFinanceWorkspaceMonth(financeWorkspaceMonth(),false);
     financeCard.remove(); settlement.hidden=true;
     $$('.v181-finance-nav button',shell).forEach(b=>b.addEventListener('click',()=>activateFinancePane(b.dataset.pane)));
   }

@@ -82,3 +82,9 @@
 .danbridge-language-toggle{position:fixed;right:22px;top:18px;z-index:10020;display:grid;place-items:center;min-width:52px;height:38px;padding:0 13px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:#183a64;color:#fff;font-size:12px;font-weight:900;letter-spacing:.06em;box-shadow:0 8px 22px rgba(15,38,65,.22);cursor:pointer}
 .danbridge-language-toggle:hover{background:#24517f;transform:translateY(-1px)}
 @media(max-width:700px){.danbridge-language-toggle{right:12px;top:10px;min-width:46px;height:34px}}
+
+/* V18.7 synchronized finance workspace month selector. */
+.v187-finance-month-bar{display:flex;align-items:end;justify-content:center;gap:16px;margin:-2px 0 18px;padding:13px 16px;border:1px solid #d9e5ee;border-radius:13px;background:#f5f9fc}
+.v187-finance-month-bar label{display:grid;gap:6px;min-width:230px}.v187-finance-month-bar label span{color:#49657b;font-size:11px;font-weight:850;letter-spacing:.06em;text-align:center}.v187-finance-month-bar input{width:100%;height:42px;min-height:42px;border-color:#cddce8!important;border-radius:10px!important;background:#fff!important;font-size:15px!important;font-weight:800!important;text-align:center!important}
+.v187-finance-month-bar small{max-width:430px;padding-bottom:10px;color:#667d91;font-size:12px;line-height:1.4}.v187-native-month-hidden{display:none!important}
+@media(max-width:600px){.v187-finance-month-bar{display:grid;grid-template-columns:1fr;gap:8px}.v187-finance-month-bar label{min-width:0}.v187-finance-month-bar small{text-align:center;padding:0}}

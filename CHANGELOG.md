@@ -260,3 +260,9 @@
 - Translated navigation, forms, filters, buttons, statuses, finance, camps, CRM, reports and dynamic UI labels.
 - Preserved student, parent, teacher, course and financial data exactly as entered.
 - Remembered the selected language across reloads and translated newly rendered interface elements automatically.
+
+## V18.7 — Synchronized Finance Month
+- Added a Data Month selector to Financial Overview, Teacher KPI, Student Collections and Expense Management.
+- Synchronized all four selectors and underlying native month fields.
+- Recalculated all four finance modules immediately after any month change.
+- Filtered recurring expenses to records active in the selected month and one-time expenses to that exact month.
