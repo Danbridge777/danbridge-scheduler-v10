@@ -23,6 +23,8 @@
 .camp-simple-schedule-card .span-2,.camp-simple-schedule-card .span-4{grid-column:1/-1}
 @media(max-width:720px){#camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{align-items:flex-start;flex-direction:column;gap:6px}}
 .camp-registration-form{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(180px,.8fr) minmax(180px,.8fr) minmax(220px,1fr);gap:14px;align-items:end}
+[data-summer-rate]{display:none}
+[data-summer-rate].active{display:block}
 .registration-total-box{display:grid;grid-template-columns:1fr auto;gap:5px 12px;padding:13px 15px;border:1px solid var(--line);border-radius:16px;background:var(--soft,#f8fafc)}
 .registration-total-box span{font-size:12px;color:var(--muted)}
 .registration-total-box b,.registration-total-box strong{text-align:right}.registration-total-box strong{font-size:22px}
@@ -39,6 +41,24 @@
 .camp-registration-item .amount{text-align:right;white-space:nowrap}
 @media(max-width:900px){.camp-registration-form{grid-template-columns:1fr 1fr}.registration-total-box{grid-column:1/-1}.camp-date-grid{grid-template-columns:repeat(4,minmax(66px,1fr))}.camp-registration-item{grid-template-columns:1fr}.camp-registration-item .amount{text-align:left}}
 @media(max-width:520px){.camp-registration-form{grid-template-columns:1fr}.camp-date-grid{grid-template-columns:repeat(3,minmax(64px,1fr))}}
+
+/* V18.11 — clearer standalone Summer Camp billing workspace. */
+#camps .camp-registration-card{padding:30px!important;border-radius:24px!important;background:linear-gradient(180deg,#fff,#fbfdff)!important}
+#camps .camp-registration-card>h2{margin-bottom:8px!important;font-size:clamp(26px,3vw,38px)!important}
+#camps .camp-registration-form{grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;padding:20px;border:1px solid #dce8f2;border-radius:20px;background:#f5f9fc}
+#camps .camp-registration-form>div{grid-column:span 3;min-width:0}
+#camps .camp-registration-form>div:has(#summerRegistrationStudent){grid-column:span 6}
+#camps .camp-registration-form>div:has(#summerRegistrationPricingMode){grid-column:span 4}
+#camps .camp-registration-form>[data-summer-rate].active{grid-column:span 4}
+#camps .registration-total-box{grid-column:span 4!important;min-height:116px;background:#fff;border-color:#cbddea;box-shadow:0 8px 22px rgba(31,76,108,.07)}
+#camps .camp-date-toolbar{margin-top:22px;padding-top:18px;border-top:1px solid #dce6ee}
+#camps .camp-date-grid{gap:10px}
+#camps .camp-date-check{justify-content:flex-start;min-height:68px;padding:10px 12px;background:#fff}
+#camps .camp-date-check input{flex:0 0 22px!important;width:22px!important;height:22px!important;min-width:22px!important;padding:0!important}
+#camps .camp-date-check span{display:block;min-width:0;line-height:1.35;white-space:nowrap}
+#camps .summer-line-copy{border-color:#1d8461!important;background:#edf9f4!important;color:#176247!important}
+@media(max-width:1000px){#camps .camp-registration-form>div,#camps .camp-registration-form>div:has(#summerRegistrationStudent),#camps .camp-registration-form>div:has(#summerRegistrationPricingMode),#camps .camp-registration-form>[data-summer-rate].active{grid-column:span 6}#camps .registration-total-box{grid-column:1/-1!important}}
+@media(max-width:620px){#camps .camp-registration-card{padding:18px!important}#camps .camp-registration-form>div,#camps .camp-registration-form>div:has(#summerRegistrationStudent),#camps .camp-registration-form>div:has(#summerRegistrationPricingMode),#camps .camp-registration-form>[data-summer-rate].active{grid-column:1/-1}#camps .camp-date-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
 /* V18.9.1 — prevent native date controls from being clipped in narrow camp cards. */
 .camp-simple-schedule-card .camp-form-grid > div{min-width:0}
