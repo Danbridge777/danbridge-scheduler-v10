@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v18163-line-child-subtotal-label';
+const CACHE_NAME='danbridge-v18164-line-remove-duplicate-subtotal';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
