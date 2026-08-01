@@ -1,5 +1,21 @@
 /* Danbridge V17.26 — Summer camp monthly date registration */
 #camps .camp-registration-card{grid-column:1/-1}
+
+/* V18.8 — make schedule creation and student billing one clear workflow. */
+#camps .camp-workflow-banner,
+#winterCamps .camp-workflow-banner{
+  display:flex;align-items:center;gap:18px;margin:0 0 18px;padding:18px 22px;
+  border:1px solid #c9dced;border-left:6px solid #1f74a8;border-radius:18px;
+  background:linear-gradient(110deg,#f1f8fd,#fffaf0);color:#314e68
+}
+#camps .camp-workflow-banner b,
+#winterCamps .camp-workflow-banner b{flex:0 0 auto;color:#12263f;font-size:1.05rem}
+#camps .camp-workflow-banner span,
+#winterCamps .camp-workflow-banner span{line-height:1.65;font-weight:650}
+.camp-step-note{margin:-4px 0 18px;color:#647b91;font-weight:650;line-height:1.55}
+#camps .camp-registration-card .camp-date-toolbar{display:flex;flex-wrap:wrap;gap:10px}
+#camps .camp-registration-card [data-copy-camp-dates]{background:#176f9f;color:#fff;border-color:#176f9f}
+@media(max-width:720px){#camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{align-items:flex-start;flex-direction:column;gap:6px}}
 .camp-registration-form{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(180px,.8fr) minmax(180px,.8fr) minmax(220px,1fr);gap:14px;align-items:end}
 .registration-total-box{display:grid;grid-template-columns:1fr auto;gap:5px 12px;padding:13px 15px;border:1px solid var(--line);border-radius:16px;background:var(--soft,#f8fafc)}
 .registration-total-box span{font-size:12px;color:var(--muted)}

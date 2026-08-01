@@ -271,3 +271,9 @@
 - Updated finance data on month input, selection, blur or Enter in Safari.
 - Persisted the active finance workspace month as the authoritative value for all finance calculations.
 - Moved the language toggle into the header action group and automatically remounted it after authentication refreshes.
+# V18.8 — 營隊課表與報名流程整合
+
+- 將夏令營操作整理為「建立營隊課表」與「學生報名與收費」兩個連續步驟，明確區分老師工時與學生收入。
+- 夏令營學生報名可選擇既有營隊課表，並一鍵帶入所選月份的全部課表日期，不必重複勾選。
+- 報名紀錄保存所屬營隊；舊紀錄仍可依原日期推斷營隊，不破壞既有資料。
+- 冬令營介面同步簡化說明，避免把建立課表誤認為另一套報名功能。
