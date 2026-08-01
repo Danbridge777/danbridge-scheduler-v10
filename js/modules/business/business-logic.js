@@ -49,10 +49,11 @@ function billingCampFormula(rows){
   if(mode==='weeklySplit')return`前 ${+r.frontWeeks||0} 週 ${money(+r.frontWeeklyRate||0)}／週，後段 ${money(+r.backWeeklyRate||0)}／週`;
   return`${days} 天 × ${money(+r.dailyRate||0)}`;
 }
+function billingParentName(value){return String(value||'').replace(/[\u200B-\u200D\uFEFF]/g,'').trim()}
 function billingFamilyStudents(studentId){
-  const selected=student(studentId),parent=String(selected.parent||'');
+  const selected=student(studentId),parent=billingParentName(selected.parent);
   if(!parent)return[selected];
-  return(db.students||[]).filter(s=>!s.campSeason&&(s.status||'active')!=='inactive'&&String(s.parent||'')===parent);
+  return(db.students||[]).filter(s=>!s.campSeason&&billingParentName(s.parent)===parent);
 }
 function studentBillingSections(d,includeName=false){
   const lines=[];if(includeName)lines.push(`${d.student.name||'學生'}`);
@@ -62,8 +63,8 @@ function studentBillingSections(d,includeName=false){
 }
 function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
   const explicitIds=Array.isArray(familyStudentIds)?new Set(familyStudentIds.filter(Boolean)):null;
-  const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=details.length>1;
-  const names=details.map(d=>d.student.name||'學生').join('、')||student(studentId).name||'學生',total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`媽咪好，以下是 ${names} ${billingMonthLabel(m)}的課程費用明細：`,''];
+  const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=family.length>1;
+  const names=family.map(s=>s.name||'學生').join('、')||student(studentId).name||'學生',total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`媽咪好，以下是 ${names} ${billingMonthLabel(m)}的課程費用明細：`,''];
   details.forEach(d=>lines.push(...studentBillingSections(d,multiple)));
   lines.push(`${multiple?'家庭本月應收':'本月應收'}：${money(total)}`,'','以上請媽咪確認！');return lines.join('\n');
 }
