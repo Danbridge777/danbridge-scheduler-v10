@@ -71,8 +71,9 @@
   function setLanguage(next){language=next==='en'?'en':'zh';localStorage.setItem(KEY,language);walk()}
   function toggle(){setLanguage(language==='en'?'zh':'en')}
   function install(){
-    const b=document.createElement('button');b.type='button';b.id='danbridgeLanguageToggle';b.className='danbridge-language-toggle';b.onclick=toggle;document.body.appendChild(b);updateButton();
-    const observer=new MutationObserver(records=>{if(applying)return;for(const r of records){if(r.type==='characterData')translateNode(r.target);else r.addedNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)translateNode(n);else if(n.nodeType===Node.ELEMENT_NODE)walk(n)})}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    const b=document.createElement('button');b.type='button';b.id='danbridgeLanguageToggle';b.className='danbridge-language-toggle';b.onclick=toggle;
+    const mountButton=()=>{const target=document.querySelector('header .header-auth-actions');if(target){b.classList.remove('is-floating');if(b.parentElement!==target)target.appendChild(b)}else{b.classList.add('is-floating');if(!b.isConnected)document.body.appendChild(b)}};mountButton();updateButton();
+    const observer=new MutationObserver(records=>{if(applying)return;for(const r of records){if(r.type==='characterData')translateNode(r.target);else r.addedNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)translateNode(n);else if(n.nodeType===Node.ELEMENT_NODE)walk(n)})}mountButton()});observer.observe(document.body,{subtree:true,childList:true,characterData:true});
     if(language==='en')walk();
   }
   window.DanbridgeLanguage={toggle,setLanguage,getLanguage:()=>language,translate:translateExact};

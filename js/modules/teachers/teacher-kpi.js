@@ -15,7 +15,7 @@
     if(c.role==='branch_manager'){branch.value=c.branchIds[0]||'unassigned';branch.disabled=true}else if(c.role==='teacher'){branch.value='all';branch.disabled=true}else{branch.disabled=false;branch.value=[...branch.options].some(o=>o.value===old)?old:'all'}
   }
   function teacherRows(){
-    setupFilters();const c=ctx(),month=$('teacherKpiMonth')?.value||monthNow(),scope=$('teacherKpiBranch')?.value||'all';
+    setupFilters();const c=ctx(),month=window.__danbridgeFinanceWorkspaceMonth||$('teacherKpiMonth')?.value||monthNow(),scope=$('teacherKpiBranch')?.value||'all';
     let lessons=(db.lessons||[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&(scope==='all'||branchId(l)===scope));
     let teachers=(db.teachers||[]).filter(t=>scope==='all'||[...(t.branchIds||[]),...(t.assignedBranchIds||[])].includes(scope)||lessons.some(l=>lessonTeachers(l).includes(t.id)));
     if(c.role==='teacher'){teachers=teachers.filter(t=>t.id===c.teacherId);lessons=lessons.filter(l=>lessonTeachers(l).includes(c.teacherId))}
@@ -32,7 +32,7 @@
   window.renderTeacherKpi=function(){
     const grid=$('teacherKpiGrid'),summary=$('teacherKpiSummary');if(!grid||!summary)return;
     const rows=teacherRows(),totalHours=rows.reduce((a,x)=>a+x.hours,0),students=new Set();
-    const c=ctx(),month=$('teacherKpiMonth')?.value||monthNow(),scope=$('teacherKpiBranch')?.value||'all';
+    const c=ctx(),month=window.__danbridgeFinanceWorkspaceMonth||$('teacherKpiMonth')?.value||monthNow(),scope=$('teacherKpiBranch')?.value||'all';
     const scopedLessons=(db.lessons||[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&(scope==='all'||branchId(l)===scope)&&(c.role!=='teacher'||lessonTeachers(l).includes(c.teacherId)));scopedLessons.forEach(l=>students.add(l.studentId));
     const totalRevenue=scopedLessons.reduce((sum,l)=>sum+timetableRevenueCharge(l),0)+(c.role==='teacher'?0:summerCampRegistrationRevenue(month,scope));
     summary.innerHTML=`<div><span>老師數</span><b>${rows.length}</b></div><div><span>授課學生</span><b>${students.size}</b></div><div><span>總時數</span><b>${fmtHours(totalHours)} hr</b></div><div><span>公司營收</span><b>${money(totalRevenue)}</b></div>`;

@@ -266,3 +266,8 @@
 - Synchronized all four selectors and underlying native month fields.
 - Recalculated all four finance modules immediately after any month change.
 - Filtered recurring expenses to records active in the selected month and one-time expenses to that exact month.
+
+## V18.7.1 — Safari Month and Language Button Fix
+- Updated finance data on month input, selection, blur or Enter in Safari.
+- Persisted the active finance workspace month as the authoritative value for all finance calculations.
+- Moved the language toggle into the header action group and automatically remounted it after authentication refreshes.
