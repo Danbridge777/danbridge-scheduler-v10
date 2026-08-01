@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v18143-finance-month-sync';
+const CACHE_NAME='danbridge-v1815-month-end-audit';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

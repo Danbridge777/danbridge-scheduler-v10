@@ -37,6 +37,27 @@
     const refresh=$$('button',overview).find(button=>button.textContent.trim()==='重新計算');
     if(refresh&&!refresh.dataset.workspaceBound){refresh.dataset.workspaceBound='1';refresh.addEventListener('click',()=>{setFinanceWorkspaceMonth(month?.value||financeWorkspaceMonth(),true);window.toast?.('財務資料已重新計算')})}
   }
+  function monthEndAudit(){
+    const month=financeWorkspaceMonth(),scope=$('#financeBranchScope')?.value||'all',branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
+    const lessons=(db.lessons||[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&(scope==='all'||branchOf(l)===scope)),tutoring=lessons.filter(l=>!effectiveCampId(l)),camps=lessons.filter(l=>effectiveCampId(l));
+    const registrations=(db.summerCampRegistrations||[]).filter(r=>r.month===month&&(scope==='all'||(r.branchId||'unassigned')===scope)),issues=[];
+    const add=(severity,title,detail)=>issues.push({severity,title,detail});
+    tutoring.forEach(l=>{const s=student(l.studentId),name=s?.name||`學生 ID ${l.studentId||'空白'}`;if(!s?.id)add('error','課程找不到學生',`${l.date} ${l.start||'--:--'}｜${name}`);if(!l.start||!l.end||hours(l.start,l.end)<=0)add('error','課程時間不完整',`${l.date}｜${name}｜${l.start||'--:--'}–${l.end||'--:--'}`);if(s?.id&&(+s.rate||0)<=0)add('error','學生單價未設定',`${name}｜${l.date}｜目前單價 ${money(+s.rate||0)}`)});
+    const duplicateMap=new Map();tutoring.forEach(l=>{const key=[l.studentId,l.date,l.start,l.end].join('|'),rows=duplicateMap.get(key)||[];rows.push(l);duplicateMap.set(key,rows)});duplicateMap.forEach(rows=>{if(rows.length>1){const l=rows[0];add('error','學生同時段重複課程',`${student(l.studentId)?.name||l.studentId}｜${l.date} ${l.start}–${l.end}｜共 ${rows.length} 筆`)}});
+    const billedStudentIds=new Set(tutoring.map(l=>l.studentId));billedStudentIds.forEach(id=>{const s=student(id);if(s?.id&&!billingParentName(s.parent))add('warning','缺少家長姓名',`${s.name||id}｜家庭 LINE 無法正確合併`)});
+    const usedTeacherIds=new Set(lessons.flatMap(l=>lessonTeacherIds(l)));usedTeacherIds.forEach(id=>{const t=teacher(id);if(!t?.id)return add('error','課程找不到老師',`老師 ID ${id}`);if(teacherPayrollMode(t)==='fixed'){if(teacherBaseSalary(t)===null)add('error','固定底薪未設定',t.name);if(teacherOvertimeRate(t)===null)add('error','超時時薪未設定',t.name);if(teacherDeductionRate(t)===null)add('error','不足工時扣款未設定',t.name)}else if((+t.rate||0)<=0)add('error','老師時薪未設定',t.name)});
+    const campStudentIds=new Set(camps.map(l=>l.studentId));campStudentIds.forEach(id=>{if(!registrations.some(r=>(r.campStudentId||inferSummerRegistrationCamp(r))===id))add('warning','營隊課表尚無報名收費',`${student(id)?.name||id}｜${month}`)});
+    registrations.forEach(r=>{const s=student(r.studentId),total=summerRegistrationTotal(r);if(!s?.id)add('error','營隊報名找不到學生',`報名 ID ${r.id}`);if(!(r.dates||[]).length)add('error','營隊報名沒有日期',s?.name||r.id);if(total<=0)add('error','營隊費用為 0',s?.name||r.id)});
+    const tutoringTotal=tutoring.reduce((sum,l)=>sum+lessonCharge(l),0),studentTotal=[...billedStudentIds].reduce((sum,id)=>sum+studentMonthlyBillingData(id,month,scope).tutoringAmount,0),campTotal=registrations.reduce((sum,r)=>sum+summerRegistrationTotal(r),0);
+    if(Math.abs(tutoringTotal-studentTotal)>.01)add('error','家教收入與學生應收不一致',`財務 ${money(tutoringTotal)}｜學生應收 ${money(studentTotal)}`);
+    const panel=$('#v181MonthEndAudit');if(!panel)return;const errors=issues.filter(x=>x.severity==='error').length,warnings=issues.filter(x=>x.severity==='warning').length;
+    panel.hidden=false;panel.innerHTML=`<div class="v181-audit-head"><div><b>${monthLabel(month)} 月底檢查</b><span>${scope==='all'?'全部校區':window.DanbridgeBranchBusiness?.scopeLabel?.(scope)||scope}</span></div><div><strong class="${errors?'bad':'good'}">${errors?`${errors} 項需修正`:'主要計算通過'}</strong>${warnings?`<em>${warnings} 項提醒</em>`:''}</div></div><div class="v181-audit-summary"><span>家教 ${tutoring.length} 堂／${money(tutoringTotal)}</span><span>營隊報名 ${registrations.length} 筆／${money(campTotal)}</span><span>老師 ${usedTeacherIds.size} 位</span><span>學生 ${billedStudentIds.size} 位</span></div>${issues.length?`<div class="v181-audit-list">${issues.map(x=>`<div class="${x.severity}"><b>${x.severity==='error'?'需修正':'提醒'}｜${esc(x.title)}</b><span>${esc(x.detail)}</span></div>`).join('')}</div>`:'<div class="v181-audit-pass">沒有發現計算、資料關聯或設定異常，可以進行月底對帳。</div>'}`;
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  function addMonthEndAudit(overview){
+    const toolbar=$(':scope > .toolbar',overview);if(!toolbar||$('#v181MonthEndAudit'))return;const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='月底一次檢查';button.addEventListener('click',monthEndAudit);toolbar.append(button);const panel=document.createElement('div');panel.id='v181MonthEndAudit';panel.className='v181-month-end-audit';panel.hidden=true;toolbar.after(panel);
+  }
+  window.monthEndAudit=monthEndAudit;
   window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 
   function buildStudentCollections(settlementCard,collections){
@@ -101,6 +122,7 @@
     buildStudentCollections(settlement,panes.collections);
     addFinanceMonthControl(overview,'overview');addFinanceMonthControl($('.v181-teacher-module',panes.kpi),'kpi');addFinanceMonthControl($('.v181-collections-module',panes.collections),'collections');addFinanceMonthControl(expenses,'expenses');
     bindNativeFinanceControls(overview);
+    addMonthEndAudit(overview);
     [$('financeMonth')?.closest('div'),$('settleMonth')?.closest('div'),$('teacherKpiMonth')?.closest('div')].forEach(el=>{if(el)el.classList.add('v187-native-month-hidden')});
     setFinanceWorkspaceMonth(financeWorkspaceMonth(),false);
     financeCard.remove(); settlement.hidden=true;
