@@ -15,6 +15,12 @@
 .camp-step-note{margin:-4px 0 18px;color:#647b91;font-weight:650;line-height:1.55}
 #camps .camp-registration-card .camp-date-toolbar{display:flex;flex-wrap:wrap;gap:10px}
 #camps .camp-registration-card [data-copy-camp-dates]{background:#176f9f;color:#fff;border-color:#176f9f}
+.camp-legacy-setup,.camp-legacy-registration,.camp-unused-field,
+#camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{display:none!important}
+#camps .camp-layout,#winterCamps .camp-layout{grid-template-columns:1fr!important}
+.camp-simple-schedule-card{max-width:1120px;width:100%;margin-inline:auto}
+.camp-simple-schedule-card .camp-form-grid{grid-template-columns:repeat(2,minmax(220px,1fr))}
+.camp-simple-schedule-card .span-2,.camp-simple-schedule-card .span-4{grid-column:1/-1}
 @media(max-width:720px){#camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{align-items:flex-start;flex-direction:column;gap:6px}}
 .camp-registration-form{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(180px,.8fr) minmax(180px,.8fr) minmax(220px,1fr);gap:14px;align-items:end}
 .registration-total-box{display:grid;grid-template-columns:1fr auto;gap:5px 12px;padding:13px 15px;border:1px solid var(--line);border-radius:16px;background:var(--soft,#f8fafc)}
