@@ -17,7 +17,7 @@
     '搜尋學生姓名／班級':'Search student or class','搜尋學生、老師、課名或教室':'Search student, teacher, course or room','姓名、家長、學校、程度、電話':'Name, parent, school, level or phone','輸入學生姓名':'Enter student name','輸入家長姓名':'Enter parent name','全部 / 請選擇':'All / Select','未指定':'Unassigned','未指定教室':'Room not assigned'
   };
   const dict=new Map(Object.entries(pairs));
-  Object.entries({'時段':'Session','早上':'Morning','下午':'Afternoon','營隊收費':'Camp Fee','輸入金額':'Enter amount','建立夏令營課表':'Create Summer Camp Schedule','建立冬令營課表':'Create Winter Camp Schedule'}).forEach(([zh,en])=>dict.set(zh,en));
+  Object.entries({'時段':'Session','早上':'Morning','下午':'Afternoon','營隊收費':'Camp Fee','夏令營收費':'Summer Camp Billing','夏令營學生收費':'Summer Camp Student Billing','手動登記夏令營收費':'Manual Summer Camp Billing','輸入金額':'Enter amount','建立夏令營課表':'Create Summer Camp Schedule','建立冬令營課表':'Create Winter Camp Schedule'}).forEach(([zh,en])=>dict.set(zh,en));
   Object.entries({
     '課表、教師、薪資與營運管理，集中於同一個安全、即時同步的管理平台。':'Schedules, teachers, payroll and operations in one secure, real-time platform.',
     '智慧課表':'Smart Scheduling','拖曳排課與衝堂檢查':'Drag-and-drop scheduling and conflict checks','教師管理':'Teacher Management','課務紀錄與工時統計':'Lesson records and hour tracking','薪資管理':'Payroll Management','工時、薪資與績效統計':'Hours, payroll and performance','營運分析':'Operations Analytics','財務報表與即時指標':'Financial reports and live metrics',

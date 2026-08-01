@@ -142,7 +142,7 @@
     const settlement=window.renderSettlement;if(typeof settlement==='function'&&!settlement.__v181){window.renderSettlement=function(){settlement();renderCollectionSummary();rebuildTeacherWorkspace()};window.renderSettlement.__v181=true}
   }
   function relabelNavigation(){
-    const labels={dashboard:'營運總覽',students:'學生 CRM',teachers:'老師管理',calendar:'課程管理',lessons:'課程紀錄',finance:'財務中心',data:'系統資料'};
+    const labels={dashboard:'營運總覽',students:'學生 CRM',teachers:'老師管理',calendar:'課程管理',lessons:'課程紀錄',camps:'夏令營收費',finance:'財務中心',data:'系統資料'};
     Object.entries(labels).forEach(([tab,label])=>{const b=$(`nav button[data-tab="${tab}"]`);if(b)b.textContent=label});
   }
   function patchSwitchTab(){
@@ -155,7 +155,8 @@
     const fab=document.createElement('button');fab.id='v18Fab';fab.className='v18-fab';fab.type='button';fab.setAttribute('aria-label','快速新增');fab.textContent='＋';document.body.append(menu,fab);
     fab.addEventListener('click',()=>menu.classList.toggle('open'));menu.addEventListener('click',e=>{const a=e.target.dataset.action;if(!a)return;menu.classList.remove('open');if(a==='lesson')return window.openLessonModal?.();if(a==='student'){window.switchTab('students');setTimeout(()=>$('#studentName')?.focus(),50)}if(a==='teacher'){window.switchTab('teachers');setTimeout(()=>$('#teacherName')?.focus(),50)}if(a==='expense'){window.switchTab('finance');setTimeout(()=>{activateFinancePane('expenses');$('#oneTimeExpenseName')?.focus()},80)}});
   }
-  function init(){relabelNavigation();buildFinanceCenter();patchRenderers();buildQuickActions();patchSwitchTab();window.renderFinance?.();window.renderSettlement?.();window.renderTeacherKpi?.()}
+  function configureSummerBillingOnly(){const card=$('#camps .camp-registration-card');if(!card)return;const heading=$(':scope > h2',card);if(heading)heading.textContent='夏令營學生收費';const note=$(':scope > .camp-step-note',card);if(note)note.textContent='選擇學生、月份與計價方式，登記實際參加日期及應收費用。';$('#summerRegistrationCamp',card)?.closest('div')?.classList.add('v181-hidden-camp-field');$('[data-copy-camp-dates]',card)?.remove()}
+  function init(){relabelNavigation();configureSummerBillingOnly();buildFinanceCenter();patchRenderers();buildQuickActions();patchSwitchTab();window.renderFinance?.();window.renderSettlement?.();window.renderTeacherKpi?.()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
   window.addEventListener('load',()=>setTimeout(()=>{patchRenderers();patchSwitchTab()},200));
 })();

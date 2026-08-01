@@ -38,5 +38,10 @@
 @media(max-width:900px){.v181-module-card .finance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.v181-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v181-teacher-detail .teacher-kpi-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.v181-finance-hero{padding:19px 15px}.v181-finance-hero h1{font-size:23px}.v181-finance-nav{grid-template-columns:repeat(2,minmax(0,1fr));position:static}.v181-teacher-workspace{grid-template-columns:1fr;min-height:0}.v181-teacher-list{max-height:220px}.v181-student-details>summary{display:grid;text-align:center}.v18-fab{right:16px;bottom:82px}.v18-fab-menu{right:16px;bottom:146px}}
 @media(max-width:480px){.v181-module-card .finance-summary,.v181-summary-grid,.v181-search-grid,.v181-teacher-detail .teacher-kpi-metrics,.v181-payroll-details .teacher-pay-grid{grid-template-columns:1fr!important}.v181-finance-nav button span{display:none}.v181-finance-nav button{min-height:46px}.v181-card-title p{line-height:1.55}.v181-payroll-details .teacher-pay-head{padding-inline:17px!important}.v181-payroll-details .teacher-work-summary{padding-inline:17px!important}.v181-payroll-details .teacher-pay-grid{padding:14px 17px!important}.v181-payroll-details .weekly-detail{max-width:calc(100% - 34px)!important;margin-inline:17px!important}.v181-payroll-details>summary::before,.v181-payroll-details>summary::after{display:none}}
-/* V18.10 — camp setup modules retired; use the regular schedule and Finance > Student Collections. */
-#camps,#winterCamps{display:none!important}
+/* V18.10.1 — keep only Summer Camp student billing; scheduling stays in the regular calendar. */
+#winterCamps{display:none!important}
+#camps .camp-workflow-banner,
+#camps .camp-layout>.card:not(.camp-registration-card){display:none!important}
+#camps .camp-registration-card{display:block!important;grid-column:1/-1!important}
+#camps .camp-layout{display:block!important;max-width:1440px;margin-inline:auto}
+#camps .v181-hidden-camp-field{display:none!important}
