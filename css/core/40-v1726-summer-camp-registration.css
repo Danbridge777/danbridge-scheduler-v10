@@ -39,3 +39,13 @@
 .camp-registration-item .amount{text-align:right;white-space:nowrap}
 @media(max-width:900px){.camp-registration-form{grid-template-columns:1fr 1fr}.registration-total-box{grid-column:1/-1}.camp-date-grid{grid-template-columns:repeat(4,minmax(66px,1fr))}.camp-registration-item{grid-template-columns:1fr}.camp-registration-item .amount{text-align:left}}
 @media(max-width:520px){.camp-registration-form{grid-template-columns:1fr}.camp-date-grid{grid-template-columns:repeat(3,minmax(64px,1fr))}}
+
+/* V18.9.1 — prevent native date controls from being clipped in narrow camp cards. */
+.camp-simple-schedule-card .camp-form-grid > div{min-width:0}
+.camp-simple-schedule-card input,
+.camp-simple-schedule-card select{box-sizing:border-box;min-width:0;width:100%;max-width:100%}
+@media(max-width:900px){
+  .camp-simple-schedule-card .camp-form-grid{grid-template-columns:minmax(0,1fr)!important}
+  .camp-simple-schedule-card .camp-form-grid .span-2,
+  .camp-simple-schedule-card .camp-form-grid .span-4{grid-column:1!important}
+}
