@@ -45,6 +45,8 @@
 .camp-simple-schedule-card input,
 .camp-simple-schedule-card select{box-sizing:border-box;min-width:0;width:100%;max-width:100%}
 .camp-simple-schedule-card input[type="date"]{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.camp-simple-schedule-card .camp-form-grid > div:has(> input[type="date"]){grid-column:1/-1!important}
+.camp-simple-schedule-card input[type="date"]{padding-inline:18px!important;font-size:clamp(18px,2vw,24px)!important}
 @media(max-width:900px){
   .camp-simple-schedule-card .camp-form-grid{grid-template-columns:minmax(0,1fr)!important}
   .camp-simple-schedule-card .camp-form-grid .span-2,
