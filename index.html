@@ -138,7 +138,7 @@
 <link rel="stylesheet" href="./css/core/61-v1718-teacher-revenue-kpi.css?v=17.18">
 <link rel="stylesheet" href="./css/core/62-v1719-large-teacher-revenue-kpi.css?v=17.19">
   <link rel="stylesheet" href="./css/core/63-v1730-searchable-student-selects.css">
-<link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.4">
+<link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.10">
 <link rel="stylesheet" href="./css/core/67-v185-interface-clarity.css?v=18.5">
 </head>
 <body class="auth-locked">
@@ -172,7 +172,7 @@
 </div>
 
 <header><h1>Danbridge Operations</h1><p>Education Management System｜多校區營運｜課務｜財務｜師資管理</p><div class="header-auth-actions"><button type="button" class="btn notification-bell" onclick="DanbridgeNotifications.open()" aria-label="開啟通知中心"><span class="notification-bell-icon">🔔</span><span id="notificationCount" class="notification-count" hidden>0</span></button><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
-<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營</button><button data-tab="winterCamps">冬令營</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
+<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
 <main><section id="dashboard" class="active"><div class="branch-scope-bar"><div><label>查看校區</label><select id="dashboardBranchScope" onchange="DanbridgeBranchBusiness.setScope('dashboard',this.value)"></select></div><div id="dashboardBranchScopeNote" class="small"></div></div>
   <div class="v32-welcome">
     <div><div class="v32-eyebrow">DANBRIDGE OPERATIONS</div><h2 id="v32Greeting">今日營運總覽</h2><p id="v32DateText">正在整理今天的課程與營運資料。</p></div>
@@ -411,6 +411,6 @@
 <script src="./js/modules/calendar/marquee-multi-selection.js"></script>
 
 <script src="./js/core/undo-redo-history.js"></script>
-<script src="./js/app/v18-information-architecture.js?v=18.7.1"></script>
+<script src="./js/app/v18-information-architecture.js?v=18.10"></script>
 <script src="./js/core/ui-language.js?v=18.9"></script>
 </body></html>
