@@ -19,7 +19,7 @@
 #camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{display:none!important}
 #camps .camp-layout,#winterCamps .camp-layout{grid-template-columns:1fr!important}
 .camp-simple-schedule-card{max-width:1120px;width:100%;margin-inline:auto}
-.camp-simple-schedule-card .camp-form-grid{grid-template-columns:repeat(2,minmax(220px,1fr))}
+.camp-simple-schedule-card .camp-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 .camp-simple-schedule-card .span-2,.camp-simple-schedule-card .span-4{grid-column:1/-1}
 @media(max-width:720px){#camps .camp-workflow-banner,#winterCamps .camp-workflow-banner{align-items:flex-start;flex-direction:column;gap:6px}}
 .camp-registration-form{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(180px,.8fr) minmax(180px,.8fr) minmax(220px,1fr);gap:14px;align-items:end}
@@ -44,6 +44,7 @@
 .camp-simple-schedule-card .camp-form-grid > div{min-width:0}
 .camp-simple-schedule-card input,
 .camp-simple-schedule-card select{box-sizing:border-box;min-width:0;width:100%;max-width:100%}
+.camp-simple-schedule-card input[type="date"]{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 @media(max-width:900px){
   .camp-simple-schedule-card .camp-form-grid{grid-template-columns:minmax(0,1fr)!important}
   .camp-simple-schedule-card .camp-form-grid .span-2,
