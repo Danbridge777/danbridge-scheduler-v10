@@ -219,7 +219,7 @@
     <button class="btn primary calendar-quick-add" onclick="openLessonModal()">＋ 新增課程</button>
   </div>
   <div class="calendar-toolbar-row calendar-toolbar-filters">
-    <div class="calendar-field"><label>老師</label><select id="calendarTeacherFilter" onchange="calendarActionChanged()"></select></div>
+    <div class="calendar-field"><label>老師</label><select id="calendarTeacherFilter" onchange="calendarTeacherTargetChanged()"></select></div>
     <div class="calendar-field"><label>地點</label><select id="calendarLocationFilter" onchange="calendarActionChanged()"><option value="">全部地點</option><option value="河西一路">河西一路</option><option value="美術東四路">美術東四路</option><option value="到府">到府</option><option value="線上課">線上課</option></select></div>
     <div class="calendar-field"><label>學生／班級</label><select id="calendarStudentFilter" onchange="calendarActionChanged()"></select></div>
     <div class="calendar-field"><label>教室</label><select id="calendarRoomFilter" onchange="calendarActionChanged()"></select></div>
@@ -377,7 +377,7 @@
 <script src="./js/modules/students/students-crm.js?v=18.13"></script>
 <script src="./js/modules/students/student-crm-independent-scroll.js?v=17.17"></script>
 <script src="./js/modules/teachers/teachers-crm.js"></script>
-<script src="./js/modules/calendar/scheduler-ui.js"></script>
+<script src="./js/modules/calendar/scheduler-ui.js?v=18.14"></script>
 <script src="./js/modules/calendar/course-operations.js"></script>
 <script src="./js/modules/camps/camp-management.js?v=18.12"></script>
 <script src="./js/modules/settings/settings-expenses.js"></script>
