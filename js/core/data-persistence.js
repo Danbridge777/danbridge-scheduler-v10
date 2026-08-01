@@ -84,11 +84,16 @@ function normalizeLessonIdentityData(x,{allowMigration=lessonIdMigrationAllowed(
 }
 
 function defaultBranches(){return (window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).map(x=>({...x}))}
+function normalizeFamilyValue(value){return String(value||'').trim().toLocaleLowerCase('zh-Hant').normalize('NFKC').replace(/[\s()（）-]+/g,'')}
+function studentFamilyContacts(student={}){return [...new Set([student.contact,student.parentLine,student.parentEmail].map(normalizeFamilyValue).filter(Boolean))]}
+function stableFamilyId(key){let hash=2166136261;for(const ch of String(key||'')){hash^=ch.codePointAt(0);hash=Math.imul(hash,16777619)}return`family_${(hash>>>0).toString(36)}`}
+function normalizeStudentFamilies(students=[]){const rows=students.map(st=>({...st})),families=new Map();const register=st=>{if(!st.familyId)return;const meta=families.get(st.familyId)||{parent:normalizeFamilyValue(st.parent),contacts:new Set()};studentFamilyContacts(st).forEach(v=>meta.contacts.add(v));families.set(st.familyId,meta)};rows.forEach(register);for(const st of rows){if(st.campSeason||st.familyId)continue;const parent=normalizeFamilyValue(st.parent),contacts=studentFamilyContacts(st);if(!parent){st.familyId='';continue}const candidates=[...families].filter(([,meta])=>meta.parent===parent),shared=candidates.filter(([,meta])=>contacts.some(v=>meta.contacts.has(v)));let familyId=shared.length===1?shared[0][0]:'';if(!familyId&&candidates.length===1&&(contacts.length===0||candidates[0][1].contacts.size===0))familyId=candidates[0][0];if(!familyId)familyId=stableFamilyId(`${parent}|${contacts.sort().join('|')||'no-contact'}`);st.familyId=familyId;register(st)}return rows}
+function resolveStudentFamilyId(studentRecord={},preservedFamilyId=''){if(preservedFamilyId)return preservedFamilyId;const normalized=normalizeStudentFamilies([...(db?.students||[]),studentRecord]);return normalized[normalized.length-1]?.familyId||''}
 function deliveryModeForRecord(x={}){return x.deliveryMode||(x.location==='到府'?'home':x.location==='線上課'?'online':'onsite')}
 function branchIdForRecord(x){if(x?.branchId)return x.branchId;const mode=deliveryModeForRecord(x);return mode==='onsite'?(window.DanbridgeAccess?.branchIdFromLocation?.(x?.location||'')||'art_museum'):'unassigned'}
 function normalizeBranchData(x){
  x.branches=Array.isArray(x.branches)&&x.branches.length?x.branches:defaultBranches();
- x.students=(x.students||[]).map(st=>({...st,branchIds:Array.isArray(st.branchIds)&&st.branchIds.length?[...new Set(st.branchIds)]:[]}));
+ x.students=normalizeStudentFamilies((x.students||[]).map(st=>({...st,branchIds:Array.isArray(st.branchIds)&&st.branchIds.length?[...new Set(st.branchIds)]:[]})));
  x.teachers=(x.teachers||[]).map(t=>({...t,assignedBranchIds:Array.isArray(t.assignedBranchIds)&&t.assignedBranchIds.length?[...new Set(t.assignedBranchIds)]:[]}));
  x.lessons=(x.lessons||[]).map(l=>{const deliveryMode=deliveryModeForRecord(l),branchId=branchIdForRecord(l);return {...l,deliveryMode,branchId,location:deliveryMode==='onsite'?(window.DanbridgeAccess?.branchName?.(branchId)||l.location||'美術東四路'):(deliveryMode==='home'?'到府':'線上課'),room:deliveryMode==='onsite'?(l.room||''):'',address:deliveryMode==='home'?(l.address||''):'',onlinePlatform:deliveryMode==='online'?(l.onlinePlatform||'Google Meet'):'',meetingUrl:deliveryMode==='online'?(l.meetingUrl||''):''}});
  const registrationMap=new Map();

@@ -1,5 +1,11 @@
 # Changelog
 
+## V18.13 — 穩定家庭對帳識別
+- 學生資料新增固定家庭編號，家庭 LINE 對帳不再只用家長姓名猜測關係。
+- 舊資料會依家長姓名與電話、LINE、Email 建立家庭；同名但聯絡方式不同的家長不會合併。
+- 同一家長的多位孩子會合併家教與夏令營費用，產生一份家庭 LINE 對帳文字。
+- 修改家長顯示名稱時保留原家庭編號，避免孩子被拆散或誤抓其他家庭。
+
 ## V17.25 — Teacher Schedule Row Revenue Audit
 - Replaced teacher-count multiplication with explicit per-teacher timetable revenue rows.
 - Each timetable row calculates student hourly rate × scheduled duration.

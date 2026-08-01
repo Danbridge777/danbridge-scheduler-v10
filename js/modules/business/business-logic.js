@@ -50,9 +50,10 @@ function billingCampFormula(rows){
   return`${days} 天 × ${money(+r.dailyRate||0)}`;
 }
 function billingFamilyStudents(studentId){
-  const selected=student(studentId),parent=String(selected.parent||'').trim().toLocaleLowerCase();
-  if(!parent)return[selected];
-  return(db.students||[]).filter(s=>!s.campSeason&&(s.status||'active')!=='inactive'&&String(s.parent||'').trim().toLocaleLowerCase()===parent);
+  const selected=student(studentId),familyId=String(selected.familyId||'');
+  if(familyId)return(db.students||[]).filter(s=>!s.campSeason&&(s.status||'active')!=='inactive'&&String(s.familyId||'')===familyId);
+  const parent=normalizeFamilyValue(selected.parent),contacts=studentFamilyContacts(selected);if(!parent)return[selected];
+  return(db.students||[]).filter(s=>!s.campSeason&&(s.status||'active')!=='inactive'&&normalizeFamilyValue(s.parent)===parent&&(!contacts.length||studentFamilyContacts(s).some(v=>contacts.includes(v))));
 }
 function studentBillingSections(d,includeName=false){
   const lines=[];if(includeName)lines.push(`${d.student.name||'學生'}`);

@@ -8,6 +8,7 @@
 function studentDefaults(x={}){return {...x,status:x.status||'active',school:x.school||'',grade:x.grade||'',level:x.level||'',preferredTeacherId:x.preferredTeacherId||'',parentLine:x.parentLine||'',parentEmail:x.parentEmail||'',materials:x.materials||'',availability:x.availability||'',scores:x.scores||''}}
 
 function saveStudent(){const id=$('studentId').value||uid(),o=studentDefaults({id,name:$('studentName').value.trim(),status:$('studentStatus').value,school:$('studentSchool').value.trim(),grade:$('studentGrade').value.trim(),level:$('studentLevel').value.trim(),preferredTeacherId:$('studentPreferredTeacher').value,parent:$('parentName').value.trim(),contact:$('parentContact').value.trim(),parentLine:$('parentLine').value.trim(),parentEmail:$('parentEmail').value.trim(),homeAddress:$('studentHomeAddress').value.trim(),courseType:$('studentCourseType').value,billing:$('studentBilling').value,rate:+$('studentRate').value||0,materials:$('studentMaterials').value.trim(),availability:$('studentAvailability').value.trim(),scores:$('studentScores').value.trim(),note:$('studentNote').value});
+o.familyId=resolveStudentFamilyId(o,db.students.find(x=>x.id===id)?.familyId||'');
 if(!o.name)return alert('請輸入學生姓名');
 snapshot();
 const i=db.students.findIndex(x=>x.id===id);i>=0?db.students[i]=o:db.students.push(o);
