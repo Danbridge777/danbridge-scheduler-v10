@@ -58,6 +58,19 @@
     const toolbar=$(':scope > .toolbar',overview);if(!toolbar||$('#v181MonthEndAudit'))return;const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='月底一次檢查';button.addEventListener('click',monthEndAudit);toolbar.append(button);const panel=document.createElement('div');panel.id='v181MonthEndAudit';panel.className='v181-month-end-audit';panel.hidden=true;toolbar.after(panel);
   }
   window.monthEndAudit=monthEndAudit;
+  function closeLineBillingPreview(){const modal=$('#v181LineBillingPreview');if(modal)modal.classList.remove('show')}
+  function copyPreviewText(){
+    const text=$('#v181LineBillingPreviewText')?.value||'',done=()=>{window.toast?.('LINE 對帳內容已複製');closeLineBillingPreview()};
+    if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text).then(done).catch(()=>copyStudentLineBillingFallback(text,done));
+    copyStudentLineBillingFallback(text,done);
+  }
+  function openLineBillingPreview(studentId,m,scope='all',encodedFamilyIds=''){
+    const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds);let modal=$('#v181LineBillingPreview');
+    if(!modal){modal=document.createElement('div');modal.id='v181LineBillingPreview';modal.className='modal-backdrop v181-line-preview';modal.innerHTML='<div class="modal"><div class="modal-head"><div><h2>LINE 費用明細預覽</h2><p>可直接修改文字；修改內容只影響這次複製，不會更動系統資料。</p></div><button type="button" aria-label="關閉">×</button></div><textarea id="v181LineBillingPreviewText"></textarea><div class="v181-line-preview-actions"><button type="button" class="btn">取消</button><button type="button" class="btn primary">確認複製</button></div></div>';document.body.append(modal);const buttons=$$('button',modal);buttons[0].addEventListener('click',closeLineBillingPreview);buttons[1].addEventListener('click',closeLineBillingPreview);buttons[2].addEventListener('click',copyPreviewText);modal.addEventListener('click',e=>{if(e.target===modal)closeLineBillingPreview()})}
+    $('#v181LineBillingPreviewText',modal).value=text;modal.classList.add('show');setTimeout(()=>$('#v181LineBillingPreviewText',modal)?.focus(),0);
+  }
+  function installLineBillingPreview(){if(window.copyStudentLineBilling?.__previewInstalled)return;const preview=(studentId,m,scope='all',encodedFamilyIds='')=>openLineBillingPreview(studentId,m,scope,encodedFamilyIds);preview.__previewInstalled=true;window.copyStudentLineBilling=preview}
+  window.openLineBillingPreview=openLineBillingPreview;window.closeLineBillingPreview=closeLineBillingPreview;window.copyPreviewText=copyPreviewText;
   window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 
   function buildStudentCollections(settlementCard,collections){
@@ -185,7 +198,7 @@
     fab.addEventListener('click',()=>menu.classList.toggle('open'));menu.addEventListener('click',e=>{const a=e.target.dataset.action;if(!a)return;menu.classList.remove('open');if(a==='lesson')return window.openLessonModal?.();if(a==='student'){window.switchTab('students');setTimeout(()=>$('#studentName')?.focus(),50)}if(a==='teacher'){window.switchTab('teachers');setTimeout(()=>$('#teacherName')?.focus(),50)}if(a==='expense'){window.switchTab('finance');setTimeout(()=>{activateFinancePane('expenses');$('#oneTimeExpenseName')?.focus()},80)}});
   }
   function configureSummerBillingOnly(){const card=$('#camps .camp-registration-card');if(!card)return;const heading=$(':scope > h2',card);if(heading)heading.textContent='夏令營學生收費';const note=$(':scope > .camp-step-note',card);if(note)note.textContent='先設定學生、月份與計價方式，再勾選實際參加日期；家教與夏令營分開計算，LINE 對帳會合併本月總額。';$('#summerRegistrationCamp',card)?.closest('div')?.classList.add('v181-hidden-camp-field');$('[data-copy-camp-dates]',card)?.remove();const actions=$('.camp-actions',card);if(actions&&!$('#summerBillingLineCopy',card)){const button=document.createElement('button');button.id='summerBillingLineCopy';button.type='button';button.className='btn summer-line-copy';button.textContent='複製完整 LINE 收費';button.onclick=()=>{const studentId=$('#summerRegistrationStudent')?.value,month=$('#summerRegistrationMonth')?.value;if(!studentId)return alert('請先選擇學生');if(!month)return alert('請先選擇月份');window.copyStudentLineBilling?.(studentId,month,'all')};actions.append(button)}}
-  function init(){relabelNavigation();configureSummerBillingOnly();buildFinanceCenter();patchRenderers();buildQuickActions();patchSwitchTab();window.renderFinance?.();window.renderSettlement?.();window.renderTeacherKpi?.()}
+  function init(){relabelNavigation();installLineBillingPreview();configureSummerBillingOnly();buildFinanceCenter();patchRenderers();buildQuickActions();patchSwitchTab();window.renderFinance?.();window.renderSettlement?.();window.renderTeacherKpi?.()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
   window.addEventListener('load',()=>setTimeout(()=>{patchRenderers();patchSwitchTab()},200));
 })();
