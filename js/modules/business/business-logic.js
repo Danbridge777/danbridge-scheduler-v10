@@ -62,7 +62,7 @@ function studentBillingSections(d,includeName=false){
   const lines=[];if(includeName)lines.push(`${d.student.name||'學生'}`);
   if(d.tutoringLessons.length)lines.push('家教',`共 ${billingNumber(d.tutoringHours)} 小時`,`${billingNumber(d.tutoringHours)} 小時 × ${money(d.tutoringRate)}`,`小計：${money(d.tutoringAmount)}`,'');
   if(d.campRows.length){const dates=d.campDates.map(date=>`${+date.slice(5,7)}/${+date.slice(8,10)}`).join('、');lines.push('Summer Camp',`報名日期：${dates}`,billingCampFormula(d.campRows),`小計：${money(d.campAmount)}`,'')}
-  if(includeName)lines.push(`小朋友小計：${money(d.total)}`,'');return lines;
+  if(includeName)lines.push(`小計：${money(d.total)}`,'');return lines;
 }
 function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
   const explicitIds=Array.isArray(familyStudentIds)?new Set(familyStudentIds.filter(Boolean)):null;
