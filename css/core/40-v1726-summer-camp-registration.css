@@ -73,6 +73,22 @@
 #camps .camp-date-check:has(input:checked) .camp-date-state::after{content:'已選';font-size:12px}
 @media(max-width:850px){#camps .camp-date-grid{grid-template-columns:repeat(7,minmax(104px,1fr))!important;min-width:776px}}
 
+/* V18.12.1 — equal-size billing controls, matching the schedule toolbar rhythm. */
+#camps .camp-registration-form{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch!important}
+#camps .camp-registration-form>div,
+#camps .camp-registration-form>div:has(#summerRegistrationStudent),
+#camps .camp-registration-form>div:has(#summerRegistrationPricingMode),
+#camps .camp-registration-form>[data-summer-rate].active,
+#camps .registration-total-box{grid-column:auto!important;width:100%!important;min-width:0!important;min-height:132px!important;margin:0!important;box-sizing:border-box!important}
+#camps .camp-registration-form>div:not([data-summer-rate]):not(.registration-total-box),
+#camps .camp-registration-form>[data-summer-rate].active{display:flex;flex-direction:column;justify-content:flex-end;padding:14px;border:1px solid #d7e4ee;border-radius:16px;background:#fff}
+#camps .camp-registration-form input,
+#camps .camp-registration-form select{width:100%!important;min-height:48px!important;box-sizing:border-box!important}
+#camps .camp-registration-form .student-select-search{width:100%;margin-bottom:8px}
+#camps .registration-total-box{align-self:stretch;padding:16px 18px!important}
+@media(max-width:1000px){#camps .camp-registration-form{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:620px){#camps .camp-registration-form{grid-template-columns:minmax(0,1fr)!important}}
+
 /* V18.9.1 — prevent native date controls from being clipped in narrow camp cards. */
 .camp-simple-schedule-card .camp-form-grid > div{min-width:0}
 .camp-simple-schedule-card input,
