@@ -31,6 +31,12 @@
     const bar=document.createElement('div');bar.className='v187-finance-month-bar';bar.innerHTML=`<label><span>資料月份</span><input class="v187-finance-month" id="v187FinanceMonth${pane[0].toUpperCase()+pane.slice(1)}" type="month"></label><small>切換後自動更新財務、老師 KPI、學生收款與支出資料</small>`;
     $('.v181-card-title',module)?.after(bar);const input=bar.querySelector('input'),commit=()=>setFinanceWorkspaceMonth(input.value,true);input.addEventListener('input',()=>{if(/^\d{4}-\d{2}$/.test(input.value))commit()});input.addEventListener('change',commit);input.addEventListener('blur',commit);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();input.blur()}});
   }
+  function bindNativeFinanceControls(overview){
+    const month=$('#financeMonth');
+    if(month&&!month.dataset.workspaceBound){month.dataset.workspaceBound='1';month.addEventListener('change',()=>setFinanceWorkspaceMonth(month.value,true))}
+    const refresh=$$('button',overview).find(button=>button.textContent.trim()==='重新計算');
+    if(refresh&&!refresh.dataset.workspaceBound){refresh.dataset.workspaceBound='1';refresh.addEventListener('click',()=>{setFinanceWorkspaceMonth(month?.value||financeWorkspaceMonth(),true);window.toast?.('財務資料已重新計算')})}
+  }
   window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 
   function buildStudentCollections(settlementCard,collections){
@@ -94,6 +100,7 @@
     buildTeacherModule(kpiCard,settlement,panes.kpi,finance);
     buildStudentCollections(settlement,panes.collections);
     addFinanceMonthControl(overview,'overview');addFinanceMonthControl($('.v181-teacher-module',panes.kpi),'kpi');addFinanceMonthControl($('.v181-collections-module',panes.collections),'collections');addFinanceMonthControl(expenses,'expenses');
+    bindNativeFinanceControls(overview);
     [$('financeMonth')?.closest('div'),$('settleMonth')?.closest('div'),$('teacherKpiMonth')?.closest('div')].forEach(el=>{if(el)el.classList.add('v187-native-month-hidden')});
     setFinanceWorkspaceMonth(financeWorkspaceMonth(),false);
     financeCard.remove(); settlement.hidden=true;
