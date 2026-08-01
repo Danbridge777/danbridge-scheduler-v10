@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v1816-line-billing-preview';
+const CACHE_NAME='danbridge-v18161-lesson-save-visibility';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
