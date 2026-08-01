@@ -16,7 +16,7 @@ function teacherScheduleRevenueRows(l){
   return lessonTeacherIds(l).map(teacherId=>({teacherId,lesson:l,amount}));
 }
 function timetableRevenueCharge(l){
-  if(!l||l.isDraft||effectiveCampId(l)||l.chargeStudent==='no')return 0;
+  if(!l||l.isDraft||effectiveCampId(l))return 0;
   return lessonCharge(l);
 }
 
@@ -31,9 +31,12 @@ function summerCampRegistrationRevenue(m,scope='all'){
 function studentSummerCampRevenue(studentId,m,scope='all'){
   return summerCampRegistrationRows(m,scope).filter(r=>r.studentId===studentId).reduce((sum,r)=>sum+(typeof summerRegistrationTotal==='function'?summerRegistrationTotal(r):(+r.totalFee||0)),0);
 }
+function studentChargeableTutoringLessons(studentId,m,scope='all',sourceLessons=null){
+  const branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
+  return (sourceLessons||db.lessons||[]).filter(l=>!l.isDraft&&l.studentId===studentId&&l.date?.startsWith(m)&&!effectiveCampId(l)&&(scope==='all'||branchOf(l)===scope));
+}
 function studentMonthlyBillingData(studentId,m,scope='all'){
-  const s=student(studentId),branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
-  const tutoringLessons=(db.lessons||[]).filter(l=>!l.isDraft&&l.studentId===studentId&&l.date?.startsWith(m)&&!effectiveCampId(l)&&l.chargeStudent!=='no'&&(scope==='all'||branchOf(l)===scope));
+  const s=student(studentId),tutoringLessons=studentChargeableTutoringLessons(studentId,m,scope);
   const tutoringHours=tutoringLessons.reduce((sum,l)=>sum+hours(l.start,l.end),0),tutoringRate=+s.rate||0,tutoringAmount=tutoringLessons.reduce((sum,l)=>sum+lessonCharge(l),0);
   const campRows=summerCampRegistrationRows(m,scope).filter(r=>r.studentId===studentId),campAmount=campRows.reduce((sum,r)=>sum+summerRegistrationTotal(r),0);
   const campDates=[...new Set(campRows.flatMap(r=>r.dates||[]))].sort();
@@ -66,7 +69,8 @@ function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
   const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=family.length>1;
   const names=family.map(s=>s.name||'學生').join('、')||student(studentId).name||'學生',total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`媽咪好，以下是 ${names} ${billingMonthLabel(m)}的課程費用明細：`,''];
   details.forEach(d=>lines.push(...studentBillingSections(d,multiple)));
-  lines.push(`${multiple?'家庭本月應收':'本月應收'}：${money(total)}`,'','以上請媽咪確認！');return lines.join('\n');
+  const monthNumber=Number(String(m||'').slice(5,7))||Number(String(m||'').split('-')[1])||'';
+  lines.push(`${monthNumber}月共計：${money(total)}`,'','以上請媽咪確認！');return lines.join('\n');
 }
 function copyStudentLineBilling(studentId,m,scope='all',encodedFamilyIds=''){
   const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds),done=()=>toast('LINE 對帳內容已複製');
@@ -147,7 +151,7 @@ function diffClass(n){return n<-.001?'hours-short':n>.001?'hours-over':'hours-ev
 
 function diffText(n){return Math.abs(n)<.001?'剛好':n>0?`多 ${fmtHours(n)} hr`:`少 ${fmtHours(Math.abs(n))} hr`}
 
-function settleData(){const m=$('settleMonth').value||monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));const sr=db.students.map(s=>{const x=ls.filter(l=>l.studentId===s.id),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status)),lessonAmount=x.reduce((a,l)=>a+timetableRevenueCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m);return{s,total:x.length,charged:x.length,h:x.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount}}).filter(x=>x.total||x.campAmount);const tr=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),payroll=calculateTeacherPayroll(t,m,paid),weeks=teacherWeekBreakdown(t,m);return{t,count:paid.length,h:payroll.actualHours,expected:payroll.expectedHours,diff:payroll.diff,weeks,amount:payroll.amount,revenue:teacherCompanyRevenue(t,m,ls),payroll}});return{sr,tr}}
+function settleData(){const m=$('settleMonth').value||monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));const sr=db.students.map(s=>{const x=ls.filter(l=>l.studentId===s.id),chargedLessons=studentChargeableTutoringLessons(s.id,m,'all',ls),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status)),lessonAmount=chargedLessons.reduce((a,l)=>a+lessonCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m);return{s,total:x.length,charged:chargedLessons.length,h:chargedLessons.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount}}).filter(x=>x.total||x.campAmount);const tr=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),payroll=calculateTeacherPayroll(t,m,paid),weeks=teacherWeekBreakdown(t,m);return{t,count:paid.length,h:payroll.actualHours,expected:payroll.expectedHours,diff:payroll.diff,weeks,amount:payroll.amount,revenue:teacherCompanyRevenue(t,m,ls),payroll}});return{sr,tr}}
 
 function monthlySettlementSnapshot(m){
   const ls=db.lessons.filter(l=>l.date.startsWith(m));
