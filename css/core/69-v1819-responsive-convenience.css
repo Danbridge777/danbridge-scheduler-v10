@@ -14,6 +14,7 @@ body:not(.auth-locked)>.floating-actions{right:104px!important;bottom:24px!impor
 .calendar-context-menu .context-line-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .calendar-context-menu .danger-item{color:#bd3535!important}.calendar-context-menu .danger-item .context-line-icon{border-color:#f0d4d4;background:#fff7f7;color:#c13a3a}.calendar-context-menu .danger-item:hover{background:#fff1f1!important}
 .calendar-context-menu .context-cancel{color:#697b8b!important}
+.apple-calendar-btn{border-color:#b8c9d7!important;background:#f8fbfd!important;color:#244d69!important}.apple-calendar-btn::before{content:'◷';margin-right:6px;color:#39789f;font-size:17px}.apple-calendar-btn:hover{border-color:#79a9c6!important;background:#edf6fb!important}
 #calendarCanvas .month-grid .day-num span:first-child{cursor:pointer}
 #calendarCanvas .month-grid .day-num span:first-child::after{content:' 展開';color:#7890a4;font-size:9px;font-weight:700;opacity:0;transition:opacity .15s}
 #calendarCanvas .month-grid .day-cell:hover .day-num span:first-child::after{opacity:1}
