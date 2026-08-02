@@ -75,29 +75,20 @@ function dataHash(value){try{const text=JSON.stringify(value||{});let h=21661362
 function withSyncTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('雲端連線逾時，將自動重試')),ms))])}
 function scheduleOwnerRetry(){clearTimeout(ownerRetryTimer);if(cloudRole!=='owner'||!ownerUploadQueued)return;const delay=Math.min(30000,1000*Math.pow(2,Math.min(ownerRetryCount,5)));ownerRetryTimer=setTimeout(()=>uploadOwnerState(),delay)}
 function setOfflineStatus(){if(!navigator.onLine){cloudStatus('目前離線；所有變更已先保存在這台裝置，恢復網路後會自動同步。','offline')}}
-function setAuthCard(message='請使用 Google 帳號登入排課系統'){
+function setAuthCard(message='Sign in with your authorized Google account to continue.'){
  const screen=document.getElementById('authScreen');
  screen.innerHTML=`<div class="auth-minimal-shell">
   <section class="auth-minimal-brand" aria-label="Danbridge Operations">
     <div class="auth-minimal-wordmark"><span class="auth-minimal-monogram">D</span><span>DANBRIDGE</span></div>
     <div class="auth-feather-scene" aria-hidden="true">
       <span class="auth-feather-halo"></span>
-      <svg class="auth-gold-feather" viewBox="0 0 260 520" role="img">
-        <defs>
-          <linearGradient id="featherGold" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#fff0bd"/><stop offset=".34" stop-color="#d8ae5d"/><stop offset=".72" stop-color="#8f6426"/><stop offset="1" stop-color="#f1d58e"/>
-          </linearGradient>
-        </defs>
-        <path class="auth-feather-body" d="M221 22C137 50 76 119 57 214c-13 65 0 124 27 163 23-52 57-101 99-143-37 51-68 105-91 161l-31 91 13 7 40-88c38-10 77-38 102-78 55-87 43-218 5-305Z"/>
-        <path class="auth-feather-cut" d="M73 160l67-20M61 211l81-18M58 266l75-11M68 321l54-3M195 94l-65 73M211 145l-88 76M216 205l-101 69M207 269l-101 50"/>
-        <path class="auth-feather-spine" d="M229 27C176 110 127 220 89 331 74 377 61 426 56 485"/>
-      </svg>
+      <img class="auth-gold-feather" src="./assets/images/danbridge-gold-feather-v2.png" alt="">
       <span class="auth-feather-line"></span>
     </div>
     <div class="auth-minimal-copy">
       <span>EDUCATION OPERATIONS</span>
       <h1>Quiet precision.<br><em>Exceptional learning.</em></h1>
-      <p>Danbridge 專屬教育營運系統</p>
+      <p>Private education operations, refined.</p>
     </div>
   </section>
 
@@ -105,16 +96,16 @@ function setAuthCard(message='請使用 Google 帳號登入排課系統'){
     <div class="auth-card auth-card-minimal">
     <div class="auth-card-seal"><i></i> SECURE ACCESS</div>
     <div class="auth-card-kicker">WELCOME BACK</div>
-    <h1>登入營運系統</h1>
+    <h1>Enter the workspace.</h1>
     <p>${message}</p>
-    <button id="googleCloudLogin" type="button" class="auth-google-btn"><span class="auth-google-mark">G</span><span class="auth-google-label">使用 Google 帳號登入</span><span class="auth-google-arrow">→</span></button>
+    <button id="googleCloudLogin" type="button" class="auth-google-btn"><span class="auth-google-mark">G</span><span class="auth-google-label">Continue with Google</span><span class="auth-google-arrow">→</span></button>
     <div id="cloudLoginError" class="auth-error"></div>
-    <div class="auth-minimal-security"><span>僅限授權帳號</span><i></i><span>依角色顯示資料</span></div>
+    <div class="auth-minimal-security"><span>Authorized accounts only</span><i></i><span>Role-based access</span></div>
     <div class="auth-meta"><span>Danbridge English Co., Ltd.</span><strong>Private Cloud</strong></div>
     </div>
   </section>
 </div>`;
- document.getElementById('googleCloudLogin').onclick=async()=>{const btn=document.getElementById('googleCloudLogin');btn.disabled=true;btn.querySelector('.auth-google-label').textContent='登入中…';try{await signInWithPopup(auth,provider)}catch(e){console.error(e);if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user'].includes(e.code)){try{await signInWithRedirect(auth,provider);return}catch(e2){showCloudLoginError(e2.message)}}else showCloudLoginError(e.message);btn.disabled=false;btn.querySelector('.auth-google-label').textContent='使用 Google 帳號登入'}};
+ document.getElementById('googleCloudLogin').onclick=async()=>{const btn=document.getElementById('googleCloudLogin');btn.disabled=true;btn.querySelector('.auth-google-label').textContent='Signing in…';try{await signInWithPopup(auth,provider)}catch(e){console.error(e);if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user'].includes(e.code)){try{await signInWithRedirect(auth,provider);return}catch(e2){showCloudLoginError(e2.message)}}else showCloudLoginError(e.message);btn.disabled=false;btn.querySelector('.auth-google-label').textContent='Continue with Google'}};
 }
 function showCloudLoginError(msg){const e=document.getElementById('cloudLoginError');if(e){e.textContent=msg;e.classList.add('show')}}
 function showCloudApp(){document.body.classList.remove('auth-locked');document.getElementById('authScreen')?.classList.add('hidden')}
@@ -122,7 +113,7 @@ function showCloudLogin(){document.body.classList.add('auth-locked');document.ge
 
 async function ensureProfile(user){
  const emailKey=(user.email||'').trim().toLowerCase();
- if(!emailKey)throw new Error('Google 帳號沒有可用的 Email。');
+ if(!emailKey)throw new Error('This Google account does not have a usable email address.');
 
  // Owner 保留 users/{uid} 個人檔案；老師與校區管理者則直接以 companyAccess 為唯一權限來源。
  // 登入流程不再要求一般帳號寫入 users，避免任何 users 規則或舊資料欄位造成登入被拒絕。
@@ -133,19 +124,19 @@ async function ensureProfile(user){
      snap=await getDoc(ref);
    }
    const p=snap.data();
-   if(p.active===false)throw new Error('此帳號已停用。');
-   if(p.companyId!==COMPANY_ID||p.role!=='owner')throw new Error('Owner 帳號資料不正確。');
+   if(p.active===false)throw new Error('This account has been deactivated.');
+   if(p.companyId!==COMPANY_ID||p.role!=='owner')throw new Error('The owner account profile is not configured correctly.');
    return p;
  }
 
  const accessSnap=await getDoc(doc(cloud,'companyAccess',emailKey));
- if(!accessSnap.exists())throw new Error('此 Google 帳號尚未被加入 Danbridge 系統。請由 Owner 先在「安全設定」加入 Gmail。');
+ if(!accessSnap.exists())throw new Error('This Google account has not been authorized for Danbridge. Please ask the owner to add it in Security Settings.');
  const a=accessSnap.data()||{};
- if(a.active!==true)throw new Error('此帳號已停用。');
- if(a.companyId!==COMPANY_ID)throw new Error('此帳號不屬於 Danbridge。');
- if(!['teacher','branch_manager'].includes(a.role))throw new Error('此帳號角色設定不正確。');
- if(!a.teacherId)throw new Error('此帳號尚未綁定老師身分，請 Owner 重新設定。');
- if(a.role==='branch_manager'&&(!Array.isArray(a.branchIds)||!a.branchIds.length))throw new Error('此管理者尚未綁定校區。');
+ if(a.active!==true)throw new Error('This account has been deactivated.');
+ if(a.companyId!==COMPANY_ID)throw new Error('This account does not belong to Danbridge.');
+ if(!['teacher','branch_manager'].includes(a.role))throw new Error('The role assigned to this account is not valid.');
+ if(!a.teacherId)throw new Error('No teacher profile is linked to this account. Please ask the owner to update the account settings.');
+ if(a.role==='branch_manager'&&(!Array.isArray(a.branchIds)||!a.branchIds.length))throw new Error('No branch has been assigned to this manager account.');
  return {
    email:user.email,
    displayName:user.displayName||'',
