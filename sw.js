@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v18202-sunday-next-week-export';
+const CACHE_NAME='danbridge-v18203-compact-selection-marker';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
