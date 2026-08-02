@@ -16,11 +16,12 @@
   });
   [...(db.fixedExpenses||[]),...(db.oneTimeExpenses||[])].forEach(x=>{if(!x.branchId||!branches.has(x.branchId))issues.expenseBranch++});
   [...(db.summerCampClasses||[]),...(db.winterCampClasses||[])].forEach(x=>{if(!x.branchId)issues.campBranch++});
-  issues.duplicates=['students','teachers','lessons','makeups','fixedExpenses','oneTimeExpenses'].reduce((n,k)=>n+uniqueIds(db[k]).length,0);
+  issues.duplicates=['students','teachers','lessons','makeups','fixedExpenses','oneTimeExpenses'].reduce((n,k)=>n+uniqueIds(db[k]).length,0)+uniqueIds([...(db.summerCampRegistrations||[]),...(db.winterCampRegistrations||[])]).length;
   const total=Object.values(issues).reduce((a,b)=>a+b,0);
   return {issues,total,checkedAt:new Date().toISOString()};
  }
  function normalizeIdList(values=[]){return [...new Set(values.filter(Boolean))]}
+ function repairCampRegistration(x,season){const dates=[...new Set(Array.isArray(x.dates)?x.dates:[])].filter(d=>typeof d==='string'&&(!x.month||d.startsWith(x.month+'-'))).sort(),month=x.month||(dates[0]||'').slice(0,7),record={...x,id:x.id||uid(),season,branchId:x.branchId||((db.students||[]).find(s=>s.id===x.studentId)?.branchIds||[])[0]||'unassigned',month,dates,pricingMode:x.pricingMode||'daily',dailyRate:+x.dailyRate||0,weeklyRate:+x.weeklyRate||0,monthlyRate:+x.monthlyRate||0,frontWeeks:+x.frontWeeks||0,frontWeeklyRate:+x.frontWeeklyRate||0,backWeeklyRate:+x.backWeeklyRate||0};record.totalFee=summerRegistrationTotal(record);return record}
  function repairDataIntegrity(){
   if(window.DanbridgeAccess?.getContext?.().role==='branch_manager')return alert('校區管理者為唯讀，資料整理只能由 Owner 執行。');
   snapshot?.();
@@ -40,6 +41,9 @@
   db.summerCampClasses=(db.summerCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
   db.summerCampRegistrations=(db.summerCampRegistrations||[]).map(x=>{const dates=[...new Set(Array.isArray(x.dates)?x.dates:[])].sort(),pricingMode=x.pricingMode||'daily',dailyRate=+x.dailyRate||0,weeklyRate=+x.weeklyRate||0,monthlyRate=+x.monthlyRate||0,frontWeeks=+x.frontWeeks||0,frontWeeklyRate=+x.frontWeeklyRate||0,backWeeklyRate=+x.backWeeklyRate||0,weekKeys=[...new Set(dates.map(d=>{const dt=new Date(d+'T00:00:00'),day=dt.getDay(),monday=new Date(dt);monday.setDate(dt.getDate()-(day===0?6:day-1));return monday.toISOString().slice(0,10)}))].sort(),weekCount=weekKeys.length,month=x.month||(dates[0]||'').slice(0,7),monthWeeks=month?[...new Set(Array.from({length:new Date(+month.slice(0,4),+month.slice(5,7),0).getDate()},(_,i)=>{const d=`${month}-${String(i+1).padStart(2,'0')}`,dt=new Date(d+'T00:00:00'),day=dt.getDay(),monday=new Date(dt);monday.setDate(dt.getDate()-(day===0?6:day-1));return monday.toISOString().slice(0,10)}))].sort():[],totalFee=pricingMode==='weeklySplit'?weekKeys.reduce((sum,key)=>sum+(monthWeeks.indexOf(key)<frontWeeks?frontWeeklyRate:backWeeklyRate),0):pricingMode==='weekly'?weekCount*weeklyRate:pricingMode==='monthly'?(dates.length?monthlyRate:0):dates.length*dailyRate;return {...x,id:x.id||uid(),branchId:x.branchId||((db.students||[]).find(s=>s.id===x.studentId)?.branchIds||[])[0]||'unassigned',dates,pricingMode,dailyRate,weeklyRate,monthlyRate,frontWeeks,frontWeeklyRate,backWeeklyRate,totalFee}});
   db.winterCampClasses=(db.winterCampClasses||[]).map(x=>({...x,id:x.id||uid(),branchId:x.branchId||'unassigned'}));
+  db.summerCampRegistrations=(db.summerCampRegistrations||[]).map(x=>repairCampRegistration(x,'summer'));
+  db.winterCampRegistrations=(db.winterCampRegistrations||[]).map(x=>repairCampRegistration(x,'winter'));
+  const campRegistrationIds=new Set();['summerCampRegistrations','winterCampRegistrations'].forEach(key=>{db[key]=db[key].map(r=>{let id=r.id||uid();while(campRegistrationIds.has(id))id=uid();campRegistrationIds.add(id);return{...r,id}})});
   localStorage.setItem(LS_KEY,JSON.stringify(db));renderAll();window.__danbridgeQueueCloudSave?.();toast('資料完整性整理完成');
  }
  function renderDataIntegrity(showToast=false){

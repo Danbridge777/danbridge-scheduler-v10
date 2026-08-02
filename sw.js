@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v18211-season-specific-line';
+const CACHE_NAME='danbridge-v18212-camp-season-isolation';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
