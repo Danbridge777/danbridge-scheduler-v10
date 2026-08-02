@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v1820-visible-apple-calendar';
+const CACHE_NAME='danbridge-v18201-weekly-apple-calendar-cursor';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

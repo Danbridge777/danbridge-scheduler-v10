@@ -141,7 +141,7 @@
 <link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.18.1">
 <link rel="stylesheet" href="./css/core/67-v185-interface-clarity.css?v=18.5">
 <link rel="stylesheet" href="./css/calendar/68-v1818-notion-compact-month.css?v=18.18">
-<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.19.1">
+<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.20.1">
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -232,7 +232,7 @@
     <span class="calendar-tools-label">課表工具</span>
     <button class="btn ok weekly-copy-btn" onclick="copyVisibleWeekToNextWeek()">複製本週到下週</button>
     <button class="btn secondary-action" id="selectionModeBtn" onclick="toggleSelectionMode()">部分選取</button>
-    <button class="btn secondary-action apple-calendar-btn" onclick="exportVisibleAppleCalendar()">加入 Apple 行事曆</button>
+    <button class="btn secondary-action apple-calendar-btn" onclick="exportVisibleAppleCalendar()">加入本週 Apple 行事曆</button>
     <button class="btn secondary-action" onclick="window.print()">列印／PDF</button>
   </div>
 </div><div id="selectionBar" class="selection-bar hidden"><span class="selection-count" id="selectionCount">已選 0 堂</span><button class="btn" onclick="selectVisibleLessons()">全選目前畫面</button><button class="btn" onclick="clearLessonSelection()">清除選取</button><button class="btn primary" onclick="openBatchModal()">批次調整</button><button class="btn danger" onclick="deleteSelectedLessons()">刪除選取</button><button class="btn" onclick="toggleSelectionMode(false)">結束多選</button></div><div class="location-legend"><span class="location-chip"><span class="location-dot" style="background:#dbeafe"></span>河西一路</span><span class="location-chip"><span class="location-dot" style="background:#dcfce7"></span>美術東四路</span><span class="location-chip"><span class="location-dot" style="background:#ffedd5"></span>到府</span><span class="location-chip"><span class="location-dot" style="background:#ede9fe"></span>線上課</span><span class="location-chip" style="background:#ff2020;color:#fff;border-color:#b91c1c"><span class="location-dot" style="background:#fff"></span>老師時間重複</span></div><div id="calendarTitle" style="font-weight:800;margin:4px 0 10px"></div><div class="calendar-shell" id="calendarCanvas"></div><div id="calendarAnalysis" class="calendar-analysis"></div></div></section>
@@ -385,7 +385,7 @@
 <script src="./js/modules/calendar/lesson-save-visibility-guard.js?v=18.16.1"></script>
 <script src="./js/modules/camps/camp-management.js?v=18.12"></script>
 <script src="./js/modules/settings/settings-expenses.js"></script>
-<script src="./js/modules/reports/reports-export.js?v=18.20"></script>
+<script src="./js/modules/reports/reports-export.js?v=18.20.1"></script>
 <script src="./js/modules/business/business-logic.js?v=18.17"></script>
 <script src="./js/modules/makeups/makeup-management.js"></script>
 <script src="./js/modules/dashboard/dashboard.js?v=18.2"></script>
