@@ -79,7 +79,7 @@ function setAuthCard(message='Sign in with your authorized Google account to con
  const screen=document.getElementById('authScreen');
  screen.innerHTML=`<div class="auth-minimal-shell">
   <section class="auth-minimal-brand" aria-label="Danbridge Operations">
-    <div class="auth-minimal-wordmark"><span class="auth-minimal-monogram">D</span><span>DANBRIDGE</span></div>
+    <div class="auth-minimal-wordmark">DANBRIDGE</div>
     <div class="auth-feather-scene" aria-hidden="true">
       <span class="auth-feather-halo"></span>
       <img class="auth-gold-feather" src="./assets/images/danbridge-gold-feather-v2.png" alt="">
