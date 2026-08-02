@@ -1,5 +1,10 @@
 # Changelog
 
+## V18.21.7 — 公司名稱強化與視覺降噪
+- Danbridge 公司名稱改為更粗、更大的精品襯線字，提升清晰度與品牌力量。
+- 金色羽毛縮小並降低亮度與飽和度，不再搶過公司名稱的視覺焦點。
+- Quiet precision 與 Exceptional learning 再縮小並降低對比，明確作為輔助品牌標語。
+
 ## V18.21.6 — 登入頁品牌層級與卡片比例
 - 將 Danbridge 提升為左側主要品牌標題，改用放大的精品襯線字體與較自然的字距。
 - 縮小 Quiet precision 與 Exceptional learning 標語，讓視覺層級回到公司名稱與金色羽毛。
