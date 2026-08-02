@@ -141,7 +141,7 @@
 <link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.18.1">
 <link rel="stylesheet" href="./css/core/67-v185-interface-clarity.css?v=18.5">
 <link rel="stylesheet" href="./css/calendar/68-v1818-notion-compact-month.css?v=18.18">
-<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.20.3">
+<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.21">
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -174,7 +174,7 @@
 </div>
 
 <header><h1>Danbridge Operations</h1><p>Education Management System｜多校區營運｜課務｜財務｜師資管理</p><div class="header-auth-actions"><button type="button" class="btn notification-bell" onclick="DanbridgeNotifications.open()" aria-label="開啟通知中心"><span class="notification-bell-icon">🔔</span><span id="notificationCount" class="notification-count" hidden>0</span></button><button type="button" class="btn" onclick="switchTab('security')">安全設定</button><button type="button" class="btn" onclick="authLogout()">登出</button></div></header>
-<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">夏令營收費</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
+<nav><button class="active" data-tab="dashboard">總覽</button><button data-tab="students">學生／家長</button><button data-tab="teachers">老師</button><button data-tab="calendar">拖曳課表</button><button data-tab="lessons">課程紀錄</button><button data-tab="makeups">補課中心</button><button data-tab="camps">冬／夏令營</button><button data-tab="finance">公司財務</button><button data-tab="data">備份／iPad</button><button data-tab="security">安全設定</button></nav>
 <main><section id="dashboard" class="active"><div class="branch-scope-bar"><div><label>查看校區</label><select id="dashboardBranchScope" onchange="DanbridgeBranchBusiness.setScope('dashboard',this.value)"></select></div><div id="dashboardBranchScopeNote" class="small"></div></div>
   <div class="v32-welcome">
     <div><div class="v32-eyebrow">DANBRIDGE OPERATIONS</div><h2 id="v32Greeting">今日營運總覽</h2><p id="v32DateText">正在整理今天的課程與營運資料。</p></div>
@@ -374,7 +374,7 @@
 <script src="./js/core/dom.js"></script>
 <script src="./js/core/date-utils.js"></script>
 <script src="./js/core/utils.js"></script>
-<script src="./js/core/data-persistence.js?v=18.13"></script>
+<script src="./js/core/data-persistence.js?v=18.21"></script>
 <script src="./js/core/access-control.js"></script>
 <script src="./js/core/data-integrity.js"></script>
 <script src="./js/modules/students/students-crm.js?v=18.14.2"></script>
@@ -383,14 +383,14 @@
 <script src="./js/modules/calendar/scheduler-ui.js?v=18.14"></script>
 <script src="./js/modules/calendar/course-operations.js"></script>
 <script src="./js/modules/calendar/lesson-save-visibility-guard.js?v=18.16.1"></script>
-<script src="./js/modules/camps/camp-management.js?v=18.12"></script>
+<script src="./js/modules/camps/camp-management.js?v=18.21"></script>
 <script src="./js/modules/settings/settings-expenses.js"></script>
-<script src="./js/modules/reports/reports-export.js?v=18.20.2"></script>
-<script src="./js/modules/business/business-logic.js?v=18.17"></script>
+<script src="./js/modules/reports/reports-export.js?v=18.21"></script>
+<script src="./js/modules/business/business-logic.js?v=18.21"></script>
 <script src="./js/modules/makeups/makeup-management.js"></script>
 <script src="./js/modules/dashboard/dashboard.js?v=18.2"></script>
 <script src="./js/modules/notifications/notification-center.js"></script>
-<script src="./js/core/branch-business-scope.js?v=18.14.2"></script>
+<script src="./js/core/branch-business-scope.js?v=18.21"></script>
 <script src="./js/modules/teachers/teacher-kpi.js?v=18.7.1"></script>
 <script src="./js/modules/lessons/lesson-list-and-search.js"></script>
 <script src="./js/app/app-shell.js"></script>
@@ -407,7 +407,7 @@
 
 <script src="./js/core/cloud-sync-bridge.js"></script>
 
-<script type="module" src="./js/core/firebase-auth-and-cloud-sync.module.js?v=17.20.1"></script>
+<script type="module" src="./js/core/firebase-auth-and-cloud-sync.module.js?v=18.21"></script>
 
 
 <script src="./js/core/pwa-installation.js"></script>
@@ -415,8 +415,8 @@
 <script src="./js/modules/calendar/marquee-multi-selection.js"></script>
 
 <script src="./js/core/undo-redo-history.js"></script>
-<script src="./js/app/v18-information-architecture.js?v=18.17"></script>
-<script src="./js/app/v18-convenience-suite.js?v=18.17"></script>
-<script src="./js/app/v1819-responsive-convenience.js?v=18.19.1"></script>
+<script src="./js/app/v18-information-architecture.js?v=18.21"></script>
+<script src="./js/app/v18-convenience-suite.js?v=18.21"></script>
+<script src="./js/app/v1819-responsive-convenience.js?v=18.21"></script>
 <script src="./js/core/ui-language.js?v=18.11"></script>
 </body></html>

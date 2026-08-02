@@ -22,8 +22,11 @@ function timetableRevenueCharge(l){
 
 /* Summer-camp tuition is earned from the registration record, never from camp timetable rows.
  * This keeps a multi-teacher camp from multiplying student revenue. */
-function summerCampRegistrationRows(m,scope='all'){
-  return (db.summerCampRegistrations||[]).filter(r=>(!m||r.month===m)&&(scope==='all'||(r.branchId||'unassigned')===scope));
+function campRegistrationSeason(r){return r?.season==='winter'?'winter':'summer'}
+function campRegistrationLabel(r){return campRegistrationSeason(r)==='winter'?'冬令營':'夏令營'}
+function summerCampRegistrationRows(m,scope='all',season='all'){
+  const rows=[...(db.summerCampRegistrations||[]).map(r=>({...r,season:'summer'})),...(db.winterCampRegistrations||[]).map(r=>({...r,season:'winter'}))];
+  return rows.filter(r=>(!m||r.month===m)&&(scope==='all'||(r.branchId||'unassigned')===scope)&&(season==='all'||campRegistrationSeason(r)===season));
 }
 function summerCampRegistrationRevenue(m,scope='all'){
   return summerCampRegistrationRows(m,scope).reduce((sum,r)=>sum+(typeof summerRegistrationTotal==='function'?summerRegistrationTotal(r):(+r.totalFee||0)),0);
@@ -35,10 +38,10 @@ function studentChargeableTutoringLessons(studentId,m,scope='all',sourceLessons=
   const branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
   return (sourceLessons||db.lessons||[]).filter(l=>!l.isDraft&&l.studentId===studentId&&l.date?.startsWith(m)&&!effectiveCampId(l)&&(scope==='all'||branchOf(l)===scope));
 }
-function studentMonthlyBillingData(studentId,m,scope='all'){
+function studentMonthlyBillingData(studentId,m,scope='all',campSeason='all'){
   const s=student(studentId),tutoringLessons=studentChargeableTutoringLessons(studentId,m,scope);
   const tutoringHours=tutoringLessons.reduce((sum,l)=>sum+hours(l.start,l.end),0),tutoringRate=+s.rate||0,tutoringAmount=tutoringLessons.reduce((sum,l)=>sum+lessonCharge(l),0);
-  const campRows=summerCampRegistrationRows(m,scope).filter(r=>r.studentId===studentId),campAmount=campRows.reduce((sum,r)=>sum+summerRegistrationTotal(r),0);
+  const campRows=summerCampRegistrationRows(m,scope,campSeason).filter(r=>r.studentId===studentId),campAmount=campRows.reduce((sum,r)=>sum+summerRegistrationTotal(r),0);
   const campDates=[...new Set(campRows.flatMap(r=>r.dates||[]))].sort();
   return{student:s,month:m,scope,tutoringLessons,tutoringHours,tutoringRate,tutoringAmount,campRows,campDates,campAmount,total:tutoringAmount+campAmount};
 }
@@ -62,19 +65,19 @@ function billingFamilyStudents(studentId){
 function studentBillingSections(d,includeName=false){
   const lines=[];if(includeName)lines.push(`${d.student.name||'學生'}`);
   if(d.tutoringLessons.length)lines.push('家教',`共 ${billingNumber(d.tutoringHours)} 小時`,`${billingNumber(d.tutoringHours)} 小時 × ${money(d.tutoringRate)}`,`小計：${money(d.tutoringAmount)}`,'');
-  if(d.campRows.length){const dates=d.campDates.map(date=>`${+date.slice(5,7)}/${+date.slice(8,10)}`).join('、');lines.push('Summer Camp',`報名日期：${dates}`,billingCampFormula(d.campRows),`小計：${money(d.campAmount)}`,'')}
+  if(d.campRows.length){['summer','winter'].forEach(season=>{const rows=d.campRows.filter(r=>campRegistrationSeason(r)===season);if(!rows.length)return;const dates=[...new Set(rows.flatMap(r=>r.dates||[]))].sort().map(date=>`${+date.slice(5,7)}/${+date.slice(8,10)}`).join('、'),amount=rows.reduce((sum,r)=>sum+summerRegistrationTotal(r),0);lines.push(season==='winter'?'冬令營':'夏令營',`報名日期：${dates}`,billingCampFormula(rows),`小計：${money(amount)}`,'')})}
   return lines;
 }
-function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
+function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null,campSeason='all'){
   const explicitIds=Array.isArray(familyStudentIds)?new Set(familyStudentIds.filter(Boolean)):null;
-  const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=family.length>1;
+  const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope,campSeason)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=family.length>1;
   const salutation=billingLineSalutation(studentId),total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`${salutation}好，以下是小朋友 ${billingMonthLabel(m)}的課程費用明細：`,''];
   details.forEach(d=>lines.push(...studentBillingSections(d,multiple)));
   const monthNumber=Number(String(m||'').slice(5,7))||Number(String(m||'').split('-')[1])||'';
   lines.push(`${monthNumber}月共計：${money(total)}`,'',`以上請${salutation}確認！`);return lines.join('\n');
 }
-function copyStudentLineBilling(studentId,m,scope='all',encodedFamilyIds=''){
-  const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds),done=()=>toast('LINE 對帳內容已複製');
+function copyStudentLineBilling(studentId,m,scope='all',encodedFamilyIds='',campSeason='all'){
+  const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds,campSeason),done=()=>toast('LINE 對帳內容已複製');
   if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text).then(done).catch(()=>copyStudentLineBillingFallback(text,done));
   copyStudentLineBillingFallback(text,done);
 }

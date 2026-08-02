@@ -15,6 +15,7 @@ body:not(.auth-locked)>.floating-actions{right:104px!important;bottom:24px!impor
 .calendar-context-menu .danger-item{color:#bd3535!important}.calendar-context-menu .danger-item .context-line-icon{border-color:#f0d4d4;background:#fff7f7;color:#c13a3a}.calendar-context-menu .danger-item:hover{background:#fff1f1!important}
 .calendar-context-menu .context-cancel{color:#697b8b!important}
 .apple-calendar-btn{border-color:#b8c9d7!important;background:#f8fbfd!important;color:#244d69!important}.apple-calendar-btn::before{content:'◷';margin-right:6px;color:#39789f;font-size:17px}.apple-calendar-btn:hover{border-color:#79a9c6!important;background:#edf6fb!important}
+.camp-season-field{grid-column:1/-1;display:grid;grid-template-columns:minmax(110px,160px) minmax(180px,320px);align-items:end;justify-content:center;gap:12px;margin-bottom:4px;padding:14px;border:1px solid #cadce8;border-radius:14px;background:linear-gradient(135deg,#f3f8fb,#fff)}.camp-season-field label{align-self:center;margin:0;color:#244d69;font-size:14px;font-weight:850}.camp-season-field select{border-color:#9fc2d8;background:#fff;color:#173f5d;font-weight:850;text-align:center}
 #calendarCanvas .lesson[title],#calendarCanvas .week-event[title]{cursor:default!important}#calendarCanvas .lesson.selectable,#calendarCanvas .week-event.selectable{cursor:pointer!important}
 @media(min-width:761px){#calendarCanvas .month-grid .lesson.selectable,#calendarCanvas .month-grid .lesson.selected{padding-left:25px!important}#calendarCanvas .month-grid .lesson.selectable::before,#calendarCanvas .month-grid .lesson.selected::before{left:7px!important;top:10px!important;width:12px!important;height:12px!important;border:1.5px solid #8ca2b3!important;border-radius:50%!important;background:#fff!important;color:#fff!important;font-size:8px!important;line-height:1!important;font-weight:900!important;box-shadow:0 1px 3px rgba(15,42,63,.12)!important}#calendarCanvas .month-grid .lesson.selected{outline:1.5px solid rgba(47,123,168,.72)!important;outline-offset:1px!important;background:linear-gradient(90deg,#f5f9fc,#e7f1f8)!important;box-shadow:0 2px 7px rgba(26,83,119,.12)!important}#calendarCanvas .month-grid .lesson.selected::before{content:'✓'!important;border-color:#2f7ba8!important;background:#2f7ba8!important}}
 #calendarCanvas .month-grid .day-num span:first-child{cursor:pointer}
@@ -37,6 +38,7 @@ body:not(.auth-locked)>.floating-actions{right:104px!important;bottom:24px!impor
   body:not(.auth-locked)>.floating-actions{left:10px!important;right:auto!important;bottom:calc(var(--mobile-nav-h,72px) + 10px + env(safe-area-inset-bottom))!important}
   .v1819-back-to-top{right:18px;bottom:calc(var(--mobile-nav-h,72px) + 78px + env(safe-area-inset-bottom));width:42px;height:42px}
   .calendar-context-menu{width:min(248px,calc(100vw - 24px))!important}
+  .camp-season-field{grid-template-columns:1fr;padding:12px}.camp-season-field label{text-align:center}
   .v1819-modal-actions{bottom:-17px;margin:16px -17px -17px;padding:11px 17px calc(11px + env(safe-area-inset-bottom))}
   .v1819-modal-actions .btn{flex:1 1 120px;min-height:46px}
 }

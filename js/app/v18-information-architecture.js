@@ -40,7 +40,7 @@
   function monthEndAudit(){
     const month=financeWorkspaceMonth(),scope=$('#financeBranchScope')?.value||'all',branchOf=l=>l.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l.location||'')||'unassigned';
     const lessons=(db.lessons||[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&(scope==='all'||branchOf(l)===scope)),tutoring=lessons.filter(l=>!effectiveCampId(l)),camps=lessons.filter(l=>effectiveCampId(l));
-    const registrations=(db.summerCampRegistrations||[]).filter(r=>r.month===month&&(scope==='all'||(r.branchId||'unassigned')===scope)),issues=[];
+    const registrations=summerCampRegistrationRows(month,scope),issues=[];
     const add=(severity,title,detail)=>issues.push({severity,title,detail});
     tutoring.forEach(l=>{const s=student(l.studentId),name=s?.name||`學生 ID ${l.studentId||'空白'}`;if(!s?.id)add('error','課程找不到學生',`${l.date} ${l.start||'--:--'}｜${name}`);if(!l.start||!l.end||hours(l.start,l.end)<=0)add('error','課程時間不完整',`${l.date}｜${name}｜${l.start||'--:--'}–${l.end||'--:--'}`);if(s?.id&&(+s.rate||0)<=0)add('error','學生單價未設定',`${name}｜${l.date}｜目前單價 ${money(+s.rate||0)}`)});
     const duplicateMap=new Map();tutoring.forEach(l=>{const key=[l.studentId,l.date,l.start,l.end].join('|'),rows=duplicateMap.get(key)||[];rows.push(l);duplicateMap.set(key,rows)});duplicateMap.forEach(rows=>{if(rows.length>1){const l=rows[0];add('error','學生同時段重複課程',`${student(l.studentId)?.name||l.studentId}｜${l.date} ${l.start}–${l.end}｜共 ${rows.length} 筆`)}});
@@ -64,12 +64,12 @@
     if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text).then(done).catch(()=>copyStudentLineBillingFallback(text,done));
     copyStudentLineBillingFallback(text,done);
   }
-  function openLineBillingPreview(studentId,m,scope='all',encodedFamilyIds=''){
-    const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds);let modal=$('#v181LineBillingPreview');
+  function openLineBillingPreview(studentId,m,scope='all',encodedFamilyIds='',campSeason='all'){
+    const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds,campSeason);let modal=$('#v181LineBillingPreview');
     if(!modal){modal=document.createElement('div');modal.id='v181LineBillingPreview';modal.className='modal-backdrop v181-line-preview';modal.innerHTML='<div class="modal"><div class="modal-head"><div><h2>LINE 費用明細預覽</h2><p>可直接修改文字；修改內容只影響這次複製，不會更動系統資料。</p></div><button type="button" aria-label="關閉">×</button></div><textarea id="v181LineBillingPreviewText"></textarea><div class="v181-line-preview-actions"><button type="button" class="btn">取消</button><button type="button" class="btn primary">確認複製</button></div></div>';document.body.append(modal);const buttons=$$('button',modal);buttons[0].addEventListener('click',closeLineBillingPreview);buttons[1].addEventListener('click',closeLineBillingPreview);buttons[2].addEventListener('click',copyPreviewText);modal.addEventListener('click',e=>{if(e.target===modal)closeLineBillingPreview()})}
-    modal.dataset.studentId=studentId;modal.dataset.month=m;modal.dataset.scope=scope;$('#v181LineBillingPreviewText',modal).value=text;modal.classList.add('show');setTimeout(()=>$('#v181LineBillingPreviewText',modal)?.focus(),0);
+    modal.dataset.studentId=studentId;modal.dataset.month=m;modal.dataset.scope=scope;modal.dataset.campSeason=campSeason;$('#v181LineBillingPreviewText',modal).value=text;modal.classList.add('show');setTimeout(()=>$('#v181LineBillingPreviewText',modal)?.focus(),0);
   }
-  function installLineBillingPreview(){if(window.copyStudentLineBilling?.__previewInstalled)return;const preview=(studentId,m,scope='all',encodedFamilyIds='')=>openLineBillingPreview(studentId,m,scope,encodedFamilyIds);preview.__previewInstalled=true;window.copyStudentLineBilling=preview}
+  function installLineBillingPreview(){if(window.copyStudentLineBilling?.__previewInstalled)return;const preview=(studentId,m,scope='all',encodedFamilyIds='',campSeason='all')=>openLineBillingPreview(studentId,m,scope,encodedFamilyIds,campSeason);preview.__previewInstalled=true;window.copyStudentLineBilling=preview}
   window.openLineBillingPreview=openLineBillingPreview;window.closeLineBillingPreview=closeLineBillingPreview;window.copyPreviewText=copyPreviewText;
   window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 
@@ -184,7 +184,7 @@
     const settlement=window.renderSettlement;if(typeof settlement==='function'&&!settlement.__v181){window.renderSettlement=function(){settlement();renderCollectionSummary();rebuildTeacherWorkspace()};window.renderSettlement.__v181=true}
   }
   function relabelNavigation(){
-    const labels={dashboard:'營運總覽',students:'學生 CRM',teachers:'老師管理',calendar:'課程管理',lessons:'課程紀錄',camps:'夏令營收費',finance:'財務中心',data:'系統資料'};
+    const labels={dashboard:'營運總覽',students:'學生 CRM',teachers:'老師管理',calendar:'課程管理',lessons:'課程紀錄',camps:'冬／夏令營',finance:'財務中心',data:'系統資料'};
     Object.entries(labels).forEach(([tab,label])=>{const b=$(`nav button[data-tab="${tab}"]`);if(b)b.textContent=label});
   }
   function patchSwitchTab(){
@@ -197,7 +197,7 @@
     const fab=document.createElement('button');fab.id='v18Fab';fab.className='v18-fab';fab.type='button';fab.setAttribute('aria-label','快速新增');fab.textContent='＋';document.body.append(menu,fab);
     fab.addEventListener('click',()=>menu.classList.toggle('open'));menu.addEventListener('click',e=>{const a=e.target.dataset.action;if(!a)return;menu.classList.remove('open');if(a==='lesson')return window.openLessonModal?.();if(a==='student'){window.switchTab('students');setTimeout(()=>$('#studentName')?.focus(),50)}if(a==='teacher'){window.switchTab('teachers');setTimeout(()=>$('#teacherName')?.focus(),50)}if(a==='expense'){window.switchTab('finance');setTimeout(()=>{activateFinancePane('expenses');$('#oneTimeExpenseName')?.focus()},80)}});
   }
-  function configureSummerBillingOnly(){const card=$('#camps .camp-registration-card');if(!card)return;const heading=$(':scope > h2',card);if(heading)heading.textContent='夏令營學生收費';const note=$(':scope > .camp-step-note',card);if(note)note.textContent='先設定學生、月份與計價方式，再勾選實際參加日期；家教與夏令營分開計算，LINE 對帳會合併本月總額。';$('#summerRegistrationCamp',card)?.closest('div')?.classList.add('v181-hidden-camp-field');$('[data-copy-camp-dates]',card)?.remove();const actions=$('.camp-actions',card);if(actions&&!$('#summerBillingLineCopy',card)){const button=document.createElement('button');button.id='summerBillingLineCopy';button.type='button';button.className='btn summer-line-copy';button.textContent='複製完整 LINE 收費';button.onclick=()=>{const studentId=$('#summerRegistrationStudent')?.value,month=$('#summerRegistrationMonth')?.value;if(!studentId)return alert('請先選擇學生');if(!month)return alert('請先選擇月份');window.copyStudentLineBilling?.(studentId,month,'all')};actions.append(button)}}
+  function configureSummerBillingOnly(){const card=$('#camps .camp-registration-card');if(!card)return;const heading=$(':scope > h2',card);if(heading)heading.textContent='冬／夏令營學生收費';const note=$(':scope > .camp-step-note',card);if(note)note.textContent='先選擇夏令營或冬令營，再設定學生、月份、參加日期與計價方式；兩季資料分開保存。';$('#summerRegistrationCamp',card)?.closest('div')?.classList.add('v181-hidden-camp-field');$('[data-copy-camp-dates]',card)?.remove();const actions=$('.camp-actions',card);if(actions&&!$('#summerBillingLineCopy',card)){const button=document.createElement('button');button.id='summerBillingLineCopy';button.type='button';button.className='btn summer-line-copy';button.textContent='複製完整 LINE 收費';button.onclick=()=>{const studentId=$('#summerRegistrationStudent')?.value,month=$('#summerRegistrationMonth')?.value,season=$('#summerRegistrationSeason')?.value||'summer';if(!studentId)return alert('請先選擇學生');if(!month)return alert('請先選擇月份');window.copyStudentLineBilling?.(studentId,month,'all','',season)};actions.append(button)}}
   function init(){relabelNavigation();installLineBillingPreview();configureSummerBillingOnly();buildFinanceCenter();patchRenderers();buildQuickActions();patchSwitchTab();window.renderFinance?.();window.renderSettlement?.();window.renderTeacherKpi?.()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
   window.addEventListener('load',()=>setTimeout(()=>{patchRenderers();patchSwitchTab()},200));
