@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v1818-notion-compact-month';
+const CACHE_NAME='danbridge-v18181-mobile-undo-position';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
