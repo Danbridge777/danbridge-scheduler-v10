@@ -53,6 +53,7 @@ function billingCampFormula(rows){
   return`${days} 天 × ${money(+r.dailyRate||0)}`;
 }
 function billingParentName(value){return String(value||'').replace(/[\u200B-\u200D\uFEFF]/g,'').trim()}
+function billingLineSalutation(studentId){return String(student(studentId)?.lineSalutation||'媽咪').trim()||'媽咪'}
 function billingFamilyStudents(studentId){
   const selected=student(studentId),parent=billingParentName(selected.parent);
   if(!parent)return[selected];
@@ -67,10 +68,10 @@ function studentBillingSections(d,includeName=false){
 function studentLineBillingText(studentId,m,scope='all',familyStudentIds=null){
   const explicitIds=Array.isArray(familyStudentIds)?new Set(familyStudentIds.filter(Boolean)):null;
   const family=explicitIds?[...explicitIds].map(student).filter(s=>s.id):billingFamilyStudents(studentId),details=family.map(s=>studentMonthlyBillingData(s.id,m,scope)).filter(d=>d.tutoringLessons.length||d.campRows.length),multiple=family.length>1;
-  const total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`媽咪好，以下是小朋友 ${billingMonthLabel(m)}的課程費用明細：`,''];
+  const salutation=billingLineSalutation(studentId),total=details.reduce((sum,d)=>sum+d.total,0);let lines=[`${salutation}好，以下是小朋友 ${billingMonthLabel(m)}的課程費用明細：`,''];
   details.forEach(d=>lines.push(...studentBillingSections(d,multiple)));
   const monthNumber=Number(String(m||'').slice(5,7))||Number(String(m||'').split('-')[1])||'';
-  lines.push(`${monthNumber}月共計：${money(total)}`,'','以上請媽咪確認！');return lines.join('\n');
+  lines.push(`${monthNumber}月共計：${money(total)}`,'',`以上請${salutation}確認！`);return lines.join('\n');
 }
 function copyStudentLineBilling(studentId,m,scope='all',encodedFamilyIds=''){
   const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds),done=()=>toast('LINE 對帳內容已複製');
