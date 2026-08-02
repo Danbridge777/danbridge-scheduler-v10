@@ -141,7 +141,7 @@
 <link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.18.1">
 <link rel="stylesheet" href="./css/core/67-v185-interface-clarity.css?v=18.5">
 <link rel="stylesheet" href="./css/calendar/68-v1818-notion-compact-month.css?v=18.18">
-<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.19">
+<link rel="stylesheet" href="./css/core/69-v1819-responsive-convenience.css?v=18.19.1">
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
@@ -282,7 +282,7 @@
   <div class="row-actions"><button class="btn" onclick="renderDataIntegrity(true)">重新檢查</button><button class="btn primary" onclick="repairDataIntegrity()">一鍵整理資料</button></div>
 </div><div class="card" style="grid-column:1/-1"><h2>安全與搬移</h2><div class="danger-note">不同裝置的 Safari 不會自動共用 localStorage。跨裝置時，請以 iCloud Drive 中最新 JSON 為準，匯入前先確認檔名與時間。</div><ol><li>Mac：按「匯出最新資料」→ 儲存至 iCloud Drive。</li><li>iPad：開啟本網站 →「匯入 JSON」→ 選取最新備份。</li><li>iPad 修改後，再匯出回同一個 iCloud 資料夾。</li></ol><button class="btn danger" onclick="resetData()">清空全部資料</button></div>
 </div></section>
-</main><div class="floating-actions"><button id="undoBtn" class="btn" onclick="undoLast()" disabled>↶ 復原</button><button id="redoBtn" class="btn" onclick="redoLast()" disabled>↷ 重做</button><button class="btn primary" onclick="openLessonModal()">＋ 新增</button></div><div class="toast" id="toast"></div><div id="pasteModeBanner" class="paste-mode-banner"><div id="pasteModeMessage">📋 已複製課程</div><div class="small">點哪一天，第一筆就貼到哪一天；其餘課程保留原本日期間距；Esc 取消。</div></div><div id="marqueeBox" class="marquee-box"></div><div id="calendarContextMenu" class="calendar-context-menu"><button onclick="contextCopyLessons()">複製選取課程</button><button onclick="contextPasteLessons()">貼上到這裡</button><button onclick="selectVisibleLessons()">全選目前畫面</button><button class="danger-item" onclick="deleteSelectedLessons();hideCalendarContextMenu()">刪除選取課程</button><button onclick="hideCalendarContextMenu()">取消</button></div>
+</main><div class="floating-actions"><button id="undoBtn" class="btn" onclick="undoLast()" disabled>↶ 復原</button><button id="redoBtn" class="btn" onclick="redoLast()" disabled>↷ 重做</button><button class="btn primary" onclick="openLessonModal()">＋ 新增</button></div><div class="toast" id="toast"></div><div id="pasteModeBanner" class="paste-mode-banner"><div id="pasteModeMessage">📋 已複製課程</div><div class="small">點哪一天，第一筆就貼到哪一天；其餘課程保留原本日期間距；Esc 取消。</div></div><div id="marqueeBox" class="marquee-box"></div><div id="calendarContextMenu" class="calendar-context-menu"><button onclick="contextCopyLessons()"><span class="context-line-icon"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></span><span>複製選取課程</span></button><button onclick="contextPasteLessons()"><span class="context-line-icon"><svg viewBox="0 0 24 24"><path d="M9 5h6"></path><rect x="6" y="4" width="12" height="16" rx="3"></rect><path d="m10 13 2 2 4-4"></path></svg></span><span>貼上到這裡</span></button><button onclick="selectVisibleLessons()"><span class="context-line-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="m8 12 3 3 5-6"></path></svg></span><span>全選目前畫面</span></button><button class="danger-item" onclick="deleteSelectedLessons();hideCalendarContextMenu()"><span class="context-line-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg></span><span>刪除選取課程</span></button><button class="context-cancel" onclick="hideCalendarContextMenu()"><span class="context-line-icon"><svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"></path></svg></span><span>取消</span></button></div>
 
 <div id="courseDrawerBackdrop" class="course-drawer-backdrop" onclick="closeCourseDrawer()"></div>
 <aside id="courseDrawer" class="course-drawer" aria-hidden="true" aria-label="課程詳細資料">
@@ -416,6 +416,6 @@
 <script src="./js/core/undo-redo-history.js"></script>
 <script src="./js/app/v18-information-architecture.js?v=18.17"></script>
 <script src="./js/app/v18-convenience-suite.js?v=18.17"></script>
-<script src="./js/app/v1819-responsive-convenience.js?v=18.19"></script>
+<script src="./js/app/v1819-responsive-convenience.js?v=18.19.1"></script>
 <script src="./js/core/ui-language.js?v=18.11"></script>
 </body></html>

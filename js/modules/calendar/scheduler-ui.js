@@ -119,7 +119,7 @@ function weekCellClick(e,d,t){
     renderCalendar();
   }
 }
-function showCalendarContextMenu(x,y,target){contextPasteTarget=target||null;const m=$('calendarContextMenu');if(!m)return;m.style.left=Math.min(x,window.innerWidth-200)+'px';m.style.top=Math.min(y,window.innerHeight-230)+'px';m.classList.add('show')}
+function showCalendarContextMenu(x,y,target){contextPasteTarget=target||null;const m=$('calendarContextMenu');if(!m)return;m.classList.add('show');const gap=12,rect=m.getBoundingClientRect();m.style.left=Math.max(gap,Math.min(x,window.innerWidth-rect.width-gap))+'px';m.style.top=Math.max(gap,Math.min(y,window.innerHeight-rect.height-gap))+'px'}
 function hideCalendarContextMenu(){$('calendarContextMenu')?.classList.remove('show')}
 function setPasteHoverTarget(el){
   document.querySelectorAll('#calendarCanvas .paste-click-target').forEach(x=>x.classList.remove('paste-click-target'));
