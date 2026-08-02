@@ -5,10 +5,10 @@ body.auth-locked{background:#000!important}
 .auth-screen:after{display:none!important}
 .auth-minimal-shell{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.16fr) minmax(420px,.84fr);width:min(1440px,100%);min-height:100dvh;margin:auto;padding:clamp(34px,5vw,76px);gap:clamp(64px,8vw,130px);align-items:center}
 .auth-minimal-brand{position:relative;min-height:min(760px,82vh);display:flex;flex-direction:column;justify-content:space-between}
-.auth-minimal-wordmark{display:block;color:#edcd82;font:700 clamp(48px,4.7vw,72px)/.96 Georgia,'Times New Roman',serif;letter-spacing:.018em;text-shadow:0 12px 38px rgba(203,155,68,.16)}
+.auth-minimal-wordmark{display:block;color:#f0cf83;font:600 clamp(50px,4.8vw,74px)/.94 Didot,'Bodoni 72','Bodoni MT',Georgia,serif;letter-spacing:.028em;text-shadow:0 12px 42px rgba(203,155,68,.18);font-variant-ligatures:common-ligatures}
 .auth-feather-scene{position:absolute;inset:11% 7% 23% 13%;display:grid;place-items:center;pointer-events:none;overflow:hidden}
 .auth-feather-halo{position:absolute;width:min(42vw,580px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(211,166,80,.095),rgba(211,166,80,.018) 48%,transparent 71%);filter:blur(8px)}
-.auth-gold-feather{position:relative;width:clamp(220px,25vw,370px);height:auto;opacity:.8;mix-blend-mode:screen;filter:saturate(.7) contrast(1.02) drop-shadow(0 24px 48px rgba(174,120,36,.1));-webkit-mask-image:radial-gradient(ellipse 54% 51% at 50% 50%,#000 66%,rgba(0,0,0,.88) 80%,transparent 100%);mask-image:radial-gradient(ellipse 54% 51% at 50% 50%,#000 66%,rgba(0,0,0,.88) 80%,transparent 100%)}
+.auth-gold-feather{position:relative;width:clamp(220px,25vw,370px);height:auto;opacity:.92;mix-blend-mode:screen;filter:brightness(1.08) saturate(.86) contrast(1.05) drop-shadow(0 25px 52px rgba(190,136,44,.16));-webkit-mask-image:radial-gradient(ellipse 54% 51% at 50% 50%,#000 66%,rgba(0,0,0,.88) 80%,transparent 100%);mask-image:radial-gradient(ellipse 54% 51% at 50% 50%,#000 66%,rgba(0,0,0,.88) 80%,transparent 100%)}
 .auth-feather-line{position:absolute;bottom:7%;width:min(80%,560px);height:1px;background:linear-gradient(90deg,transparent,rgba(218,176,96,.52),transparent)}
 .auth-minimal-copy{position:relative;z-index:2;max-width:500px}
 .auth-minimal-copy>span{color:rgba(222,184,108,.62);font-size:9px;font-weight:800;letter-spacing:.3em}
