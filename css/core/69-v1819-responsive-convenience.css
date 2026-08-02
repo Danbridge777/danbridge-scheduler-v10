@@ -1,0 +1,33 @@
+/* V18.19 — convenience-only layout for desktop, iPad and phone. */
+.v1819-empty-state{display:grid;place-items:center;min-height:108px;padding:22px;color:#6b7f91;font-size:13px;font-weight:750;text-align:center;background:linear-gradient(180deg,#fbfdff,#f5f8fb)}
+.v1819-modal-actions{position:sticky;bottom:-18px;z-index:8;display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin:18px -18px -18px;padding:13px 18px calc(13px + env(safe-area-inset-bottom));border-top:1px solid #dbe5ee;background:rgba(255,255,255,.96);box-shadow:0 -10px 22px rgba(15,23,42,.07);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.v1819-modal-actions .btn{margin:0!important}
+.v1819-back-to-top{position:fixed;right:26px;bottom:96px;z-index:58;width:44px;height:44px;border:1px solid #cbd9e5;border-radius:50%;background:rgba(255,255,255,.96);color:#174e76;font-size:22px;font-weight:900;box-shadow:0 10px 26px rgba(15,23,42,.16);cursor:pointer;opacity:0;pointer-events:none;transform:translateY(12px);transition:opacity .18s,transform .18s}
+.v1819-back-to-top.show{opacity:1;pointer-events:auto;transform:none}
+#calendarCanvas .month-grid .day-num span:first-child{cursor:pointer}
+#calendarCanvas .month-grid .day-num span:first-child::after{content:' 展開';color:#7890a4;font-size:9px;font-weight:700;opacity:0;transition:opacity .15s}
+#calendarCanvas .month-grid .day-cell:hover .day-num span:first-child::after{opacity:1}
+#calendarCanvas .month-grid .day-cell.v1819-day-focus{grid-column:1/-1!important;min-height:150px!important;padding:12px!important;background:#f8fbfd!important;box-shadow:inset 0 0 0 2px #80b6d7,0 12px 28px rgba(15,51,75,.13)!important;z-index:3}
+#calendarCanvas .month-grid .day-cell.v1819-day-focus .day-num span:first-child::after{content:' 收合';opacity:1;color:#17618f}
+#calendarCanvas .month-grid .day-cell.v1819-day-focus>.lesson{min-height:42px!important;padding:9px 11px!important;white-space:normal!important;overflow:visible!important}
+#calendarCanvas .month-grid .day-cell.v1819-day-focus>.lesson>.meta{display:block!important;margin-top:3px;color:#53697c!important;white-space:normal!important}
+
+@media(max-width:1100px){
+  .v1819-sticky-first-column table th:first-child,.v1819-sticky-first-column table td:first-child{position:sticky!important;left:0!important;z-index:3;background:#fff!important;box-shadow:3px 0 7px rgba(15,23,42,.08)}
+  .v1819-sticky-first-column table thead th:first-child{z-index:5;background:#eaf2f8!important}
+  .v1819-sticky-first-column table tbody tr:nth-child(even) td:first-child{background:#f8fbfd!important}
+}
+@media(max-width:760px){
+  #calendarCanvas .month-grid .day-cell.v1819-day-focus{display:block!important;min-height:0!important;margin:8px 0 14px!important;padding:11px!important}
+  #calendarCanvas .month-grid .day-cell .day-num span:first-child::after{content:' 點按查看';opacity:1}
+  #calendarCanvas .month-grid .day-cell.v1819-day-focus .day-num span:first-child::after{content:' 收合'}
+  .v1819-back-to-top{right:12px;bottom:calc(var(--mobile-nav-h,72px) + 14px + env(safe-area-inset-bottom));width:42px;height:42px}
+  .v1819-modal-actions{bottom:-17px;margin:16px -17px -17px;padding:11px 17px calc(11px + env(safe-area-inset-bottom))}
+  .v1819-modal-actions .btn{flex:1 1 120px;min-height:46px}
+}
+@media(max-width:480px){
+  .v1819-modal-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v1819-modal-actions .btn{width:100%;min-width:0!important;white-space:normal}
+  .v1819-empty-state{min-height:92px;padding:18px}
+}
+@media print{.v1819-back-to-top{display:none!important}.v1819-modal-actions{position:static;box-shadow:none}}
