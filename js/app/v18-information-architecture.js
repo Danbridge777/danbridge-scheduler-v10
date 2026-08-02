@@ -64,12 +64,12 @@
     if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text).then(done).catch(()=>copyStudentLineBillingFallback(text,done));
     copyStudentLineBillingFallback(text,done);
   }
-  function openLineBillingPreview(studentId,m,scope='all',encodedFamilyIds='',campSeason='all'){
-    const familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds,campSeason);let modal=$('#v181LineBillingPreview');
+  function openLineBillingPreview(studentId,m,scope='all',encodedFamilyIds='',campSeason=''){
+    const resolvedSeason=campSeason==='winter'?'winter':campSeason==='summer'?'summer':activeCampBillingSeason(),familyIds=encodedFamilyIds?decodeURIComponent(encodedFamilyIds).split(',').filter(Boolean):null,text=studentLineBillingText(studentId,m,scope,familyIds,resolvedSeason);let modal=$('#v181LineBillingPreview');
     if(!modal){modal=document.createElement('div');modal.id='v181LineBillingPreview';modal.className='modal-backdrop v181-line-preview';modal.innerHTML='<div class="modal"><div class="modal-head"><div><h2>LINE 費用明細預覽</h2><p>可直接修改文字；修改內容只影響這次複製，不會更動系統資料。</p></div><button type="button" aria-label="關閉">×</button></div><textarea id="v181LineBillingPreviewText"></textarea><div class="v181-line-preview-actions"><button type="button" class="btn">取消</button><button type="button" class="btn primary">確認複製</button></div></div>';document.body.append(modal);const buttons=$$('button',modal);buttons[0].addEventListener('click',closeLineBillingPreview);buttons[1].addEventListener('click',closeLineBillingPreview);buttons[2].addEventListener('click',copyPreviewText);modal.addEventListener('click',e=>{if(e.target===modal)closeLineBillingPreview()})}
-    modal.dataset.studentId=studentId;modal.dataset.month=m;modal.dataset.scope=scope;modal.dataset.campSeason=campSeason;$('#v181LineBillingPreviewText',modal).value=text;modal.classList.add('show');setTimeout(()=>$('#v181LineBillingPreviewText',modal)?.focus(),0);
+    modal.dataset.studentId=studentId;modal.dataset.month=m;modal.dataset.scope=scope;modal.dataset.campSeason=resolvedSeason;$('#v181LineBillingPreviewText',modal).value=text;modal.classList.add('show');setTimeout(()=>$('#v181LineBillingPreviewText',modal)?.focus(),0);
   }
-  function installLineBillingPreview(){if(window.copyStudentLineBilling?.__previewInstalled)return;const preview=(studentId,m,scope='all',encodedFamilyIds='',campSeason='all')=>openLineBillingPreview(studentId,m,scope,encodedFamilyIds,campSeason);preview.__previewInstalled=true;window.copyStudentLineBilling=preview}
+  function installLineBillingPreview(){if(window.copyStudentLineBilling?.__previewInstalled)return;const preview=(studentId,m,scope='all',encodedFamilyIds='',campSeason='')=>openLineBillingPreview(studentId,m,scope,encodedFamilyIds,campSeason);preview.__previewInstalled=true;window.copyStudentLineBilling=preview}
   window.openLineBillingPreview=openLineBillingPreview;window.closeLineBillingPreview=closeLineBillingPreview;window.copyPreviewText=copyPreviewText;
   window.setFinanceWorkspaceMonth=setFinanceWorkspaceMonth;
 

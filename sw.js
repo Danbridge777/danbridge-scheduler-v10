@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v1821-winter-summer-billing';
+const CACHE_NAME='danbridge-v18211-season-specific-line';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
