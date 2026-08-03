@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v18221-teacher-gap-week';
+const CACHE_NAME='danbridge-v18222-direct-new-auth';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

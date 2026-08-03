@@ -136,7 +136,7 @@
 <link rel="stylesheet" href="./css/core/58-v1711-mobile-dashboard-and-nav-alignment.css?v=17.11">
 <link rel="stylesheet" href="./css/core/60-v1717-student-crm-independent-scroll.css?v=17.17">
 <link rel="stylesheet" href="./css/core/61-v1718-teacher-revenue-kpi.css?v=17.18">
-<link rel="stylesheet" href="./css/core/62-v18213-minimal-feather-auth.css?v=18.21.11">
+<link rel="stylesheet" href="./css/core/62-v18213-minimal-feather-auth.css?v=18.22.2">
 <link rel="stylesheet" href="./css/core/62-v1719-large-teacher-revenue-kpi.css?v=17.19">
   <link rel="stylesheet" href="./css/core/63-v1730-searchable-student-selects.css">
 <link rel="stylesheet" href="./css/core/66-v18-information-architecture.css?v=18.18.1">
@@ -147,31 +147,31 @@
 </head>
 <body class="auth-locked">
 <div id="authScreen" class="auth-screen">
-  <div class="auth-shell">
-    <section class="auth-brand" aria-label="Danbridge Operations">
-      <div class="auth-brandmark"><span class="auth-monogram">D</span><span>DANBRIDGE</span></div>
-      <div class="auth-kicker">EDUCATION OPERATIONS PLATFORM</div>
-      <h1 class="auth-title">Danbridge <span>Scheduler Cloud</span></h1>
-      <p class="auth-subtitle">課表、教師、薪資與營運管理，集中於同一個安全、即時同步的管理平台。</p>
-      <div class="auth-feature-grid">
-        <div class="auth-feature"><span class="auth-feature-icon">◫</span><div><b>智慧課表</b><small>拖曳排課與衝堂檢查</small></div></div>
-        <div class="auth-feature"><span class="auth-feature-icon">◎</span><div><b>教師管理</b><small>課務紀錄與工時統計</small></div></div>
-        <div class="auth-feature"><span class="auth-feature-icon">$</span><div><b>薪資管理</b><small>工時、薪資與績效統計</small></div></div>
-        <div class="auth-feature"><span class="auth-feature-icon">↗</span><div><b>營運分析</b><small>財務報表與即時指標</small></div></div>
+  <div class="auth-minimal-shell">
+    <section class="auth-minimal-brand" aria-label="Danbridge Operations">
+      <div class="auth-minimal-wordmark">Danbridge</div>
+      <div class="auth-feather-scene" aria-hidden="true">
+        <span class="auth-feather-halo"></span>
+        <img class="auth-gold-feather" src="./assets/images/danbridge-gold-feather-v2.png" alt="">
+        <span class="auth-feather-line"></span>
       </div>
-      <div class="auth-proof"><div><b>Real-time</b><span>Cloud synchronization</span></div><span class="auth-proof-separator"></span><div><b>Role-based</b><span>Enterprise access control</span></div><span class="auth-proof-separator"></span><div><b>One platform</b><span>Complete operations command</span></div></div>
-      <div class="auth-visual" aria-hidden="true"><div class="auth-visual-head"><span class="auth-visual-dot"></span><span class="auth-visual-title">Danbridge Executive Overview</span></div><div class="auth-visual-grid"><div class="auth-visual-card"><span>MONTHLY OPERATIONS</span><b>98.4%</b><div class="auth-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="auth-visual-card"><span>PLATFORM STATUS</span><b>Secure</b><span>Encrypted cloud workspace</span></div></div></div>
+      <div class="auth-minimal-copy">
+        <span>EDUCATION OPERATIONS</span>
+        <h1>Quiet precision.<br><em>Exceptional learning.</em></h1>
+        <p>Private education operations, refined.</p>
+      </div>
     </section>
-    <div class="auth-panel-wrap">
-      <div class="auth-card">
-        <div class="auth-card-logo">D</div>
-        <h1>Welcome back</h1>
-        <p>登入 Danbridge 排課系統，繼續管理今日課務與營運。</p>
-        <button type="button" class="auth-google-btn" disabled><span class="auth-google-mark">G</span><span>正在載入 Google 登入…</span></button>
-        <div class="auth-security"><span class="auth-security-icon">⌾</span><div><b>僅限已授權帳號使用</b><small>登入後將依您的角色顯示對應功能與資料。</small></div></div>
-        <div class="auth-meta"><span>Danbridge English Co., Ltd.</span><strong>Secure Cloud Access</strong></div>
+    <section class="auth-minimal-panel">
+      <div class="auth-card auth-card-minimal">
+        <div class="auth-card-seal"><i></i> SECURE ACCESS</div>
+        <div class="auth-card-kicker">WELCOME BACK</div>
+        <h1>Enter the workspace.</h1>
+        <p>Sign in with your authorized Google account to continue.</p>
+        <button type="button" class="auth-google-btn" disabled><span class="auth-google-mark">G</span><span class="auth-google-label">Loading secure sign-in…</span><span class="auth-google-arrow">→</span></button>
+        <div class="auth-minimal-security"><span>Authorized accounts only</span><i></i><span>Role-based access</span></div>
+        <div class="auth-meta"><span>Danbridge English Co., Ltd.</span><strong>Private Cloud</strong></div>
       </div>
-    </div>
+    </section>
   </div>
 </div>
 
@@ -409,7 +409,7 @@
 
 <script src="./js/core/cloud-sync-bridge.js"></script>
 
-<script type="module" src="./js/core/firebase-auth-and-cloud-sync.module.js?v=18.21.11"></script>
+<script type="module" src="./js/core/firebase-auth-and-cloud-sync.module.js?v=18.22.2"></script>
 
 
 <script src="./js/core/pwa-installation.js"></script>
