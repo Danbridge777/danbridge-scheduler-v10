@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v182111-brand-scale-auth';
+const CACHE_NAME='danbridge-v1822-usability-polish';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
