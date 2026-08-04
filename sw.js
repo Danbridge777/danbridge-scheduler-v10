@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v20-scheduling-efficiency-1';
+const CACHE_NAME='danbridge-v20-scheduling-efficiency-2';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
