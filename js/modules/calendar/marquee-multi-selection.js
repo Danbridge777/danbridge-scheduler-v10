@@ -2,126 +2,150 @@
   let state=null;
   let suppressClickUntil=0;
 
-  function cancelMultiSelection(){
+  function selectionItems(canvas){return [...canvas.querySelectorAll('[data-id]')]}
+
+  function syncSelectionVisuals(canvas){
+    const selecting=selectionMode||selectedLessonIds.size>0;
+    selectionItems(canvas).forEach(element=>{
+      element.classList.toggle('selected',selectedLessonIds.has(element.dataset.id));
+      element.classList.remove('marquee-hit');
+      element.setAttribute('draggable',selecting?'false':'true');
+    });
+  }
+
+  function cancelMultiSelection(canvas){
     selectedLessonIds.clear();
     selectionMode=false;
     updateSelectionCount();
-    renderCalendar();
+    syncSelectionVisuals(canvas);
+  }
+
+  function marqueeArea(current){
+    const left=Math.min(state.startX,current.x),top=Math.min(state.startY,current.y);
+    const width=Math.abs(current.x-state.startX),height=Math.abs(current.y-state.startY);
+    return{left,top,width,height,right:left+width,bottom:top+height};
+  }
+
+  function paintMarquee(){
+    if(!state)return;
+    state.frame=0;
+    const area=marqueeArea(state.latest);
+    if(area.width>4||area.height>4)state.moved=true;
+    if(state.box){
+      state.box.style.transform=`translate3d(${area.left}px,${area.top}px,0)`;
+      state.box.style.width=area.width+'px';
+      state.box.style.height=area.height+'px';
+    }
+    for(const item of state.items){
+      const rect=item.rect;
+      const hit=rect.right>=area.left&&rect.left<=area.right&&rect.bottom>=area.top&&rect.top<=area.bottom;
+      if(hit===item.hit)continue;
+      item.hit=hit;
+      item.element.classList.toggle('marquee-hit',hit);
+    }
+  }
+
+  function scheduleMarqueePaint(x,y){
+    state.latest={x,y};
+    if(!state.frame)state.frame=requestAnimationFrame(paintMarquee);
   }
 
   function bindCleanMarquee(){
     const oldCanvas=document.getElementById('calendarCanvas');
     if(!oldCanvas)return;
 
-    // Replace the canvas node once to remove all previously duplicated marquee listeners.
+    // Calendar rendering replaces its contents. Cloning once removes listeners
+    // attached to the previous render without accumulating window-level handlers.
     const canvas=oldCanvas.cloneNode(true);
     oldCanvas.replaceWith(canvas);
     attachDragHandlers();
 
-    canvas.addEventListener('contextmenu',e=>{
-      e.preventDefault();
-      const item=e.target.closest('[data-id]');
+    canvas.addEventListener('contextmenu',event=>{
+      event.preventDefault();
+      const item=event.target.closest('[data-id]');
       if(item&&!selectedLessonIds.has(item.dataset.id)){
         selectedLessonIds.clear();
         selectedLessonIds.add(item.dataset.id);
         selectionMode=true;
         updateSelectionCount();
-        renderCalendar();
-        setTimeout(()=>showCalendarContextMenu(e.clientX,e.clientY,{
-          date:e.target.closest('[data-date]')?.dataset.date||db.lessons.find(l=>l.id===item.dataset.id)?.date||'',
-          time:e.target.closest('[data-time]')?.dataset.time||''
-        }),0);
-        return;
+        syncSelectionVisuals(canvas);
       }
-      const cell=e.target.closest('[data-date]');
-      showCalendarContextMenu(e.clientX,e.clientY,{date:cell?.dataset.date||'',time:cell?.dataset.time||''});
+      const cell=event.target.closest('[data-date]');
+      showCalendarContextMenu(event.clientX,event.clientY,{
+        date:cell?.dataset.date||db.lessons.find(lesson=>lesson.id===item?.dataset.id)?.date||'',
+        time:event.target.closest('[data-time]')?.dataset.time||''
+      });
     });
 
-    canvas.addEventListener('pointerdown',e=>{
-      if(pasteClickMode||e.pointerType==='touch'||e.button!==0)return;
-      if(e.target.closest('[data-id],button,input,select,textarea,a'))return;
-      state={
-        startX:e.clientX,
-        startY:e.clientY,
-        pointerId:e.pointerId,
-        moved:false,
-        additive:e.ctrlKey||e.metaKey
-      };
+    canvas.addEventListener('pointerdown',event=>{
+      if(pasteClickMode||event.pointerType==='touch'||event.button!==0)return;
+      if(event.target.closest('[data-id],button,input,select,textarea,a'))return;
       const box=document.getElementById('marqueeBox');
+      const items=selectionItems(canvas).map(element=>({element,rect:element.getBoundingClientRect(),hit:false}));
+      state={
+        startX:event.clientX,startY:event.clientY,latest:{x:event.clientX,y:event.clientY},
+        pointerId:event.pointerId,moved:false,additive:event.ctrlKey||event.metaKey,
+        items,box,frame:0
+      };
       if(box){
         box.style.display='block';
-        box.style.left=e.clientX+'px';
-        box.style.top=e.clientY+'px';
-        box.style.width='0px';
-        box.style.height='0px';
+        box.style.left='0';box.style.top='0';box.style.width='0';box.style.height='0';
+        box.style.transform=`translate3d(${event.clientX}px,${event.clientY}px,0)`;
       }
       canvas.classList.add('marquee-active');
-      try{canvas.setPointerCapture(e.pointerId)}catch{}
-      e.preventDefault();
+      try{canvas.setPointerCapture(event.pointerId)}catch{}
+      event.preventDefault();
     });
 
-    canvas.addEventListener('pointermove',e=>{
-      if(!state||e.pointerId!==state.pointerId)return;
-      const x=Math.min(state.startX,e.clientX);
-      const y=Math.min(state.startY,e.clientY);
-      const w=Math.abs(e.clientX-state.startX);
-      const h=Math.abs(e.clientY-state.startY);
-      if(w>4||h>4)state.moved=true;
-      const box=document.getElementById('marqueeBox');
-      if(box){box.style.left=x+'px';box.style.top=y+'px';box.style.width=w+'px';box.style.height=h+'px'}
-      const area={left:x,top:y,right:x+w,bottom:y+h};
-      canvas.querySelectorAll('[data-id]').forEach(el=>{
-        const r=el.getBoundingClientRect();
-        const hit=r.right>=area.left&&r.left<=area.right&&r.bottom>=area.top&&r.top<=area.bottom;
-        el.classList.toggle('marquee-hit',hit);
-      });
-      e.preventDefault();
+    canvas.addEventListener('pointermove',event=>{
+      if(!state||event.pointerId!==state.pointerId)return;
+      scheduleMarqueePaint(event.clientX,event.clientY);
+      event.preventDefault();
     });
 
-    canvas.addEventListener('pointerup',e=>{
-      if(!state||e.pointerId!==state.pointerId)return;
-      const moved=state.moved;
-      const additive=state.additive;
-      const hits=[...canvas.querySelectorAll('[data-id].marquee-hit')].map(el=>el.dataset.id);
-      canvas.querySelectorAll('.marquee-hit').forEach(el=>el.classList.remove('marquee-hit'));
-      const box=document.getElementById('marqueeBox');
-      if(box)box.style.display='none';
+    const finishMarquee=event=>{
+      if(!state||event.pointerId!==state.pointerId)return;
+      state.latest={x:event.clientX,y:event.clientY};
+      if(state.frame)cancelAnimationFrame(state.frame);
+      paintMarquee();
+      const current=state;
+      const hits=current.items.filter(item=>item.hit).map(item=>item.element.dataset.id);
+      if(current.box){current.box.style.display='none';current.box.style.transform='none'}
       canvas.classList.remove('marquee-active');
       state=null;
-
-      if(moved){
-        if(!additive)selectedLessonIds.clear();
+      if(current.moved){
+        if(!current.additive)selectedLessonIds.clear();
         hits.forEach(id=>selectedLessonIds.add(id));
         selectionMode=selectedLessonIds.size>0;
-        suppressClickUntil=Date.now()+300;
+        suppressClickUntil=Date.now()+250;
         updateSelectionCount();
-        renderCalendar();
-      }
-      e.preventDefault();
-    });
+        syncSelectionVisuals(canvas);
+      }else current.items.forEach(item=>item.element.classList.remove('marquee-hit'));
+      event.preventDefault();
+    };
+    canvas.addEventListener('pointerup',finishMarquee);
+    canvas.addEventListener('pointercancel',finishMarquee);
 
-    canvas.addEventListener('click',e=>{
-      if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();return}
-      const item=e.target.closest('[data-id]');
-      if(item&&(e.ctrlKey||e.metaKey)){
-        e.preventDefault();e.stopPropagation();
-        selectionMode=true;
+    canvas.addEventListener('click',event=>{
+      if(Date.now()<suppressClickUntil){event.preventDefault();event.stopPropagation();return}
+      const item=event.target.closest('[data-id]');
+      if(item&&(event.ctrlKey||event.metaKey)){
+        event.preventDefault();event.stopPropagation();
         if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);
         else selectedLessonIds.add(item.dataset.id);
         selectionMode=selectedLessonIds.size>0;
         updateSelectionCount();
-        renderCalendar();
+        syncSelectionVisuals(canvas);
         return;
       }
-      const blank=!e.target.closest('[data-id],button,input,select,textarea,a');
+      const blank=!event.target.closest('[data-id],button,input,select,textarea,a');
       if(blank&&(selectionMode||selectedLessonIds.size)){
-        e.preventDefault();e.stopPropagation();
-        cancelMultiSelection();
+        event.preventDefault();event.stopPropagation();
+        cancelMultiSelection(canvas);
       }
     },true);
   }
 
-  // Replace the legacy binder globally, then rebuild the current calendar once.
   window.enableDesktopMarquee=bindCleanMarquee;
-  setTimeout(()=>{renderCalendar();},0);
+  setTimeout(()=>renderCalendar(),0);
 })();
