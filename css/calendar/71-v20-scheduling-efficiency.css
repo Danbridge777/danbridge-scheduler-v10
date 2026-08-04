@@ -1,5 +1,9 @@
 .v20-conflict{margin:10px 0 12px;padding:10px 12px;border:1px solid;border-radius:12px;font-size:13px}.v20-conflict.neutral{background:#f8fafc;border-color:#cbd5e1;color:#475569}.v20-conflict.safe{background:#ecfdf5;border-color:#86efac;color:#166534}.v20-conflict.warning{background:#fffbeb;border-color:#fcd34d;color:#92400e}.v20-conflict.danger{background:#fef2f2;border-color:#fca5a5;color:#991b1b}.v20-history-list{display:grid;gap:8px;margin-top:14px;max-height:62vh;overflow:auto}.v20-history-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px;border:1px solid var(--line,#e2e8f0);border-radius:12px}.v20-history-row div{display:grid;gap:3px}.v20-history-row small,.v20-history-row span{color:var(--muted,#64748b)}.v20-history-row.undone{opacity:.55}body[data-cloud-role="teacher"] .v20-owner-action,body[data-cloud-role="branch_manager"] .v20-owner-action{display:none!important}@media(max-width:700px){.v20-history-row{align-items:flex-start;flex-direction:column}.v20-history-row .btn{width:100%}}
 
+:root{--danbridge-kai-font:"BiauKai","標楷體","DFKai-SB","KaiTi TC","Kaiti TC",serif}
+html,body,body *{font-family:var(--danbridge-kai-font)!important}
+body *::before,body *::after,input::placeholder,textarea::placeholder{font-family:inherit!important}
+
 /* Keep today's month number optically centered and aligned with the Danbridge gold brand. */
 #calendarCanvas .month-grid .day-cell.today .day-num>span:first-child{
   display:inline-flex!important;
