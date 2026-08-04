@@ -164,7 +164,8 @@ function filteredTeacherDB(source,teacherId){
  const lessons=(source.lessons||[]).filter(l=>!l.isDraft&&(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).includes(teacherId));
  const studentIds=new Set(lessons.map(l=>l.studentId));
  const lessonIds=new Set(lessons.map(l=>String(l.id)));
- return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:(source.teachers||[]).filter(t=>String(t.id)===String(teacherId)),lessons,makeups:(source.makeups||[]).filter(m=>String(m.teacherId)===String(teacherId)||lessonIds.has(String(m.sourceLessonId||m.lessonId||''))),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[]};
+ const students=(source.students||[]).filter(s=>studentIds.has(s.id)).map(s=>({id:s.id,name:s.name||'',courseType:s.courseType||'',preferredTeacherId:String(s.preferredTeacherId||'')===String(teacherId)?String(teacherId):''}));
+ return {...emptyDB(),students,teachers:(source.teachers||[]).filter(t=>String(t.id)===String(teacherId)),lessons,makeups:(source.makeups||[]).filter(m=>String(m.teacherId)===String(teacherId)||lessonIds.has(String(m.sourceLessonId||m.lessonId||''))),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[]};
 }
 
 function lessonBranchId(l){return l?.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l?.location||'')||'art_museum'}
@@ -856,7 +857,7 @@ async function migrateLegacyLessonCloudDocuments(){
 }
 
 
-const SCHEDULE_NOTIFICATION_FIELDS=['date','start','end','studentId','title','location','room','branchId','deliveryMode','status','lessonState'];
+const SCHEDULE_NOTIFICATION_FIELDS=['date','start','end','studentId','title','location','room','branchId','deliveryMode','address','onlinePlatform','meetingUrl','status','lessonState','note'];
 function lessonTeacherIds(lesson){return (Array.isArray(lesson?.teacherIds)?lesson.teacherIds:[lesson?.teacherId]).filter(Boolean).map(String)}
 function lessonFingerprintForNotification(lesson){return SCHEDULE_NOTIFICATION_FIELDS.map(k=>String(lesson?.[k]??'')).join('|')+'|'+lessonTeacherIds(lesson).slice().sort().join(',')}
 function lessonDisplayName(lesson,sourceDb){
@@ -873,7 +874,14 @@ function scheduleChangeSummary(type,before,after,sourceDb){
  if(String(before?.date||'')!==String(after?.date||''))changes.push(`日期 ${before?.date||'—'} → ${after?.date||'—'}`);
  if(String(before?.start||'')!==String(after?.start||'')||String(before?.end||'')!==String(after?.end||''))changes.push(`時間 ${(before?.start||'—')}–${(before?.end||'—')} → ${(after?.start||'—')}–${(after?.end||'—')}`);
  if(String(before?.location||'')!==String(after?.location||''))changes.push(`地點 ${before?.location||'—'} → ${after?.location||'—'}`);
+ if(String(before?.branchId||'')!==String(after?.branchId||''))changes.push(`校區 ${before?.branchId||'—'} → ${after?.branchId||'—'}`);
  if(String(before?.room||'')!==String(after?.room||''))changes.push(`教室 ${before?.room||'—'} → ${after?.room||'—'}`);
+ if(String(before?.deliveryMode||'')!==String(after?.deliveryMode||''))changes.push(`上課方式 ${before?.deliveryMode||'—'} → ${after?.deliveryMode||'—'}`);
+ if(String(before?.address||'')!==String(after?.address||''))changes.push('到府地址已更新');
+ if(String(before?.meetingUrl||'')!==String(after?.meetingUrl||''))changes.push('線上課連結已更新');
+ if(String(before?.title||'')!==String(after?.title||''))changes.push(`課程 ${before?.title||'—'} → ${after?.title||'—'}`);
+ if(lessonTeacherIds(before).slice().sort().join(',')!==lessonTeacherIds(after).slice().sort().join(','))changes.push('授課老師已更新');
+ if(String(before?.note||'')!==String(after?.note||''))changes.push('課程備註已更新');
  if(String(before?.status||'')!==String(after?.status||''))changes.push(`狀態 ${before?.status||'—'} → ${after?.status||'—'}`);
  return `修改：${student}｜${changes.slice(0,3).join('；')||lessonTimeLabel(target)}`;
 }
@@ -959,8 +967,8 @@ async function publishScheduleChangeNotifications(previousDb,currentDb,batchKey)
    const details=items.slice(0,20).map(item=>({
      type:item.type,lessonId:item.lessonId,
      summary:scheduleChangeSummary(item.type,item.before,item.after,currentDb),
-     before:item.before?{date:item.before.date||'',start:item.before.start||'',end:item.before.end||'',studentId:item.before.studentId||'',title:item.before.title||'',location:item.before.location||'',room:item.before.room||'',status:item.before.status||''}:null,
-     after:item.after?{date:item.after.date||'',start:item.after.start||'',end:item.after.end||'',studentId:item.after.studentId||'',title:item.after.title||'',location:item.after.location||'',room:item.after.room||'',status:item.after.status||''}:null
+     before:item.before?{date:item.before.date||'',start:item.before.start||'',end:item.before.end||'',studentId:item.before.studentId||'',title:item.before.title||'',location:item.before.location||'',branchId:item.before.branchId||'',deliveryMode:item.before.deliveryMode||'',room:item.before.room||'',address:item.before.address||'',onlinePlatform:item.before.onlinePlatform||'',meetingUrl:item.before.meetingUrl||'',status:item.before.status||'',note:item.before.note||'',teacherIds:lessonTeacherIds(item.before)}:null,
+     after:item.after?{date:item.after.date||'',start:item.after.start||'',end:item.after.end||'',studentId:item.after.studentId||'',title:item.after.title||'',location:item.after.location||'',branchId:item.after.branchId||'',deliveryMode:item.after.deliveryMode||'',room:item.after.room||'',address:item.after.address||'',onlinePlatform:item.after.onlinePlatform||'',meetingUrl:item.after.meetingUrl||'',status:item.after.status||'',note:item.after.note||'',teacherIds:lessonTeacherIds(item.after)}:null
    }));
    const manager=recipient.role==='branch_manager';
    jobs.push(setDoc(notificationRef,{companyId:COMPANY_ID,recipientEmail:recipient.email,recipientRole:recipient.role,teacherId,branchIds:manager?recipient.branchIds:[],teacherName:recipient.teacherName||'',title:'課表更新通知',message:manager?`您管理的校區課表有 ${items.length} 個變更`:`您的課表有 ${items.length} 個變更`,changeCount:items.length,details,read:false,createdAt:serverTimestamp(),createdBy:cloudUid,createdByName:'Daniel'}));

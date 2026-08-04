@@ -113,7 +113,11 @@ service cloud.firestore {
     }
 
     match /companies/{companyId}/lessonMeta/{lessonId} {
-      allow read: if isOwner() || activeMember(companyId);
+      allow read: if isOwner()
+        || (isTeacher(companyId)
+          && resource.data.teacherIds is list
+          && resource.data.teacherIds.hasAny([ownTeacherId()]))
+        || (isManager(companyId) && managerBranch(resource.data));
       allow write: if isOwner();
     }
 
