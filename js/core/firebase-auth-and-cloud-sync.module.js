@@ -70,6 +70,12 @@ const originalEditLesson=window.editLesson;
 
 function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],branches:[]}}
 function deepCopy(x){return JSON.parse(JSON.stringify(x||emptyDB()))}
+function localRoleCacheKey(){
+ if(cloudRole==='owner')return 'danbridge_scheduler_v1';
+ const identity=(cloudEmailKey||cloudUid||'unknown').replace(/[^a-z0-9@._-]/gi,'_');
+ return `danbridge_scheduler_view_${cloudRole||'signed_out'}_${identity}`;
+}
+function persistCurrentLocalView(){try{localStorage.setItem(localRoleCacheKey(),JSON.stringify(window.__danbridgeGetDB()))}catch{}}
 function cloudStatus(text,kind=''){let el=document.getElementById('firebaseCloudStatus');if(!el){el=document.createElement('div');el.id='firebaseCloudStatus';el.style.cssText='position:fixed;left:12px;bottom:12px;z-index:10001;padding:8px 11px;border-radius:10px;background:#172033;color:#fff;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,.2)';document.body.appendChild(el)}el.textContent=text;el.dataset.kind=kind||'';el.style.background=kind==='error'?'#991b1b':kind==='ok'?'#18794e':kind==='pending'?'#9a6700':kind==='offline'?'#475569':'#172033'}
 function dataHash(value){try{const text=JSON.stringify(value||{});let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+':'+text.length}catch{return String(Date.now())}}
 function withSyncTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('雲端連線逾時，將自動重試')),ms))])}
@@ -653,7 +659,7 @@ function subscribeLessonReports(){
    const modal=document.getElementById('teacherReportModal');
    if(modal?.classList.contains('show')){const id=document.getElementById('teacherReportLessonId')?.value;const l=local.lessons.find(x=>x.id===id);if(l)setTimeout(()=>openTeacherReportModal(id,{readOnly:modal.dataset.readOnly==='true'&&cloudRole==='branch_manager'&&!canActAsTeacherForLesson(l)}),0)}
    if(!changed)return;
-   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(local))}catch{}
+   persistCurrentLocalView();
    window.renderAll?.();
    window.renderDashboard?.();
    if(cloudRole==='owner'){clearTimeout(reportSyncTimer);reportSyncTimer=setTimeout(uploadOwnerState,500)}
@@ -1069,7 +1075,7 @@ function subscribeOwner(){
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    applyCachedLessonReportsToCurrentDB();
-   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
+   persistCurrentLocalView();
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());
    setTimeout(()=>window.renderDashboard?.(),150);
@@ -1103,7 +1109,7 @@ async function subscribeTeacher(){
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    applyCachedLessonReportsToCurrentDB();
-   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
+   persistCurrentLocalView();
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());setTimeout(()=>window.renderDashboard?.(),150);
    applyingCloud=false;
@@ -1142,7 +1148,7 @@ async function subscribeBranchManager(){
    applyingCloud=true;
    window.__danbridgeSetDB(deepCopy(incoming));
    applyCachedLessonReportsToCurrentDB();
-   try{localStorage.setItem(window.__danbridgeIsDraft()?'danbridge_scheduler_draft_v8':'danbridge_scheduler_v1',JSON.stringify(window.__danbridgeGetDB()))}catch{}
+   persistCurrentLocalView();
    window.renderAll?.();
    requestAnimationFrame(()=>window.renderDashboard?.());
    setTimeout(()=>window.renderDashboard?.(),150);

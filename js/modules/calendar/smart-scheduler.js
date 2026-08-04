@@ -1,8 +1,109 @@
 /**
- * V15.16 Smart Scheduler Module
+ * Smart Scheduler
  *
- * Student availability parsing, free-slot search and suggested-slot application.
- * Existing global function names are intentionally preserved for inline HTML handlers.
+ * Canonical implementation for availability parsing, conflict-safe slot search,
+ * room selection, and applying a suggested slot to the lesson form.
  */
 
-function parseStudentAvailability(text){const dayMap={'日':0,'天':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};const out=[];String(text||'').split(/\n|；|;/).forEach(line=>{const m=line.trim().match(/(?:週|星期)?([日天一二三四五六]).*?(\d{1,2}:\d{2})\s*[-～~至]\s*(\d{1,2}:\d{2})/);if(m&&dayMap[m[1]]!==undefined&&m[3]>m[2])out.push({day:dayMap[m[1]],start:m[2].padStart(5,'0'),end:m[3].padStart(5,'0')})});return out}function minutesToTime(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}function dateRange(a,b){const out=[],d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00');while(d<=e&&out.length<62){out.push(localDate(d));d.setDate(d.getDate()+1)}return out}function slotFree(candidate){return !db.lessons.some(l=>l.date===candidate.date&&l.id!==candidate.id&&candidate.start<l.end&&candidate.end>l.start&&(l.studentId===candidate.studentId||lessonTeacherIds(l).includes(candidate.teacherId)||(candidate.deliveryMode==='onsite'&&l.deliveryMode!=='home'&&l.deliveryMode!=='online'&&candidate.branchId===l.branchId&&candidate.room&&l.room===candidate.room)))}function openSmartScheduler(studentId=''){renderSelects();$('smartStudent').value=studentId||$('studentId')?.value||'';$('smartDateFrom').value=todayStr();$('smartDateTo').value=shiftDate(todayStr(),14);$('smartDuration').value='60';$('smartStep').value='30';const sb=$('smartBranch');if(sb){sb.innerHTML=(db.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).filter(b=>!['home_service','online','unassigned'].includes(b.id)).map(b=>`<option value="${b.id}">${b.name}</option>`).join('');sb.value='art_museum'}$('smartDeliveryMode').value='onsite';$('smartRoom').value='';$('smartTitle').value='補課';syncSmartStudent();$('smartResults').innerHTML='<span class="small">請設定條件後按「尋找可排時段」。</span>';$('smartSchedulerModal').classList.add('show')}function closeSmartScheduler(){$('smartSchedulerModal').classList.remove('show')}function syncSmartStudent(){const s=studentDefaults(db.students.find(x=>x.id===$('smartStudent').value)||{});$('smartTeacher').value=s.preferredTeacherId||'';$('smartAvailabilityHint').textContent=s.availability?'學生可上課時段：'+s.availability.replace(/\n/g,'；'):'未設定可上課時段，將以每日 09:00–21:00 搜尋。'}function findSmartSlots(){const sid=$('smartStudent').value,from=$('smartDateFrom').value,to=$('smartDateTo').value,duration=+$('smartDuration').value,step=+$('smartStep').value;if(!sid||!from||!to)return alert('請選擇學生與日期範圍');if(to<from)return alert('截止日期不能早於起始日期');const s=studentDefaults(db.students.find(x=>x.id===sid)||{}),avail=parseStudentAvailability(s.availability),teacherIds=$('smartTeacher').value?[$('smartTeacher').value]:db.teachers.map(t=>t.id),slots=[];for(const date of dateRange(from,to)){const dow=new Date(date+'T00:00:00').getDay(),windows=avail.length?avail.filter(a=>a.day===dow):[{start:'09:00',end:'21:00'}];for(const w of windows){let start=+w.start.slice(0,2)*60 + +w.start.slice(3),end=+w.end.slice(0,2)*60 + +w.end.slice(3);for(let n=start;n+duration<=end;n+=step){for(const tid of teacherIds){const candidate={date,start:minutesToTime(n),end:minutesToTime(n+duration),studentId:sid,teacherId:tid,teacherIds:[tid],room:$('smartRoom').value.trim(),branchId:$('smartBranch').value,deliveryMode:$('smartDeliveryMode').value,location:$('smartDeliveryMode').value==='home'?'到府':$('smartDeliveryMode').value==='online'?'線上課':(branchRecord($('smartBranch').value)?.name||'')};if(slotFree(candidate)){const adjacent=db.lessons.some(l=>l.date===date&&lessonTeacherIds(l).includes(tid)&&(l.end===candidate.start||l.start===candidate.end));slots.push({...candidate,adjacent});break}}if(slots.length>=80)break}if(slots.length>=80)break}if(slots.length>=80)break}slots.sort((a,b)=>(b.adjacent-a.adjacent)||(a.date+a.start).localeCompare(b.date+b.start));$('smartResults').innerHTML=slots.slice(0,40).map((x,i)=>`<div class="smart-slot ${i<3?'best':''}"><div><b>${x.date}（週${'日一二三四五六'[new Date(x.date+'T00:00:00').getDay()]}） ${x.start}–${x.end}</b><span class="small">${esc(teacher(x.teacherId).name||'未指定老師')}｜${esc(x.location)}${x.room?'｜'+esc(x.room):''}${x.adjacent?'｜相鄰既有課程':''}</span></div><button class="btn primary" onclick="useSmartSlot('${x.date}','${x.start}','${x.end}','${x.teacherId}')">選擇</button></div>`).join('')||'<div class="hint">找不到完全無衝堂的時段。請放寬日期、調整老師或清空教室欄位。</div>'}function useSmartSlot(date,start,end,teacherId){const sid=$('smartStudent').value,title=$('smartTitle').value.trim(),branchId=$('smartBranch').value,mode=$('smartDeliveryMode').value,room=$('smartRoom').value.trim();closeSmartScheduler();openLessonModal(date,start);$('endTime').value=end;$('lessonStudent').value=sid;$('lessonTeacher').value=teacherId;$('lessonTitle').value=title;$('lessonBranch').value=branchId;$('lessonDeliveryMode').value=mode;handleBranchChange();$('lessonRoom').value=room;handleLessonStudentChange();handleLocationChange();syncCoTeacherOptions();toast('已帶入建議時段，請確認後儲存')}$('smartSchedulerModal')?.addEventListener('click',e=>{if(e.target===$('smartSchedulerModal'))closeSmartScheduler()});
+function parseStudentAvailability(text){
+  const dayMap={'日':0,'天':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6},out=[];
+  String(text||'').split(/\n|；|;/).forEach(line=>{
+    const m=line.trim().match(/(?:週|星期)?([日天一二三四五六]).*?(\d{1,2}:\d{2})\s*[-～~至]\s*(\d{1,2}:\d{2})/);
+    if(!m||dayMap[m[1]]===undefined)return;
+    const start=m[2].padStart(5,'0'),end=m[3].padStart(5,'0');
+    if(end>start)out.push({day:dayMap[m[1]],start,end});
+  });
+  return out;
+}
+
+function minutesToTime(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
+function dateRange(a,b){const out=[],d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00');while(d<=e&&out.length<62){out.push(localDate(d));d.setDate(d.getDate()+1)}return out}
+function availableRooms(branchId){return branchRecord(branchId)?.rooms||[]}
+
+function slotFree(candidate){
+  return !db.lessons.some(l=>
+    l.date===candidate.date&&
+    l.id!==candidate.id&&
+    !['取消','停課'].includes(l.status)&&
+    candidate.start<l.end&&candidate.end>l.start&&(
+      l.studentId===candidate.studentId||
+      lessonTeacherIds(l).includes(candidate.teacherId)||
+      (candidate.deliveryMode==='onsite'&&l.deliveryMode!=='home'&&l.deliveryMode!=='online'&&candidate.branchId===l.branchId&&candidate.room&&l.room===candidate.room)
+    )
+  );
+}
+
+function openSmartScheduler(studentId=''){
+  renderSelects();
+  $('smartStudent').value=studentId||$('studentId')?.value||'';
+  $('smartDateFrom').value=todayStr();
+  $('smartDateTo').value=shiftDate(todayStr(),14);
+  $('smartDuration').value='60';
+  $('smartStep').value='30';
+  const branch=$('smartBranch');
+  if(branch){
+    branch.innerHTML=(db.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).filter(b=>!['home_service','online','unassigned'].includes(b.id)).map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+    branch.value='art_museum';
+  }
+  $('smartDeliveryMode').value='onsite';
+  $('smartRoom').value='';
+  $('smartTitle').value='補課';
+  syncSmartStudent();
+  $('smartResults').innerHTML='<span class="small">請設定條件後按「尋找可排時段」。</span>';
+  $('smartSchedulerModal').classList.add('show');
+}
+
+function closeSmartScheduler(){$('smartSchedulerModal').classList.remove('show')}
+function syncSmartStudent(){const s=studentDefaults(db.students.find(x=>x.id===$('smartStudent').value)||{});$('smartTeacher').value=s.preferredTeacherId||'';$('smartAvailabilityHint').textContent=s.availability?'學生可上課時段：'+s.availability.replace(/\n/g,'；'):'未設定可上課時段，將以每日 09:00–21:00 搜尋。'}
+
+function findSmartSlots(){
+  const sid=$('smartStudent').value,from=$('smartDateFrom').value,to=$('smartDateTo').value,duration=+$('smartDuration').value,step=+$('smartStep').value,branchId=$('smartBranch').value,mode=$('smartDeliveryMode').value,requested=$('smartRoom').value.trim();
+  if(!sid||!from||!to||!branchId)return alert('請選擇學生、日期與校區');
+  if(to<from)return alert('截止日期不能早於起始日期');
+  const s=studentDefaults(db.students.find(x=>x.id===sid)||{}),availability=parseStudentAvailability(s.availability),preferred=$('smartTeacher').value,teacherIds=preferred?[preferred]:db.teachers.map(t=>t.id),slots=[];
+  for(const date of dateRange(from,to)){
+    const day=new Date(date+'T00:00:00').getDay(),windows=availability.length?availability.filter(a=>a.day===day):[{start:'09:00',end:'21:00'}];
+    for(const window of windows){
+      for(let minute=+window.start.slice(0,2)*60+ +window.start.slice(3);minute+duration<=+window.end.slice(0,2)*60+ +window.end.slice(3);minute+=step){
+        let best=null;
+        for(const teacherId of teacherIds){
+          const record=teacher(teacherId);
+          if(Array.isArray(record.workDays)&&record.workDays.length&&!record.workDays.map(Number).includes(day))continue;
+          const rooms=mode==='onsite'?(requested?[requested]:(availableRooms(branchId).length?availableRooms(branchId):[''])):[''];
+          for(const room of rooms){
+            const candidate={date,start:minutesToTime(minute),end:minutesToTime(minute+duration),studentId:sid,teacherId,teacherIds:[teacherId],room,branchId,deliveryMode:mode,location:mode==='home'?'到府':mode==='online'?'線上課':branchRecord(branchId)?.name||''};
+            if(!slotFree(candidate))continue;
+            const adjacent=db.lessons.some(l=>l.date===date&&lessonTeacherIds(l).includes(teacherId)&&(l.end===candidate.start||l.start===candidate.end));
+            const score=(adjacent?20:0)+db.lessons.filter(l=>l.date===date&&lessonTeacherIds(l).includes(teacherId)).length*2;
+            if(!best||score>best.score)best={...candidate,adjacent,score};
+            break;
+          }
+        }
+        if(best)slots.push(best);
+      }
+    }
+  }
+  slots.sort((a,b)=>b.score-a.score||(a.date+a.start).localeCompare(b.date+b.start));
+  $('smartResults').innerHTML=slots.slice(0,40).map((slot,index)=>`<div class="smart-slot ${index<3?'best':''}"><div><b>${slot.date} ${slot.start}–${slot.end}</b><span class="small">${esc(teacher(slot.teacherId).name||'未指定老師')}｜${esc(slot.location)}${slot.room?'｜'+esc(slot.room):''}</span></div><button class="btn primary" data-slot="${index}">選擇</button></div>`).join('')||'<div class="hint">找不到完全無衝堂的時段。</div>';
+  $('smartResults').querySelectorAll('[data-slot]').forEach(button=>button.addEventListener('click',()=>{const slot=slots[+button.dataset.slot];useSmartSlot(slot.date,slot.start,slot.end,slot.teacherId,slot.room)}));
+}
+
+function useSmartSlot(date,start,end,teacherId,room=''){
+  const studentId=$('smartStudent').value,title=$('smartTitle').value.trim(),branchId=$('smartBranch').value,mode=$('smartDeliveryMode').value;
+  closeSmartScheduler();
+  openLessonModal(date,start);
+  $('endTime').value=end;
+  $('lessonStudent').value=studentId;
+  $('lessonTeacher').value=teacherId;
+  $('lessonTitle').value=title;
+  $('lessonBranch').value=branchId;
+  $('lessonDeliveryMode').value=mode;
+  handleBranchChange();
+  $('lessonRoom').value=room;
+  handleLessonStudentChange();
+  handleLocationChange();
+  syncCoTeacherOptions();
+  window.realtimeConflicts?.();
+}
+
+$('smartSchedulerModal')?.addEventListener('click',event=>{if(event.target===$('smartSchedulerModal'))closeSmartScheduler()});
