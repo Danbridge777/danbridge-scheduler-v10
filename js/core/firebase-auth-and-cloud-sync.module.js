@@ -178,7 +178,7 @@ function filteredBranchDB(source,branchIds){
  const lessonById=new Map((source.lessons||[]).map(l=>[String(l.id),l]));
  const students=(source.students||[]).filter(st=>studentIds.has(st.id)||(st.branchIds||[]).some(id=>allowed.has(id)));
  const visibleStudentIds=new Set(students.map(st=>String(st.id)));
- return {...emptyDB(),branches,students,teachers:(source.teachers||[]).filter(t=>teacherIds.has(t.id)||(t.assignedBranchIds||[]).some(id=>allowed.has(id))),lessons,makeups:(source.makeups||[]).filter(m=>{const sourceLesson=lessonById.get(String(m.sourceLessonId||m.lessonId||''));return allowed.has(m.branchId||lessonBranchId(sourceLesson||m))}),changes:(source.changes||[]).filter(c=>{const lesson=lessonById.get(String(c.lessonId))||c.after||c.before;return lesson&&allowed.has(lessonBranchId(lesson))}),teacherGroups:[],winterTeacherGroups:[],summerCampClasses:(source.summerCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),summerCampRegistrations:(source.summerCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&visibleStudentIds.has(String(r.studentId)))),winterCampRegistrations:(source.winterCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&visibleStudentIds.has(String(r.studentId)))),winterCampClasses:(source.winterCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),settlementRecords:(source.settlementRecords||[]).filter(r=>allowed.has(r.branchId)),fixedExpenses:(source.fixedExpenses||[]).filter(e=>allowed.has(e.branchId)),oneTimeExpenses:(source.oneTimeExpenses||[]).filter(e=>allowed.has(e.branchId)),collectionRecords:(source.collectionRecords||[]).filter(r=>(r.studentIds||[]).some(id=>visibleStudentIds.has(String(id))))};
+ return {...emptyDB(),branches,students,teachers:(source.teachers||[]).filter(t=>teacherIds.has(t.id)||(t.assignedBranchIds||[]).some(id=>allowed.has(id))),lessons,makeups:(source.makeups||[]).filter(m=>{const sourceLesson=lessonById.get(String(m.sourceLessonId||m.lessonId||''));return allowed.has(m.branchId||lessonBranchId(sourceLesson||m))}),changes:(source.changes||[]).filter(c=>{const lesson=lessonById.get(String(c.lessonId))||c.after||c.before;return lesson&&allowed.has(lessonBranchId(lesson))}),teacherGroups:[],winterTeacherGroups:[],summerCampClasses:(source.summerCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),summerCampRegistrations:(source.summerCampRegistrations||[]).filter(r=>allowed.has(r.branchId)),winterCampRegistrations:(source.winterCampRegistrations||[]).filter(r=>allowed.has(r.branchId)),winterCampClasses:(source.winterCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),settlementRecords:(source.settlementRecords||[]).filter(r=>allowed.has(r.branchId)),fixedExpenses:(source.fixedExpenses||[]).filter(e=>allowed.has(e.branchId)),oneTimeExpenses:(source.oneTimeExpenses||[]).filter(e=>allowed.has(e.branchId)),collectionRecords:(source.collectionRecords||[]).filter(r=>allowed.has(r.branchId)).map(r=>({...r,studentIds:(r.studentIds||[]).filter(id=>visibleStudentIds.has(String(id)))}))};
 }
 
 async function renderCloudUserManager(){
@@ -964,9 +964,12 @@ async function publishScheduleChangeNotifications(previousDb,currentDb,batchKey)
    const safeBatch=String(batchKey||dataHash(currentDb)).replace(/[^a-zA-Z0-9_-]/g,'_');
    const safeRecipient=recipient.email.replace(/[^a-zA-Z0-9_-]/g,'_');
    const notificationRef=doc(cloud,'companies',COMPANY_ID,'scheduleNotifications',`${safeBatch}_${safeRecipient}`);
-   const details=items.slice(0,20).map(item=>({
+   const details=items.map(item=>({
      type:item.type,lessonId:item.lessonId,
      summary:scheduleChangeSummary(item.type,item.before,item.after,currentDb),
+     studentName:lessonDisplayName(item.after||item.before,currentDb),
+     beforeTime:item.before?lessonTimeLabel(item.before):'',
+     afterTime:item.after?lessonTimeLabel(item.after):'',
      before:item.before?{date:item.before.date||'',start:item.before.start||'',end:item.before.end||'',studentId:item.before.studentId||'',title:item.before.title||'',location:item.before.location||'',branchId:item.before.branchId||'',deliveryMode:item.before.deliveryMode||'',room:item.before.room||'',address:item.before.address||'',onlinePlatform:item.before.onlinePlatform||'',meetingUrl:item.before.meetingUrl||'',status:item.before.status||'',note:item.before.note||'',teacherIds:lessonTeacherIds(item.before)}:null,
      after:item.after?{date:item.after.date||'',start:item.after.start||'',end:item.after.end||'',studentId:item.after.studentId||'',title:item.after.title||'',location:item.after.location||'',branchId:item.after.branchId||'',deliveryMode:item.after.deliveryMode||'',room:item.after.room||'',address:item.after.address||'',onlinePlatform:item.after.onlinePlatform||'',meetingUrl:item.after.meetingUrl||'',status:item.after.status||'',note:item.after.note||'',teacherIds:lessonTeacherIds(item.after)}:null
    }));
@@ -991,18 +994,20 @@ function renderScheduleNotification(notification){
  const body=document.getElementById('scheduleNotificationBody');
  if(!modal||!body||!notification)return;
  const details=Array.isArray(notification.details)?notification.details:[];
- body.innerHTML=`<p class="schedule-notification-lead"><b>Daniel 已更新您的課表</b><span>${escapeHTML(notification.message||`共有 ${details.length} 個變更`)}</span></p><div class="schedule-notification-list">${details.map(item=>`<div class="schedule-notification-item" data-type="${escapeHTML(item.type||'modified')}"><span class="schedule-notification-type">${item.type==='added'?'新增':item.type==='removed'?'取消':'修改'}</span><span>${escapeHTML(item.summary||'課表內容已更新')}</span></div>`).join('')}</div><div class="schedule-notification-time">更新時間：${escapeHTML(formatNotificationTimestamp(notification.createdAt)||'剛剛')}</div>`;
+ body.innerHTML=`<p class="schedule-notification-lead"><b>Daniel 已更新您的課表</b><span>${escapeHTML(notification.message||`共有 ${details.length} 個變更`)}，已合併整理如下。</span></p><div class="schedule-notification-table-wrap"><table class="schedule-notification-table"><thead><tr><th>異動</th><th>學生／課程</th><th>原課程</th><th>新課程</th><th>內容</th></tr></thead><tbody>${details.map(item=>`<tr data-type="${escapeHTML(item.type||'modified')}"><td><span class="schedule-notification-type">${item.type==='added'?'新增':item.type==='removed'?'取消':'修改'}</span></td><td><b>${escapeHTML(item.studentName||'課程')}</b></td><td>${escapeHTML(item.beforeTime||'—')}</td><td>${escapeHTML(item.afterTime||'—')}</td><td>${escapeHTML(item.summary||'課表內容已更新')}</td></tr>`).join('')}</tbody></table></div><div class="schedule-notification-time">更新時間：${escapeHTML(formatNotificationTimestamp(notification.createdAt)||'剛剛')}</div>`;
  modal.dataset.notificationId=notification.id||'';
+ modal.dataset.notificationIds=JSON.stringify(Array.isArray(notification.notificationIds)?notification.notificationIds.filter(Boolean):[notification.id].filter(Boolean));
  modal.hidden=false;
 }
 async function acknowledgeCurrentScheduleNotification(){
  const modal=document.getElementById('scheduleNotificationModal');
- const id=modal?.dataset.notificationId;
- if(!id)return;
+ let ids=[];try{ids=JSON.parse(modal?.dataset.notificationIds||'[]')}catch{}
+ if(!ids.length&&modal?.dataset.notificationId)ids=[modal.dataset.notificationId];
+ if(!ids.length)return;
  const button=document.getElementById('scheduleNotificationAcknowledge');
  try{
    if(button){button.disabled=true;button.textContent='處理中…'}
-   await setDoc(doc(cloud,'companies',COMPANY_ID,'scheduleNotifications',id),{read:true,acknowledgedAt:serverTimestamp(),acknowledgedBy:cloudUid},{merge:true});
+   await Promise.all(ids.map(id=>setDoc(doc(cloud,'companies',COMPANY_ID,'scheduleNotifications',id),{read:true,acknowledgedAt:serverTimestamp(),acknowledgedBy:cloudUid},{merge:true})));
    if(modal)modal.hidden=true;
  }catch(e){console.error('Acknowledge schedule notification failed',e);cloudStatus('通知確認失敗：'+(e?.message||e),'error')}
  finally{if(button){button.disabled=false;button.textContent='知道了'}}
@@ -1017,7 +1022,10 @@ function subscribeScheduleNotifications(){
    scheduleNotificationDocuments=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.read!==true).sort((a,b)=>{const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;return at-bt});
    const current=scheduleNotificationDocuments[0];
    if(current&&!document.getElementById('scheduleNotificationModal')?.hidden)return;
-   if(current)renderScheduleNotification(current);
+   if(current){
+     const details=scheduleNotificationDocuments.flatMap(n=>Array.isArray(n.details)?n.details:[]);
+     renderScheduleNotification({...current,notificationIds:scheduleNotificationDocuments.map(n=>n.id),details,message:current.recipientRole==='branch_manager'?`您管理的校區課表共有 ${details.length} 個變更`:`您的課表共有 ${details.length} 個變更`});
+   }
  },e=>{console.error('Schedule notification listener failed',e);cloudStatus('課表通知讀取失敗：'+(e?.message||e),'error')});
 }
 
