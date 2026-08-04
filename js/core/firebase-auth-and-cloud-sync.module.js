@@ -51,6 +51,7 @@ let ownerUploadInFlight=false;
 let ownerUploadQueued=false;
 let ownerRetryTimer=null;
 let ownerRetryCount=0;
+let scheduleNotificationRetryPending=false;
 let lastUploadedHash='';
 let lastCloudSnapshotHash='';
 // 本機資料一旦修改，在雲端確認寫入前禁止舊 snapshot 倒灌覆蓋。
@@ -1040,7 +1041,7 @@ async function uploadOwnerState(force=false){
  if(currentScore===0){cloudStatus('已阻止空白資料上傳；請先確認本機或版本紀錄中的資料。','error');ownerUploadQueued=false;return}
  const hash=dataHash(current);
  const uploadMutationVersion=localMutationVersion;
- if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;localDirtyHash='';cloudStatus('資料已是最新版本','ok');return}
+ if(!force&&hash===lastUploadedHash&&!scheduleNotificationRetryPending){ownerUploadQueued=false;localDirtyHash='';cloudStatus('資料已是最新版本','ok');return}
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
  let syncStage='主資料';
  try{
@@ -1049,8 +1050,8 @@ async function uploadOwnerState(force=false){
    await withSyncTimeout(setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false}),15000);
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
    let notificationsPublished=true;
-   try{await publishScheduleChangeNotifications(previousPublished,current,hash)}catch(e){notificationsPublished=false;console.error('Schedule notification publish failed',e);cloudStatus('課表已同步，但老師通知暫時失敗；下次同步會自動補送。','error')}
-   if(notificationsPublished){lastPublishedOwnerDB=deepCopy(current);ownerBaselineReady=true;}
+   try{await publishScheduleChangeNotifications(previousPublished,current,hash)}catch(e){notificationsPublished=false;scheduleNotificationRetryPending=true;ownerUploadQueued=true;ownerRetryCount++;console.error('Schedule notification publish failed',e);cloudStatus('課表已同步，但老師通知暫時失敗；系統正在自動補送。','error')}
+   if(notificationsPublished){lastPublishedOwnerDB=deepCopy(current);ownerBaselineReady=true;scheduleNotificationRetryPending=false;}
    const latestHash=dataHash(window.__danbridgeGetDB());
    if(localMutationVersion===uploadMutationVersion&&latestHash===hash){localDirtyHash='';}
    else{ownerUploadQueued=true;}
@@ -1068,7 +1069,7 @@ async function uploadOwnerState(force=false){
    scheduleOwnerRetry();
  }finally{
    ownerUploadInFlight=false;
-   if(ownerUploadQueued&&navigator.onLine){clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),80);}
+   if(ownerUploadQueued&&navigator.onLine){clearTimeout(syncTimer);if(ownerRetryCount)scheduleOwnerRetry();else syncTimer=setTimeout(()=>uploadOwnerState(),80);}
  }
 }
 function installCloudSave(){
@@ -1220,7 +1221,7 @@ installClassFocusMode();
 installBranchManagerAccessEvents();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;unsubscribeScheduleNotifications?.();unsubscribeScheduleNotifications=null;scheduleNotificationDocuments=[];lessonReportDocuments=[];lessonMetaSignatureCache=new Map();lessonMetaCacheReady=false;scopedViewHashCache=new Map();
- if(!user){lastPublishedOwnerDB=null;ownerBaselineReady=false;cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.__danbridgeLessonIdMigrationAuthority=false;window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
+ if(!user){lastPublishedOwnerDB=null;ownerBaselineReady=false;scheduleNotificationRetryPending=false;cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.__danbridgeLessonIdMigrationAuthority=false;window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
    if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();subscribeScheduleNotifications();
