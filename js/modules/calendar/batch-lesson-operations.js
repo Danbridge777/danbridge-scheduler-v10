@@ -42,7 +42,8 @@ function buildBatchCandidates(){
     branch=branchId?batchBranches().find(b=>b.id===branchId):null;
   return db.lessons.filter(l=>selectedLessonIds.has(l.id)).map(l=>{
     const start=shiftTime(l.start,tm),end=shiftTime(l.end,tm);
-    const n={...l,date:shiftDate(l.date,dd),start,end,teacherId:tid||l.teacherId,teacherIds:tid?[tid]:lessonTeacherIds(l),status:status||l.status,paymentStatus:pay||l.paymentStatus};
+    const currentTeacherIds=lessonTeacherIds(l),nextTeacherIds=tid?[tid,...currentTeacherIds.filter(id=>id!==l.teacherId&&id!==tid)]:currentTeacherIds;
+    const n={...l,date:shiftDate(l.date,dd),start,end,teacherId:tid||l.teacherId,teacherIds:nextTeacherIds,status:status||l.status,paymentStatus:pay||l.paymentStatus};
     if(branch){
       n.branchId=branch.id;
       n.location=branch.name;
