@@ -68,7 +68,7 @@ const COMPANY_ACCESS_CACHE_TTL=30000;
 let originalSaveDB=window.saveDB;
 const originalEditLesson=window.editLesson;
 
-function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],branches:[]}}
+function emptyDB(){return {students:[],teachers:[],lessons:[],makeups:[],changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[],branches:[]}}
 function deepCopy(x){return JSON.parse(JSON.stringify(x||emptyDB()))}
 function localRoleCacheKey(){
  if(cloudRole==='owner')return 'danbridge_scheduler_v1';
@@ -163,7 +163,8 @@ function teacherBadgeName(t){return String(t?.displayName||t?.name||'').trim()}
 function filteredTeacherDB(source,teacherId){
  const lessons=(source.lessons||[]).filter(l=>!l.isDraft&&(Array.isArray(l.teacherIds)?l.teacherIds:[l.teacherId]).includes(teacherId));
  const studentIds=new Set(lessons.map(l=>l.studentId));
- return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:(source.teachers||[]).filter(t=>t.id===teacherId),lessons,makeups:(source.makeups||[]).filter(m=>m.teacherId===teacherId),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[]};
+ const lessonIds=new Set(lessons.map(l=>String(l.id)));
+ return {...emptyDB(),students:(source.students||[]).filter(s=>studentIds.has(s.id)),teachers:(source.teachers||[]).filter(t=>String(t.id)===String(teacherId)),lessons,makeups:(source.makeups||[]).filter(m=>String(m.teacherId)===String(teacherId)||lessonIds.has(String(m.sourceLessonId||m.lessonId||''))),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[]};
 }
 
 function lessonBranchId(l){return l?.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l?.location||'')||'art_museum'}
@@ -173,7 +174,10 @@ function filteredBranchDB(source,branchIds){
  const studentIds=new Set(lessons.map(l=>l.studentId));
  const teacherIds=new Set(lessons.flatMap(l=>Array.isArray(l.teacherIds)&&l.teacherIds.length?l.teacherIds:[l.teacherId]).filter(Boolean));
  const branches=(source.branches||window.DanbridgeAccess?.DEFAULT_BRANCHES||[]).filter(b=>allowed.has(b.id));
- return {...emptyDB(),branches,students:(source.students||[]).filter(st=>studentIds.has(st.id)||(st.branchIds||[]).some(id=>allowed.has(id))),teachers:(source.teachers||[]).filter(t=>teacherIds.has(t.id)||(t.assignedBranchIds||[]).some(id=>allowed.has(id))),lessons,makeups:(source.makeups||[]).filter(m=>allowed.has(m.branchId||lessonBranchId((source.lessons||[]).find(l=>l.id===m.lessonId)||m))),changes:(source.changes||[]).filter(c=>{const l=(source.lessons||[]).find(x=>x.id===c.lessonId);return l&&allowed.has(lessonBranchId(l))}),teacherGroups:[],winterTeacherGroups:[],summerCampClasses:(source.summerCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),summerCampRegistrations:(source.summerCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&studentIds.has(r.studentId))),winterCampRegistrations:(source.winterCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&studentIds.has(r.studentId))),winterCampClasses:(source.winterCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),settlementRecords:(source.settlementRecords||[]).filter(r=>allowed.has(r.branchId)),fixedExpenses:(source.fixedExpenses||[]).filter(e=>allowed.has(e.branchId)),oneTimeExpenses:(source.oneTimeExpenses||[]).filter(e=>allowed.has(e.branchId))};
+ const lessonById=new Map((source.lessons||[]).map(l=>[String(l.id),l]));
+ const students=(source.students||[]).filter(st=>studentIds.has(st.id)||(st.branchIds||[]).some(id=>allowed.has(id)));
+ const visibleStudentIds=new Set(students.map(st=>String(st.id)));
+ return {...emptyDB(),branches,students,teachers:(source.teachers||[]).filter(t=>teacherIds.has(t.id)||(t.assignedBranchIds||[]).some(id=>allowed.has(id))),lessons,makeups:(source.makeups||[]).filter(m=>{const sourceLesson=lessonById.get(String(m.sourceLessonId||m.lessonId||''));return allowed.has(m.branchId||lessonBranchId(sourceLesson||m))}),changes:(source.changes||[]).filter(c=>{const lesson=lessonById.get(String(c.lessonId))||c.after||c.before;return lesson&&allowed.has(lessonBranchId(lesson))}),teacherGroups:[],winterTeacherGroups:[],summerCampClasses:(source.summerCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),summerCampRegistrations:(source.summerCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&visibleStudentIds.has(String(r.studentId)))),winterCampRegistrations:(source.winterCampRegistrations||[]).filter(r=>allowed.has(r.branchId)||(!r.branchId&&visibleStudentIds.has(String(r.studentId)))),winterCampClasses:(source.winterCampClasses||[]).filter(c=>allowed.has(c.branchId||lessonBranchId(c))),settlementRecords:(source.settlementRecords||[]).filter(r=>allowed.has(r.branchId)),fixedExpenses:(source.fixedExpenses||[]).filter(e=>allowed.has(e.branchId)),oneTimeExpenses:(source.oneTimeExpenses||[]).filter(e=>allowed.has(e.branchId)),collectionRecords:(source.collectionRecords||[]).filter(r=>(r.studentIds||[]).some(id=>visibleStudentIds.has(String(id))))};
 }
 
 async function renderCloudUserManager(){
@@ -898,31 +902,57 @@ function buildScheduleNotificationChanges(previousDb,currentDb){
  }
  return changes;
 }
+function buildScheduleLessonChanges(previousDb,currentDb){
+ const beforeMap=new Map((previousDb?.lessons||[]).map(l=>[String(l.id),l]));
+ const afterMap=new Map((currentDb?.lessons||[]).map(l=>[String(l.id),l]));
+ const changes=[];
+ for(const [id,after] of afterMap){
+   const before=beforeMap.get(id);
+   if(!before)changes.push({type:'added',lessonId:id,before:null,after});
+   else if(lessonFingerprintForNotification(before)!==lessonFingerprintForNotification(after))changes.push({type:'modified',lessonId:id,before,after});
+ }
+ for(const [id,before] of beforeMap){if(!afterMap.has(id))changes.push({type:'removed',lessonId:id,before,after:null})}
+ return changes;
+}
 async function publishScheduleChangeNotifications(previousDb,currentDb,batchKey){
  if(cloudRole!=='owner'||!ownerBaselineReady||!previousDb)return;
- const changes=buildScheduleNotificationChanges(previousDb,currentDb);
- if(!changes.length)return;
+ const teacherChanges=buildScheduleNotificationChanges(previousDb,currentDb);
+ const lessonChanges=buildScheduleLessonChanges(previousDb,currentDb);
+ if(!lessonChanges.length)return;
  const accessDocs=await getCompanyAccessDocs();
  const accessByTeacher=new Map();
+ const managers=[];
  for(const d of accessDocs){
    const a=d.data()||{};
-   if(a.active===false||!a.teacherId)continue;
-   const tid=String(a.teacherId);
-   if(!accessByTeacher.has(tid))accessByTeacher.set(tid,[]);
-   accessByTeacher.get(tid).push({email:String(a.email||d.id||'').toLowerCase(),role:a.role||'teacher',teacherName:a.teacherName||a.managerName||''});
+   const email=String(a.email||d.id||'').trim().toLowerCase();
+   if(a.active===false||!email)continue;
+   if(a.role==='branch_manager'&&Array.isArray(a.branchIds)&&a.branchIds.length){
+     managers.push({email,role:'branch_manager',teacherName:a.managerName||a.teacherName||'',branchIds:a.branchIds.map(String)});
+     continue;
+   }
+   if(a.role!=='teacher'||!a.teacherId)continue;
+   const teacherId=String(a.teacherId);
+   if(!accessByTeacher.has(teacherId))accessByTeacher.set(teacherId,[]);
+   accessByTeacher.get(teacherId).push({email,role:'teacher',teacherName:a.teacherName||''});
  }
  const grouped=new Map();
- for(const change of changes){
+ const addRecipientItem=(recipient,item,teacherId='')=>{
+   const key=recipient.email;
+   if(!grouped.has(key))grouped.set(key,{recipient,teacherId,items:new Map()});
+   grouped.get(key).items.set(`${item.type}:${item.lessonId}`,item);
+ };
+ for(const change of teacherChanges){
    const recipients=accessByTeacher.get(String(change.teacherId))||[];
-   for(const recipient of recipients){
-     const key=recipient.email;
-     if(!grouped.has(key))grouped.set(key,{recipient,teacherId:String(change.teacherId),items:[]});
-     grouped.get(key).items.push(change);
-   }
+   for(const recipient of recipients)addRecipientItem(recipient,change,String(change.teacherId));
+ }
+ for(const change of lessonChanges){
+   const affectedBranches=new Set([change.before&&lessonBranchId(change.before),change.after&&lessonBranchId(change.after)].filter(Boolean).map(String));
+   for(const manager of managers){if(manager.branchIds.some(branchId=>affectedBranches.has(branchId)))addRecipientItem(manager,change,'')}
  }
  const jobs=[];
- for(const {recipient,teacherId,items} of grouped.values()){
+ for(const {recipient,teacherId,items:itemsByKey} of grouped.values()){
    if(!recipient.email)continue;
+   const items=[...itemsByKey.values()];
    const safeBatch=String(batchKey||dataHash(currentDb)).replace(/[^a-zA-Z0-9_-]/g,'_');
    const safeRecipient=recipient.email.replace(/[^a-zA-Z0-9_-]/g,'_');
    const notificationRef=doc(cloud,'companies',COMPANY_ID,'scheduleNotifications',`${safeBatch}_${safeRecipient}`);
@@ -932,7 +962,8 @@ async function publishScheduleChangeNotifications(previousDb,currentDb,batchKey)
      before:item.before?{date:item.before.date||'',start:item.before.start||'',end:item.before.end||'',studentId:item.before.studentId||'',title:item.before.title||'',location:item.before.location||'',room:item.before.room||'',status:item.before.status||''}:null,
      after:item.after?{date:item.after.date||'',start:item.after.start||'',end:item.after.end||'',studentId:item.after.studentId||'',title:item.after.title||'',location:item.after.location||'',room:item.after.room||'',status:item.after.status||''}:null
    }));
-   jobs.push(setDoc(notificationRef,{companyId:COMPANY_ID,recipientEmail:recipient.email,teacherId,teacherName:recipient.teacherName||'',title:'課表更新通知',message:`您的課表有 ${items.length} 個變更`,changeCount:items.length,details,read:false,createdAt:serverTimestamp(),createdBy:cloudUid,createdByName:'Daniel'}));
+   const manager=recipient.role==='branch_manager';
+   jobs.push(setDoc(notificationRef,{companyId:COMPANY_ID,recipientEmail:recipient.email,recipientRole:recipient.role,teacherId,branchIds:manager?recipient.branchIds:[],teacherName:recipient.teacherName||'',title:'課表更新通知',message:manager?`您管理的校區課表有 ${items.length} 個變更`:`您的課表有 ${items.length} 個變更`,changeCount:items.length,details,read:false,createdAt:serverTimestamp(),createdBy:cloudUid,createdByName:'Daniel'}));
  }
  if(jobs.length)await withSyncTimeout(Promise.all(jobs),15000);
 }
@@ -970,9 +1001,9 @@ async function acknowledgeCurrentScheduleNotification(){
 }
 function subscribeScheduleNotifications(){
  unsubscribeScheduleNotifications?.();unsubscribeScheduleNotifications=null;scheduleNotificationDocuments=[];
- if(!['teacher','branch_manager'].includes(cloudRole)||!cloudTeacherId)return;
+ if(!['teacher','branch_manager'].includes(cloudRole)||!cloudEmailKey)return;
  installScheduleNotificationUI();
- const q=query(collection(cloud,'companies',COMPANY_ID,'scheduleNotifications'),where('teacherId','==',String(cloudTeacherId)));
+ const q=query(collection(cloud,'companies',COMPANY_ID,'scheduleNotifications'),where('recipientEmail','==',cloudEmailKey));
  unsubscribeScheduleNotifications=onSnapshot(q,{includeMetadataChanges:true},snap=>{
    if(snap.metadata.hasPendingWrites)return;
    scheduleNotificationDocuments=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.read!==true).sort((a,b)=>{const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;return at-bt});

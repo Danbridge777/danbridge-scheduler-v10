@@ -15,6 +15,7 @@ function addMakeupForLesson(lesson, reason = '學生請假') {
     sourceLessonId: lesson.id,
     studentId: lesson.studentId,
     teacherId: lesson.teacherId,
+    branchId: lesson.branchId || window.DanbridgeAccess?.recordBranchId?.(lesson) || '',
     originalDate: lesson.date,
     originalStart: lesson.start,
     originalEnd: lesson.end,

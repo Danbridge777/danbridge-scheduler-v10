@@ -119,15 +119,16 @@ service cloud.firestore {
 
     match /companies/{companyId}/scheduleNotifications/{notificationId} {
       allow read: if isOwner()
-        || ((isTeacher(companyId) || isManager(companyId))
-          && resource.data.teacherId == ownTeacherId());
+        || (activeMember(companyId)
+          && (resource.data.recipientEmail == emailKey()
+            || ((isTeacher(companyId) || isManager(companyId))
+              && resource.data.teacherId == ownTeacherId())));
       allow create, delete: if isOwner();
       allow update: if isOwner()
-        || ((isTeacher(companyId) || isManager(companyId))
-          && resource.data.teacherId == ownTeacherId()
-          && request.resource.data.teacherId == resource.data.teacherId
-          && request.resource.data.recipientEmail == resource.data.recipientEmail
-          && request.resource.data.companyId == resource.data.companyId
+        || (activeMember(companyId)
+          && (resource.data.recipientEmail == emailKey()
+            || ((isTeacher(companyId) || isManager(companyId))
+              && resource.data.teacherId == ownTeacherId()))
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'read','acknowledgedAt','acknowledgedBy'
           ]));
