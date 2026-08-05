@@ -35,6 +35,21 @@ body[data-role-ux="teacher"] .teacher-redundant-filter{display:none!important}
 body[data-role-ux="teacher"] #calendarAnalysis,
 body[data-role-ux="teacher"]>.floating-actions,
 body[data-role-ux="teacher"] .v1819-back-to-top{display:none!important}
+body.teacher-cloud-role #calendarTeacherFilter,
+body.teacher-cloud-role #calendarLocationFilter,
+body.teacher-cloud-role #calendarStudentFilter,
+body.teacher-cloud-role #calendarRoomFilter,
+body.teacher-cloud-role #calendarStateFilter,
+body.teacher-cloud-role #filterStudent,
+body.teacher-cloud-role #filterTeacher{display:none!important}
+body.teacher-cloud-role #calendarAnalysis,
+body.teacher-cloud-role>.floating-actions,
+body.teacher-cloud-role .v1819-back-to-top{display:none!important}
+body.teacher-cloud-role #calendar .calendar-toolbar-filters>.calendar-field:not(.calendar-search-field){display:none!important}
+body.teacher-cloud-role #calendar .calendar-toolbar-filters{display:block!important}
+body.teacher-cloud-role #calendar .calendar-search-field{display:block!important;width:100%!important;max-width:100%!important}
+body.teacher-cloud-role #lessons .toolbar>div:has(#filterStudent),
+body.teacher-cloud-role #lessons .toolbar>div:has(#filterTeacher){display:none!important}
 body[data-role-ux="teacher"] header .danbridge-language-toggle{display:inline-grid!important;place-items:center!important;background:#fff!important;color:#173f5d!important;border-color:rgba(255,255,255,.72)!important;opacity:1!important;visibility:visible!important}
 body[data-role-ux="teacher"] header .danbridge-language-toggle:hover{background:#f4f8fb!important;color:#0f4c81!important}
 .teacher-lesson-summary{display:flex;align-items:center;gap:10px;width:max-content;max-width:100%;margin:-3px 0 14px;padding:8px 12px;border:1px solid #cfe0ea;border-radius:999px;background:#f4f9fc;color:#496579;font-size:12px;font-weight:750}
@@ -79,6 +94,7 @@ body[data-role-ux="teacher"] header .danbridge-language-toggle:hover{background:
   #dashboard .v32-header-actions .btn{width:100%!important;min-height:48px!important}
   body[data-role-ux="teacher"] #dashboard .v32-header-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
   body[data-role-ux="teacher"]>header h1{max-width:100%!important;font-size:clamp(17px,5.1vw,20px)!important;font-weight:760!important;line-height:1.18!important;letter-spacing:-.035em!important;white-space:normal!important;overflow-wrap:normal!important;word-break:keep-all!important}
+  body.teacher-cloud-role:not(.auth-locked)>header{padding-top:calc(52px + env(safe-area-inset-top))!important}
   body[data-role-ux="teacher"] #dashboard .v32-welcome{width:100%!important;max-width:100%!important;min-width:0!important;padding:16px 14px!important;gap:14px!important;overflow:hidden!important;box-sizing:border-box!important}
   body[data-role-ux="teacher"] #dashboard .v32-welcome>div:first-child{min-width:0!important;max-width:100%!important}
   body[data-role-ux="teacher"] #dashboard .v32-eyebrow{max-width:100%!important;font-size:9px!important;font-weight:780!important;line-height:1.45!important;letter-spacing:.13em!important;white-space:normal!important;overflow-wrap:anywhere!important}
@@ -144,6 +160,25 @@ body[data-role-ux="teacher"] header .danbridge-language-toggle:hover{background:
   body[data-role-ux="teacher"] #lessons tbody td:nth-child(6){display:none!important}
   body[data-role-ux="teacher"] #lessons .lesson-row-actions{display:block!important;width:100%!important;min-width:0!important}
   body[data-role-ux="teacher"] #lessons .lesson-row-actions .btn{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;border-color:#b8cee0!important;background:#eef6fb!important;color:#155f8f!important;font-size:13px!important;font-weight:780!important;box-sizing:border-box!important}
+  body.teacher-cloud-role #lessons>.card{overflow:hidden!important}
+  body.teacher-cloud-role #lessons .toolbar{display:block!important;width:100%!important;max-width:100%!important}
+  body.teacher-cloud-role #lessons .toolbar>div:has(#lessonMonth){display:block!important;width:100%!important;max-width:100%!important;margin:0!important}
+  body.teacher-cloud-role #lessons .table-wrap,
+  body.teacher-cloud-role #lessons table,
+  body.teacher-cloud-role #lessons tbody{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible!important}
+  body.teacher-cloud-role #lessons tbody tr{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0 0 12px!important;padding:12px!important;overflow:hidden!important;box-sizing:border-box!important}
+  body.teacher-cloud-role #lessons tbody td{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;align-items:start!important;gap:10px!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:9px 0!important;font-size:14px!important;font-weight:520!important;line-height:1.5!important;box-sizing:border-box!important;overflow:hidden!important;overflow-wrap:anywhere!important}
+  body.teacher-cloud-role #lessons tbody td::before{display:block!important;width:auto!important;margin:0!important;padding:1px 0 0!important;font-size:11px!important;font-weight:760!important;line-height:1.5!important;color:#718096!important}
+  body.teacher-cloud-role #lessons tbody td b,
+  body.teacher-cloud-role #lessons tbody td .small,
+  body.teacher-cloud-role #lessons tbody td:nth-child(3) b,
+  body.teacher-cloud-role #lessons tbody td:nth-child(4),
+  body.teacher-cloud-role #lessons tbody td:nth-child(5){font-size:14px!important;font-weight:620!important;line-height:1.5!important;color:#24344c!important}
+  body.teacher-cloud-role #lessons tbody td:nth-child(5){color:#1766b1!important}
+  body.teacher-cloud-role #lessons tbody td:nth-child(6){display:none!important}
+  body.teacher-cloud-role #lessons tbody td:last-child{overflow:hidden!important}
+  body.teacher-cloud-role #lessons .lesson-row-actions{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;overflow:hidden!important}
+  body.teacher-cloud-role #lessons .lesson-row-actions .btn{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:42px!important;margin:0!important;padding:9px 12px!important;border:1px solid #b8cee0!important;border-radius:12px!important;background:#eef6fb!important;color:#155f8f!important;font-size:14px!important;font-weight:760!important;line-height:1.35!important;box-sizing:border-box!important;overflow:hidden!important}
   .teacher-lesson-summary{width:100%;justify-content:space-between;border-radius:14px;margin-bottom:12px}
 
   .modal-backdrop{padding:8px!important;align-items:flex-end!important}

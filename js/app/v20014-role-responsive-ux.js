@@ -34,7 +34,7 @@
     const calendarHeading=$('#calendar .calendar-workspace-head h2');
     const calendarCopy=$('#calendar .calendar-workspace-head p');
     if(calendarHeading)calendarHeading.textContent='我的課表';
-    if(calendarCopy)calendarCopy.textContent='查看自己的課程；可依日期、地點或學生快速篩選。';
+    if(calendarCopy)calendarCopy.textContent='查看自己的課程；可依日期或關鍵字快速搜尋。';
     $('#calendarTeacherFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
     $('#calendarStudentFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
     $('#calendarRoomFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
