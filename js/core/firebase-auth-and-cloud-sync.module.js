@@ -669,6 +669,8 @@ function applyRoleUI(profile,user){
  document.getElementById('firebaseLogoutBtn')?.addEventListener('click',()=>signOut(auth));
  document.body.classList.toggle('teacher-cloud-role',profile.role==='teacher');
  document.body.classList.toggle('branch-manager-cloud-role',profile.role==='branch_manager');
+ document.body.dataset.cloudRole=cloudRole;
+ document.body.dataset.roleUx=cloudRole;
  window.ensureTeacherHoursMetric?.();
 
  const teacherOnly=profile.role==='teacher';
@@ -716,14 +718,22 @@ function applyRoleUI(profile,user){
    document.querySelectorAll('#drafts,#camps,#winterCamps,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
    window.DanbridgeRoleResponsive?.apply?.();
  }else{
-   document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.hidden=false;b.classList.remove('teacher-nav-hidden');b.style.removeProperty('display');b.removeAttribute('aria-hidden');b.removeAttribute('tabindex')});
+   const ownerTabLabels={dashboard:'總覽',students:'學生／家長',teachers:'老師',calendar:'拖曳課表',lessons:'課程紀錄',makeups:'補課中心',camps:'冬／夏令營',finance:'公司財務',data:'備份／iPad',security:'安全設定'};
+   document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.hidden=false;b.classList.remove('teacher-nav-hidden');b.style.removeProperty('display');b.removeAttribute('aria-hidden');b.removeAttribute('tabindex');if(ownerTabLabels[b.dataset.tab])b.textContent=ownerTabLabels[b.dataset.tab]});
    document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=false;e.style.removeProperty('display')});
-   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions').forEach(e=>e.style.removeProperty('display'));
+   document.querySelectorAll('.owner-only-action,.owner-v33-only,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar .day-add,#lessons .toolbar button,#dashboard .row-actions').forEach(e=>{e.hidden=false;e.style.removeProperty('display')});
+   document.querySelectorAll('#calendarTeacherFilter,#calendarLocationFilter,#calendarStudentFilter,#calendarRoomFilter,#calendarStateFilter,#filterStudent,#filterTeacher').forEach(e=>{const target=e.closest('.calendar-field,#lessons .toolbar>div')||e;target.hidden=false;target.style.removeProperty('display');target.classList.remove('teacher-redundant-filter')});
+   const analysis=document.getElementById('calendarAnalysis');if(analysis){analysis.hidden=false;analysis.style.removeProperty('display')}
+   if(!document.querySelector('.floating-actions')){
+     const floating=document.createElement('div');floating.className='floating-actions';floating.innerHTML='<button class="btn v20-owner-action" onclick="openRecentChanges()">最近修改</button><button id="undoBtn" class="btn" onclick="undoLast()">↶ 復原</button><button id="redoBtn" class="btn" onclick="redoLast()">↷ 重做</button><button class="btn primary" onclick="openLessonModal()">＋ 新增</button>';
+     const toast=document.getElementById('toast');toast?.parentNode?.insertBefore(floating,toast);
+   }
    ['mTeachers','mRevenue','mUnpaid','mPayroll','mChanges'].forEach(id=>{
      document.getElementById(id)?.closest('.metric')?.style.removeProperty('display');
    });
    document.querySelector('.dashboard-changes')?.style.removeProperty('display');
    document.querySelector('#dashboard .card:nth-of-type(2)')?.style.removeProperty('display');
+   setTimeout(()=>{window.DanbridgeRoleResponsive?.apply?.();window.renderAll?.()},0);
  }
 }
 function lessonMetaSignature(value){

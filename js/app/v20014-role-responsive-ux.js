@@ -26,7 +26,7 @@
     const labels=['日期','時間','學生／老師','課程內容','狀態','費用','操作'];
     $$('#lessonRows tr').forEach(row=>$$('td',row).forEach((cell,i)=>{
       cell.dataset.label=labels[i]||'';
-      if(role()==='teacher'&&!cell.querySelector(':scope>.lesson-cell-value')){
+      if(matchMedia('(max-width:700px)').matches&&!cell.querySelector(':scope>.lesson-cell-value')){
         const value=document.createElement('div');value.className='lesson-cell-value';
         while(cell.firstChild)value.appendChild(cell.firstChild);
         $$('br',value).filter(br=>!br.closest('.lesson-report-summary')).forEach(br=>{
