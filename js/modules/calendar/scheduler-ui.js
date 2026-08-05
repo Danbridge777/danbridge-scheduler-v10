@@ -16,6 +16,9 @@ function teacherGapWeekRange(){
 }
 function renderCalendarAnalysis(){
   const box=$('calendarAnalysis');if(!box)return;
+  const currentRole=window.currentCloudRole?.()||window.DanbridgeAccess?.getContext?.().role||'';
+  if(currentRole==='teacher'){box.replaceChildren();box.hidden=true;return}
+  box.hidden=false;
   const r=visibleCalendarRange(),gapRange=teacherGapWeekRange(),f=calendarFilterState();
   const ls=db.lessons.filter(l=>l.date>=r.start&&l.date<=r.end&&lessonMatchesCalendar(l,f)&&!['取消','停課'].includes(l.status));
   const gapLessons=db.lessons.filter(l=>l.date>=gapRange.start&&l.date<=gapRange.end&&lessonMatchesCalendar(l,f)&&!['取消','停課'].includes(l.status));

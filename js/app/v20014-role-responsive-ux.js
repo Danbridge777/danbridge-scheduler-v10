@@ -36,8 +36,13 @@
     if(calendarHeading)calendarHeading.textContent='我的課表';
     if(calendarCopy)calendarCopy.textContent='查看自己的課程；可依日期、地點或學生快速篩選。';
     $('#calendarTeacherFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
+    $('#calendarStudentFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
+    $('#calendarRoomFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
     $('#calendarStateFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
+    $('#filterStudent')?.closest('div')?.classList.add('teacher-redundant-filter');
     $('#filterTeacher')?.closest('div')?.classList.add('teacher-redundant-filter');
+    const calendarAnalysis=$('#calendarAnalysis');
+    if(calendarAnalysis){calendarAnalysis.hidden=true;calendarAnalysis.replaceChildren()}
 
     const actions=$('#dashboard .v32-header-actions');
     const scheduleButton=actions?.querySelector('button:not(.owner-only-action)');
@@ -67,7 +72,7 @@
     if(current==='teacher'){
       const labels={dashboard:'我的總覽',calendar:'我的課表',lessons:'課程回報'};
       $$('nav button[data-tab]').forEach(button=>{const allowed=Object.prototype.hasOwnProperty.call(labels,button.dataset.tab);button.hidden=!allowed;button.style.setProperty('display',allowed?'':'none',allowed?'':'important');if(allowed)button.textContent=labels[button.dataset.tab]});
-      $$('.owner-only-action,.owner-v33-only,.branch-scope-bar,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#calendar .day-add,#lessons .toolbar button,#courseDrawerEditBtn').forEach(el=>{el.hidden=true;el.style.setProperty('display','none','important')});
+      $$('.owner-only-action,.owner-v33-only,.branch-scope-bar,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#calendar .day-add,#calendarAnalysis,#lessons .toolbar button,#courseDrawerEditBtn').forEach(el=>{el.hidden=true;el.style.setProperty('display','none','important')});
       teacherStats();
       $$('#calendar .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|未繳)/g,'')});
       $$('#todayLessons .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|已繳|未繳)/g,'')});

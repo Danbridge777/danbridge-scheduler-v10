@@ -636,7 +636,15 @@ function subscribeLessonReports(){
    window.renderAll?.();
    window.renderDashboard?.();
    if(cloudRole==='owner'){clearTimeout(reportSyncTimer);reportSyncTimer=setTimeout(uploadOwnerState,500)}
- },e=>{console.error('lessonReports listener',e);cloudStatus('課程回報同步失敗：'+e.message,'error')});
+ },e=>{
+   console.error('lessonReports listener',e);
+   if(cloudRole==='teacher'&&String(e?.code||'').includes('permission-denied')){
+     lessonReportDocuments=[];
+     cloudStatus('老師課表已同步','ok');
+     return;
+   }
+   cloudStatus('課程回報同步失敗：'+e.message,'error');
+ });
 }
 
 const OWNER_DISPLAY_NAME='Daniel';
