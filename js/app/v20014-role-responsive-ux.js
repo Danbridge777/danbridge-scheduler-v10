@@ -35,6 +35,9 @@
     const calendarCopy=$('#calendar .calendar-workspace-head p');
     if(calendarHeading)calendarHeading.textContent='我的課表';
     if(calendarCopy)calendarCopy.textContent='查看自己的課程；可依日期或關鍵字快速搜尋。';
+    if($('#calendarSearch'))$('#calendarSearch').placeholder='搜尋日期、學生或課程名稱';
+    const appleButton=$('#calendar .apple-calendar-btn');if(appleButton)appleButton.textContent='加入 Apple 行事曆';
+    const printButton=$('#calendar .calendar-toolbar-tools .secondary-action:last-of-type');if(printButton)printButton.textContent='列印 / PDF';
     $('#calendarTeacherFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
     $('#calendarStudentFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
     $('#calendarRoomFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
@@ -72,7 +75,8 @@
     if(current==='teacher'){
       const labels={dashboard:'我的總覽',calendar:'我的課表',lessons:'課程回報'};
       $$('nav button[data-tab]').forEach(button=>{const allowed=Object.prototype.hasOwnProperty.call(labels,button.dataset.tab);button.hidden=!allowed;button.style.setProperty('display',allowed?'':'none',allowed?'':'important');if(allowed)button.textContent=labels[button.dataset.tab]});
-      $$('.owner-only-action,.owner-v33-only,.branch-scope-bar,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#calendar .day-add,#calendarAnalysis,#lessons .toolbar button,#courseDrawerEditBtn').forEach(el=>{el.hidden=true;el.style.setProperty('display','none','important')});
+      $$('.owner-only-action,.owner-v33-only,.branch-scope-bar,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#calendar .day-add,#calendarAnalysis,#lessons .toolbar button,#courseDrawerEditBtn').forEach(el=>{el.hidden=true;el.style.setProperty('display','none','important')});
+      $$('.floating-actions').forEach(el=>el.remove());
       teacherStats();
       $$('#calendar .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|未繳)/g,'')});
       $$('#todayLessons .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|已繳|未繳)/g,'')});

@@ -695,6 +695,7 @@ function applyRoleUI(profile,user){
    // 老師唯讀：只保留總覽、自己的課表與課程回報。
    document.querySelectorAll('.owner-only-action,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#dashboard .owner-v33-only,#dashboard .branch-scope-bar,#calendarTeacherFilter,#calendarLocationFilter,#calendarStudentFilter,#calendarRoomFilter,#calendarStateFilter,#filterStudent,#filterTeacher,#lessons .toolbar button').forEach(e=>{const target=e.matches('select')?e.closest('.calendar-field,#lessons .toolbar>div')||e:e;target.hidden=true;target.style.setProperty('display','none','important')});
    const teacherAnalysis=document.getElementById('calendarAnalysis');if(teacherAnalysis){teacherAnalysis.hidden=true;teacherAnalysis.replaceChildren();teacherAnalysis.style.setProperty('display','none','important')}
+   document.querySelectorAll('.floating-actions').forEach(e=>e.remove());
    document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
 
    // 隱藏公司營收、未收款、薪資、老師總數與公司異動等敏感資訊。
