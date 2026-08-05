@@ -1,13 +1,11 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, Timestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4tID5Dl1c_6MCev1OZxMSpiYFq3t3_EU",
   authDomain: "danbridge-d8877.firebaseapp.com",
   projectId: "danbridge-d8877",
-  storageBucket: "danbridge-d8877.firebasestorage.app",
   messagingSenderId: "251283850754",
   appId: "1:251283850754:web:105a2813d86918af03091b",
   measurementId: "G-K6ZH7DF7RS"
@@ -18,7 +16,6 @@ const OWNER_EMAIL='a0965487920@gmail.com';
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const cloud=getFirestore(app);
-const storage=getStorage(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({prompt:'select_account'});
 
@@ -64,7 +61,6 @@ let lastCloudSnapshotHash='';
 let localDirtyHash='';
 let localMutationVersion=0;
 let reportSyncTimer=null;
-let teacherReportExistingPhotos=[];
 let lessonMetaSignatureCache=new Map();
 let lessonMetaCacheReady=false;
 let scopedViewHashCache=new Map();
@@ -413,14 +409,16 @@ function canViewLessonReport(lesson){
 function setTeacherReportReadOnly(readOnly,message=''){
  const modal=document.getElementById('teacherReportModal');if(!modal)return;
  modal.dataset.readOnly=readOnly?'true':'false';
- modal.querySelectorAll('input[name="teacherReportStatus"], textarea, #teacherReportPhotos').forEach(el=>el.disabled=!!readOnly);
+ modal.querySelectorAll('input[name="teacherReportStatus"], textarea').forEach(el=>el.disabled=!!readOnly);
  ['saveTeacherReportBtn','quickCompleteTeacherReportBtn','startClassFocusBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=!!readOnly});
  const note=document.getElementById('teacherReportPermissionNote');
  if(note){note.hidden=!message;note.textContent=message}
 }
 function applyReportToLesson(lesson,report){
  if(!lesson||!report)return false;
- const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportFeedback:report.feedback||'',teacherReportPhotos:Array.isArray(report.photos)?report.photos:[],teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
+ const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportFeedback:report.feedback||'',teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
+ // 新版不再寫入照片；若舊回報仍帶有照片，只保留為唯讀歷史資料。
+ if(Array.isArray(report.photos))next.teacherReportPhotos=report.photos;
  let changed=false;
  for(const [k,v] of Object.entries(next)){if((lesson[k]||'')!==v){lesson[k]=v;changed=true}}
  const mapped=REPORT_TO_LESSON_STATUS[report.status];
@@ -454,9 +452,6 @@ function openTeacherReportModal(lessonId,options={}){
  document.getElementById('teacherReportHomework').value=lesson.teacherReportHomework||'';
  document.getElementById('teacherReportFeedback').value=lesson.teacherReportFeedback||'';
  document.getElementById('teacherReportNote').value=lesson.teacherReportNote||'';
- const photoInput=document.getElementById('teacherReportPhotos');if(photoInput)photoInput.value='';
- teacherReportExistingPhotos=Array.isArray(lesson.teacherReportPhotos)?[...lesson.teacherReportPhotos]:[];
- renderTeacherReportPhotoPreview();
  const deadline=lessonReportDeadline(lesson);
  const locked=!readOnly&&cloudRole!=='owner'&&!teacherReportWindowOpen(lesson);
  let permissionMessage='';
@@ -465,14 +460,6 @@ function openTeacherReportModal(lessonId,options={}){
  setTeacherReportReadOnly(readOnly||locked,locked?'此課程已非當天，課堂回報已關閉。':permissionMessage);
  document.getElementById('teacherReportModal').classList.add('show');
  if(locked){const modal=document.querySelector('#teacherReportModal .modal');if(modal)modal.scrollTop=0;}
-}
-function renderTeacherReportPhotoPreview(){
- const box=document.getElementById('teacherReportPhotoPreview');if(!box)return;
- const existing=teacherReportExistingPhotos.map((photo,index)=>`<div class="teacher-report-photo-item existing"><a href="${String(photo.url||'').replace(/"/g,'&quot;')}" target="_blank" rel="noopener"><img src="${String(photo.url||'').replace(/"/g,'&quot;')}" alt="課堂照片"></a><button type="button" data-photo-index="${index}" aria-label="移除照片">×</button></div>`).join('');
- const files=[...(document.getElementById('teacherReportPhotos')?.files||[])];
- const pending=files.map(file=>`<div class="teacher-report-photo-item"><img src="${URL.createObjectURL(file)}" alt="待上傳照片"></div>`).join('');
- box.innerHTML=existing+pending;
- box.querySelectorAll('[data-photo-index]').forEach(btn=>btn.addEventListener('click',()=>{teacherReportExistingPhotos.splice(Number(btn.dataset.photoIndex),1);renderTeacherReportPhotoPreview()}));
 }
 async function getTrustedLessonMeta(lessonId){
  const metaSnap=await getDoc(doc(cloud,'companies',COMPANY_ID,'lessonMeta',lessonId));
@@ -499,57 +486,28 @@ async function saveTeacherReport(){
  if(cloudRole!=='owner'&&!teacherReportWindowOpen(lesson))return alert('此課程已非當天，課堂回報已關閉。');
  const status=document.querySelector('input[name="teacherReportStatus"]:checked')?.value||'';
  if(!status)return alert('請選擇上課狀態。');
- const photoFiles=[...(document.getElementById('teacherReportPhotos')?.files||[])];
- if(photoFiles.length+teacherReportExistingPhotos.length>6)return alert('課堂照片最多 6 張。');
- if(photoFiles.some(file=>file.size>8*1024*1024))return alert('每張課堂照片不可超過 8 MB。');
- const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent=photoFiles.length?'上傳照片中…':'儲存中…';
- document.getElementById('teacherReportModal')?.classList.add('teacher-report-uploading');
+ const btn=document.getElementById('saveTeacherReportBtn');btn.disabled=true;btn.textContent='儲存中…';
  try{
    const trustedMeta=await getTrustedLessonMeta(lessonId);
-   const uploaded=[];
-   const failedPhotoUploads=[];
-   await Promise.all(photoFiles.map(async file=>{
-     const safeName=String(file.name||'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g,'_');
-     const path=`companies/${COMPANY_ID}/lessonReports/${lessonId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeName}`;
-     const fileRef=storageRef(storage,path);
-     try{
-       await uploadBytes(fileRef,file,{contentType:file.type||'image/jpeg'});
-       uploaded.push({url:await getDownloadURL(fileRef),name:file.name||'課堂照片',path});
-     }catch(photoError){
-       console.warn('lesson report photo upload skipped',photoError);
-       failedPhotoUploads.push({name:file.name||'課堂照片',code:String(photoError?.code||''),message:String(photoError?.message||'')});
-     }
-   }));
    const lessonTeacherId=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean)[0]||'';
    const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
    const trustedDeadline=trustedMeta.editableUntil?.toDate?.()||null;
-   const report={companyId:COMPANY_ID,lessonId,branchId:trustedMeta.branchId,teacherId:cloudRole==='owner'?(cloudTeacherId||lessonTeacherId):cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:reporterName,reportedByRole:cloudRole,reportedForTeacherIds:Array.isArray(trustedMeta.teacherIds)?trustedMeta.teacherIds:[],isOwnerReport:cloudRole==='owner',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),photos:[...teacherReportExistingPhotos,...uploaded],note:document.getElementById('teacherReportNote').value.trim(),editableUntil:trustedMeta.editableUntil,editableUntilClient:trustedDeadline?.toISOString()||'',updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
+   const report={companyId:COMPANY_ID,lessonId,branchId:trustedMeta.branchId,teacherId:cloudRole==='owner'?(cloudTeacherId||lessonTeacherId):cloudTeacherId,teacherUid:cloudUid,teacherEmail:auth.currentUser?.email?.toLowerCase()||'',teacherName:reporterName,reportedByRole:cloudRole,reportedForTeacherIds:Array.isArray(trustedMeta.teacherIds)?trustedMeta.teacherIds:[],isOwnerReport:cloudRole==='owner',status,content:document.getElementById('teacherReportContent').value.trim(),homework:document.getElementById('teacherReportHomework').value.trim(),feedback:document.getElementById('teacherReportFeedback').value.trim(),note:document.getElementById('teacherReportNote').value.trim(),editableUntil:trustedMeta.editableUntil,editableUntilClient:trustedDeadline?.toISOString()||'',updatedAt:serverTimestamp(),updatedAtClient:new Date().toISOString()};
    await setDoc(doc(cloud,'companies',COMPANY_ID,'lessonReports',lessonId),report,{merge:true});
    applyReportToLesson(lesson,report);window.renderAll?.();closeTeacherReportModal();
-   if(failedPhotoUploads.length){
-     const uploadedCount=uploaded.length;
-     const failedCount=failedPhotoUploads.length;
-     cloudStatus(`課程回報已儲存；${failedCount} 張照片未上傳`,'pending');
-     alert(uploadedCount
-       ? `課程回報已成功儲存。\n${uploadedCount} 張照片已上傳，${failedCount} 張照片未上傳。`
-       : '課程回報已成功儲存。\n圖片未上傳，因目前 Firebase Storage 尚未啟用；文字、作業、回饋與上課狀態均已正常保存。');
-   }else{
-     cloudStatus('課程回報已儲存','ok');
-   }
+   cloudStatus('課程回報已儲存','ok');
    return true;
  }catch(e){
    console.error('saveTeacherReport failed',e);
    const code=String(e?.code||'');
    let detail=e?.message||'未知錯誤';
-   if(code.includes('storage/unauthorized')||code.includes('storage/unknown')){
-     detail='課堂照片上傳被 Firebase Storage 拒絕。請確認已部署本版本的 firebase/storage.rules，且目前仍是課程當天。';
-   }else if(code.includes('permission-denied')){
+   if(code.includes('permission-denied')){
      detail='課程回報寫入被 Firestore 拒絕。請部署本版本 firebase/firestore.rules；老師與主管只能在課程當天儲存，隔日 00:00 後會關閉。';
    }
    alert('課程回報儲存失敗：'+detail);
    cloudStatus('回報儲存失敗','error');return false
  }
- finally{btn.disabled=false;btn.textContent='儲存回報';document.getElementById('teacherReportModal')?.classList.remove('teacher-report-uploading')}
+ finally{btn.disabled=false;btn.textContent='儲存回報'}
 }
 
 
@@ -621,7 +579,6 @@ async function completeClassFocusMode(){
 }
 function installClassFocusMode(){
  document.getElementById('startClassFocusBtn')?.addEventListener('click',openClassFocusMode);
- document.getElementById('teacherReportPhotos')?.addEventListener('change',renderTeacherReportPhotoPreview);
  document.getElementById('quickCompleteTeacherReportBtn')?.addEventListener('click',quickCompleteTeacherReport);
  document.getElementById('classFocusExitBtn')?.addEventListener('click',()=>closeClassFocusMode({reopen:true}));
  document.getElementById('classFocusDiscardBtn')?.addEventListener('click',()=>{if(confirm('確定放棄這次尚未同步的輸入？'))closeClassFocusMode({discard:true,reopen:true})});
