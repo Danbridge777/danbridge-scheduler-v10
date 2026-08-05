@@ -29,6 +29,8 @@
 
   function teacherConvenience(){
     if(role()!=='teacher')return;
+    const languageButton=$('#danbridgeLanguageToggle'),headerActions=$('header .header-auth-actions');
+    if(languageButton&&headerActions){languageButton.hidden=false;languageButton.style.setProperty('display','inline-grid','important');if(languageButton.parentElement!==headerActions)headerActions.appendChild(languageButton)}
     const calendarHeading=$('#calendar .calendar-workspace-head h2');
     const calendarCopy=$('#calendar .calendar-workspace-head p');
     if(calendarHeading)calendarHeading.textContent='我的課表';

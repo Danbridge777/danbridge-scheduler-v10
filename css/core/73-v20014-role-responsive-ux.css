@@ -32,6 +32,8 @@ body[data-role-ux="teacher"] #dashboard .teacher-hours-metric{display:block!impo
 body[data-role-ux="teacher"] #dashboard .v32-side-stack{grid-template-columns:1fr!important}
 body[data-role-ux="teacher"] #dashboard .v32-quick-card{display:none!important}
 body[data-role-ux="teacher"] .teacher-redundant-filter{display:none!important}
+body[data-role-ux="teacher"] header .danbridge-language-toggle{display:inline-grid!important;place-items:center!important;background:#fff!important;color:#173f5d!important;border-color:rgba(255,255,255,.72)!important;opacity:1!important;visibility:visible!important}
+body[data-role-ux="teacher"] header .danbridge-language-toggle:hover{background:#f4f8fb!important;color:#0f4c81!important}
 .teacher-lesson-summary{display:flex;align-items:center;gap:10px;width:max-content;max-width:100%;margin:-3px 0 14px;padding:8px 12px;border:1px solid #cfe0ea;border-radius:999px;background:#f4f9fc;color:#496579;font-size:12px;font-weight:750}
 .teacher-lesson-summary b{color:#173f5d;font-size:13px}.teacher-lesson-summary span{min-width:0}.teacher-lesson-summary.has-pending{border-color:#e7c56f;background:#fff9e9;color:#8a6414}.teacher-lesson-summary.has-pending b{color:#6f4e08}
 

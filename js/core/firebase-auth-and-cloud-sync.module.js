@@ -51,7 +51,11 @@ let ownerUploadInFlight=false;
 let ownerUploadQueued=false;
 let ownerRetryTimer=null;
 let ownerRetryCount=0;
-let scheduleNotificationRetryPending=false;
+const scheduleNotificationDeliveryJobs=new Map();
+let roleViewPublishInFlight=false;
+let roleViewPublishQueued=false;
+let roleViewRetryCount=0;
+let roleViewRetryTimer=null;
 let lastUploadedHash='';
 let lastCloudSnapshotHash='';
 // 本機資料一旦修改，在雲端確認寫入前禁止舊 snapshot 倒灌覆蓋。
@@ -824,6 +828,14 @@ async function publishScopedViews(){
    throw e;
  }
 }
+async function publishRoleViewsWithRetry(){
+ if(cloudRole!=='owner')return;
+ roleViewPublishQueued=true;if(roleViewPublishInFlight)return;
+ roleViewPublishInFlight=true;roleViewPublishQueued=false;clearTimeout(roleViewRetryTimer);
+ try{await Promise.all([publishScopedViews(),publishLessonMeta()]);roleViewRetryCount=0}
+ catch(e){roleViewPublishQueued=true;roleViewRetryCount++;lessonMetaCacheReady=false;console.error('Role view background sync failed',e);cloudStatus(roleViewRetryCount<3?'主資料已同步；老師端資料正在背景補送。':'主資料已同步，但老師端資料持續補送中，請保持網路連線。',roleViewRetryCount<3?'pending':'error');roleViewRetryTimer=setTimeout(publishRoleViewsWithRetry,Math.min(30000,1000*Math.pow(2,Math.min(roleViewRetryCount,5))))}
+ finally{roleViewPublishInFlight=false;if(roleViewPublishQueued&&!roleViewRetryCount)queueMicrotask(publishRoleViewsWithRetry)}
+}
 async function migrateLegacyLessonCloudDocuments(){
  if(cloudRole!=='owner')return;
  let migrations=[];try{migrations=JSON.parse(localStorage.getItem('danbridge_lesson_id_migration_v15_28_3')||'[]')}catch{}
@@ -989,6 +1001,18 @@ async function publishScheduleChangeNotifications(previousDb,currentDb,batchKey)
  }
  if(jobs.length)await withSyncTimeout(Promise.all(jobs),15000);
 }
+function queueScheduleChangeNotifications(previousDb,currentDb,batchKey){
+ if(cloudRole!=='owner'||!ownerBaselineReady||!previousDb)return;
+ const key=String(batchKey||dataHash(currentDb));
+ const job={previousDb:deepCopy(previousDb),currentDb:deepCopy(currentDb),batchKey:key,attempts:0,timer:null};
+ scheduleNotificationDeliveryJobs.set(key,job);
+ const deliver=async()=>{
+   if(!scheduleNotificationDeliveryJobs.has(key)||cloudRole!=='owner')return;
+   try{await publishScheduleChangeNotifications(job.previousDb,job.currentDb,job.batchKey);scheduleNotificationDeliveryJobs.delete(key)}
+   catch(e){job.attempts++;console.error('Schedule notification background delivery failed',e);cloudStatus(job.attempts<3?'課表已同步；老師通知正在背景補送。':'課表已同步，但老師通知持續補送中，請保持網路連線。',job.attempts<3?'pending':'error');job.timer=setTimeout(deliver,Math.min(30000,1000*Math.pow(2,Math.min(job.attempts,5))))}
+ };
+ deliver();
+}
 function installScheduleNotificationUI(){
  if(document.getElementById('scheduleNotificationModal'))return;
  const modal=document.createElement('div');
@@ -1051,31 +1075,32 @@ async function uploadOwnerState(force=false){
  if(currentScore===0){cloudStatus('已阻止空白資料上傳；請先確認本機或版本紀錄中的資料。','error');ownerUploadQueued=false;return}
  const hash=dataHash(current);
  const uploadMutationVersion=localMutationVersion;
- if(!force&&hash===lastUploadedHash&&!scheduleNotificationRetryPending){ownerUploadQueued=false;localDirtyHash='';cloudStatus('資料已是最新版本','ok');return}
+ if(!force&&hash===lastUploadedHash){ownerUploadQueued=false;localDirtyHash='';cloudStatus('資料已是最新版本','ok');return}
  ownerUploadInFlight=true;ownerUploadQueued=false;cloudStatus('雲端同步中…','pending');
  let syncStage='主資料';
  try{
    // V15.29.2：主資料是同步成功的唯一必要條件。老師／校區檢視與舊 ID 遷移改為背景工作，
    // 避免任何附屬文件或歷史遷移卡住，讓畫面永久停在「準備同步」。
-   await withSyncTimeout(setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false}),15000);
+   await withSyncTimeout(setDoc(doc(cloud,'companies',COMPANY_ID,'data','main'),{db:current,updatedAt:serverTimestamp(),updatedBy:cloudUid,clientHash:hash},{merge:false}),7000);
    lastUploadedHash=hash;lastCloudSnapshotHash=hash;ownerRetryCount=0;
-   let notificationsPublished=true;
-   try{await publishScheduleChangeNotifications(previousPublished,current,hash)}catch(e){notificationsPublished=false;scheduleNotificationRetryPending=true;ownerUploadQueued=true;ownerRetryCount++;console.error('Schedule notification publish failed',e);cloudStatus('課表已同步，但老師通知暫時失敗；系統正在自動補送。','error')}
-   if(notificationsPublished){lastPublishedOwnerDB=deepCopy(current);ownerBaselineReady=true;scheduleNotificationRetryPending=false;}
    const latestHash=dataHash(window.__danbridgeGetDB());
    if(localMutationVersion===uploadMutationVersion&&latestHash===hash){localDirtyHash='';}
    else{ownerUploadQueued=true;}
    cloudStatus(localDirtyHash?'目前變更已同步，另有新變更準備同步…':'已同步到雲端','ok');
 
-   publishScopedViews().catch(e=>console.error('Scoped view background sync failed',e));
-   publishLessonMeta().catch(e=>{console.error('Lesson meta background sync failed',e);lessonMetaCacheReady=false});
+   // 主資料成功後立即發布各角色檢視，不等待通知文件完成。
+   publishRoleViewsWithRetry();
+
+   queueScheduleChangeNotifications(previousPublished,current,hash);
+   lastPublishedOwnerDB=deepCopy(current);ownerBaselineReady=true;
    if(!legacyMigrationStarted){
      legacyMigrationStarted=true;
      migrateLegacyLessonCloudDocuments().catch(e=>console.error('Legacy lesson migration background task failed',e));
    }
  }catch(e){
    console.error('Owner cloud sync failed at '+syncStage,e);ownerUploadQueued=true;ownerRetryCount++;
-   cloudStatus((navigator.onLine?`雲端同步暫時失敗（${syncStage}），系統會自動重試：`:'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?'error':'offline');
+   const retrying=navigator.onLine&&ownerRetryCount<3;
+   cloudStatus((navigator.onLine?`雲端連線較慢（${syncStage}），系統正在自動重試：`:'目前離線，變更已保存在本機：')+(e.message||e),navigator.onLine?(retrying?'pending':'error'):'offline');
    scheduleOwnerRetry();
  }finally{
    ownerUploadInFlight=false;
@@ -1231,7 +1256,7 @@ installClassFocusMode();
 installBranchManagerAccessEvents();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;unsubscribeScheduleNotifications?.();unsubscribeScheduleNotifications=null;scheduleNotificationDocuments=[];lessonReportDocuments=[];lessonMetaSignatureCache=new Map();lessonMetaCacheReady=false;scopedViewHashCache=new Map();
- if(!user){lastPublishedOwnerDB=null;ownerBaselineReady=false;scheduleNotificationRetryPending=false;cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.__danbridgeLessonIdMigrationAuthority=false;window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
+ if(!user){lastPublishedOwnerDB=null;ownerBaselineReady=false;scheduleNotificationDeliveryJobs.forEach(job=>clearTimeout(job.timer));scheduleNotificationDeliveryJobs.clear();clearTimeout(roleViewRetryTimer);roleViewPublishInFlight=false;roleViewPublishQueued=false;roleViewRetryCount=0;cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.__danbridgeLessonIdMigrationAuthority=false;window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
    if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();subscribeScheduleNotifications();
