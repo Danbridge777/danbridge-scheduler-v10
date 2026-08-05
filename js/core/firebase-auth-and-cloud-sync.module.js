@@ -699,8 +699,10 @@ function applyRoleUI(profile,user){
    applyingCloud=false;
 
    const teacherAllowedTabs=new Set(['dashboard','calendar','lessons']);
+   const teacherTabLabels={dashboard:'我的總覽',calendar:'我的課表',lessons:'課程回報'};
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{
      const allowed=teacherAllowedTabs.has(b.dataset.tab);
+     if(allowed)b.textContent=teacherTabLabels[b.dataset.tab];
      b.hidden=!allowed;
      b.classList.toggle('teacher-nav-hidden',!allowed);
      b.style.setProperty('display',allowed?'':'none',allowed?'':'important');
@@ -711,7 +713,7 @@ function applyRoleUI(profile,user){
    if(activeSection&&!teacherAllowedTabs.has(activeSection.id))switchTab('dashboard');
 
    // 老師唯讀：只保留總覽、自己的課表與課程回報。
-   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions').forEach(e=>e.style.setProperty('display','none','important'));
+   document.querySelectorAll('.owner-only-action,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#dashboard .owner-v33-only,#dashboard .branch-scope-bar,#lessons .toolbar button').forEach(e=>e.style.setProperty('display','none','important'));
    document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
 
    // 隱藏公司營收、未收款、薪資、老師總數與公司異動等敏感資訊。
@@ -720,14 +722,16 @@ function applyRoleUI(profile,user){
    });
    document.querySelector('.dashboard-changes')?.style.setProperty('display','none');
    document.querySelector('#dashboard .card:nth-of-type(2)')?.style.setProperty('display','none');
+   window.DanbridgeRoleResponsive?.apply?.();
  }else if(profile.role==='branch_manager'){
    applyingCloud=true;window.__danbridgeSetDB(emptyDB());window.renderAll?.();applyingCloud=false;
    const allowedTabs=new Set(['dashboard','students','teachers','calendar','lessons','makeups','settlement','finance']);
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{const allowed=allowedTabs.has(b.dataset.tab);b.hidden=!allowed;b.style.setProperty('display',allowed?'':'none',allowed?'':'important');if(!allowed)b.tabIndex=-1;else b.removeAttribute('tabindex')});
    const active=document.querySelector('main section.active');if(active&&!allowedTabs.has(active.id))switchTab('dashboard');
-   document.querySelectorAll('#calendar .toolbar .btn,.floating-actions,#dashboard .row-actions,#students button,#teachers button,#lessons .toolbar button,#makeups button,#settlement button,#finance button').forEach(e=>e.style.setProperty('display','none','important'));
+   document.querySelectorAll('.owner-only-action,.floating-actions,#calendar .calendar-head-add,#calendar .calendar-quick-add,#calendar .weekly-copy-btn,#calendar #selectionModeBtn,#calendar #selectionBar,#students button,#teachers button,#lessons .toolbar button,#makeups button,#settlement button,#finance button').forEach(e=>e.style.setProperty('display','none','important'));
    // 課程清單保留查看入口；點到本人授課課程時會開啟課堂回報，其他課程維持唯讀詳情。
    document.querySelectorAll('#drafts,#camps,#winterCamps,#data,#security').forEach(e=>{e.hidden=true;e.classList.remove('active');e.style.setProperty('display','none','important')});
+   window.DanbridgeRoleResponsive?.apply?.();
  }else{
    document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.hidden=false;b.classList.remove('teacher-nav-hidden');b.style.removeProperty('display');b.removeAttribute('aria-hidden');b.removeAttribute('tabindex')});
    document.querySelectorAll('#students,#teachers,#drafts,#makeups,#camps,#winterCamps,#settlement,#finance,#data,#security').forEach(e=>{e.hidden=false;e.style.removeProperty('display')});

@@ -1,0 +1,102 @@
+/* V20.0.14 — permission-clean mobile/tablet experience. */
+body[data-role-ux="teacher"] .owner-only-action,
+body[data-role-ux="teacher"] .owner-v33-only,
+body[data-role-ux="teacher"] #dashboard .branch-scope-bar,
+body[data-role-ux="teacher"] #calendar .calendar-head-add,
+body[data-role-ux="teacher"] #calendar .calendar-quick-add,
+body[data-role-ux="teacher"] #calendar .weekly-copy-btn,
+body[data-role-ux="teacher"] #calendar #selectionModeBtn,
+body[data-role-ux="teacher"] #calendar #selectionBar,
+body[data-role-ux="teacher"] #calendar .day-add,
+body[data-role-ux="teacher"] #calendarContextMenu,
+body[data-role-ux="teacher"] #lessons th:nth-child(6),
+body[data-role-ux="teacher"] #lessons td:nth-child(6),
+body[data-role-ux="teacher"] #lessons .pill,
+body[data-role-ux="teacher"] #courseDrawerEditBtn,
+body[data-role-ux="branch_manager"] #calendar .calendar-head-add,
+body[data-role-ux="branch_manager"] #calendar .calendar-quick-add,
+body[data-role-ux="branch_manager"] #calendar .weekly-copy-btn,
+body[data-role-ux="branch_manager"] #calendar #selectionModeBtn,
+body[data-role-ux="branch_manager"] #calendar #selectionBar,
+body[data-role-ux="branch_manager"] #calendar .day-add,
+body[data-role-ux="branch_manager"] #calendarContextMenu,
+body[data-role-ux="branch_manager"] #courseDrawerEditBtn{display:none!important}
+body[data-role-ux="teacher"] #calendar .lesson,body[data-role-ux="teacher"] #calendar .week-event,
+body[data-role-ux="branch_manager"] #calendar .lesson,body[data-role-ux="branch_manager"] #calendar .week-event{cursor:pointer!important}
+
+body[data-role-ux="teacher"] #dashboard .v32-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+body[data-role-ux="teacher"] #dashboard .teacher-hours-metric{display:block!important}
+body[data-role-ux="teacher"] #dashboard .v32-side-stack{grid-template-columns:1fr!important}
+body[data-role-ux="teacher"] #dashboard .v32-quick-card{display:none!important}
+
+@media (min-width:701px) and (max-width:1100px){
+  body:not(.auth-locked)>header{padding:18px 22px!important}
+  body:not(.auth-locked)>main{padding:18px!important}
+  body:not(.auth-locked)>nav{gap:5px!important;padding:9px 12px!important}
+  body:not(.auth-locked)>nav button{min-height:46px!important;padding:8px 12px!important}
+  .v32-dashboard-grid,.finance-layout{grid-template-columns:1fr!important}
+  .crm-form-grid,.finance-form-row,.finance-form-row.one-time{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .calendar-toolbar-row{gap:9px!important}
+  .calendar-toolbar-filters{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .modal{width:min(680px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px)!important}
+  .course-drawer{width:min(560px,72vw)!important}
+}
+
+@media (max-width:700px){
+  body:not(.auth-locked)>main{padding:12px 10px calc(var(--mobile-nav-h,78px) + 26px + env(safe-area-inset-bottom))!important}
+  body:not(.auth-locked)>nav{overflow-x:auto!important;overscroll-behavior-x:contain!important}
+  body[data-role-ux="teacher"]>nav{--mobile-nav-columns:3;overflow-x:hidden!important}
+  body[data-role-ux="teacher"]>nav button{flex-basis:calc(100dvw / 3)!important;width:calc(100dvw / 3)!important}
+  body[data-role-ux="branch_manager"]>nav{--mobile-nav-columns:4}
+  body[data-role-ux="branch_manager"]>nav button{flex-basis:25vw!important;width:25vw!important}
+
+  #dashboard .v32-welcome{min-height:0!important;padding:18px 16px!important;justify-content:flex-start!important}
+  #dashboard .v32-welcome h2{font-size:27px!important}
+  #dashboard .v32-header-actions{grid-template-columns:1fr!important;margin-top:14px!important}
+  #dashboard .v32-header-actions .btn{width:100%!important;min-height:48px!important}
+  #dashboard .v32-kpis,body[data-role-ux="teacher"] #dashboard .v32-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  #dashboard .metric{min-height:118px!important;padding:15px 12px!important}
+  #dashboard .metric b{font-size:24px!important}
+  #dashboard .v32-dashboard-grid{display:block!important}
+  #dashboard .v32-dashboard-grid>.card,#dashboard .v32-side-stack>.card{margin-bottom:12px!important}
+  #dashboard .v32-card-head{align-items:flex-start!important;gap:8px!important}
+  #dashboard .v32-card-head>.btn{min-height:42px!important;padding:7px 10px!important}
+
+  #calendar>.card{padding:10px!important}
+  #calendar .calendar-workspace-head{display:block!important}
+  #calendar .calendar-workspace-head p{font-size:12px!important}
+  #calendar .calendar-toolbar{padding:10px!important}
+  #calendar .calendar-toolbar-navigation{display:grid!important;grid-template-columns:1fr!important}
+  #calendar .calendar-navigation-actions{display:grid!important;grid-template-columns:48px 1fr 48px!important;width:100%!important}
+  #calendar .calendar-navigation-actions .btn{width:100%!important;min-height:46px!important}
+  #calendar .calendar-toolbar-filters{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #calendar .calendar-search-field{grid-column:1/-1!important}
+  #calendar .calendar-toolbar-tools{display:grid!important;grid-template-columns:1fr 1fr!important}
+  #calendar .calendar-tools-label{grid-column:1/-1!important}
+  #calendar .calendar-toolbar-tools .btn{white-space:normal!important;min-height:46px!important}
+  #calendar .location-legend{overflow-x:auto!important;flex-wrap:nowrap!important;padding-bottom:5px!important}
+  #calendar .location-chip{flex:0 0 auto!important}
+  #calendar .month-grid{min-width:700px!important;grid-template-columns:repeat(7,minmax(100px,1fr))!important}
+  #calendar .week-grid{min-width:920px!important;grid-template-columns:66px repeat(7,minmax(122px,1fr))!important}
+
+  #lessons>.card{padding:10px!important}
+  #lessons .toolbar{display:grid!important;grid-template-columns:1fr 1fr!important;align-items:end!important}
+  #lessons .toolbar>div:first-child{grid-column:1/-1!important}
+  #lessons .table-wrap{overflow:visible!important}
+  #lessons table,#lessons tbody{display:block!important}
+  #lessons thead{display:none!important}
+  #lessons tbody tr{display:block!important;margin:0 0 12px!important;padding:12px!important;border:1px solid #dfe5ec!important;border-radius:16px!important;background:#fff!important;box-shadow:0 5px 18px rgba(15,23,42,.06)!important}
+  #lessons tbody td{display:grid!important;grid-template-columns:88px minmax(0,1fr)!important;gap:9px!important;width:100%!important;padding:8px 2px!important;border-bottom:1px solid #edf1f5!important;overflow-wrap:anywhere!important}
+  #lessons tbody td:last-child{border-bottom:0!important}
+  #lessons tbody td::before{content:attr(data-label);font-size:11px;font-weight:850;color:#7b8798!important}
+  #lessons .lesson-row-actions{display:flex!important}
+  #lessons .lesson-row-actions .btn{width:100%!important;min-height:44px!important}
+
+  .modal-backdrop{padding:8px!important;align-items:flex-end!important}
+  .modal{width:100%!important;max-width:none!important;max-height:92dvh!important;border-radius:22px 22px 8px 8px!important;padding:16px!important}
+  .modal .grid{grid-template-columns:1fr!important}
+  .modal .col-6{grid-column:1/-1!important}
+  .course-drawer{width:100vw!important;max-width:none!important}
+  .course-drawer-footer{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .course-drawer-footer .btn{width:100%!important}
+}
