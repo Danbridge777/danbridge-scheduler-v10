@@ -16,7 +16,7 @@ body.teacher-cloud-role #dashboard .metric:has(#mLessons){
   width:100%!important;
 }
 
-@media (max-width:900px){
+@media (max-width:700px){
   body:not(.auth-locked){padding-bottom:84px!important}
   body:not(.auth-locked)>header{
     min-height:72px!important;
