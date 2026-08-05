@@ -29,6 +29,9 @@
       if(role()==='teacher'&&!cell.querySelector(':scope>.lesson-cell-value')){
         const value=document.createElement('div');value.className='lesson-cell-value';
         while(cell.firstChild)value.appendChild(cell.firstChild);
+        $$('br',value).filter(br=>!br.closest('.lesson-report-summary')).forEach(br=>{
+          const separator=document.createElement('span');separator.className='lesson-inline-separator';separator.textContent='｜';br.replaceWith(separator);
+        });
         cell.appendChild(value);
       }
     }));
