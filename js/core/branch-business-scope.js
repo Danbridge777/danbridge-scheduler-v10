@@ -138,7 +138,7 @@
   };
 
   window.renderSettlement=function(){
-    syncSelectors();const{sr,tr,scope,m}=settleData(),totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0),totalLessons=sr.reduce((s,x)=>s+x.charged,0),totalAbsences=sr.reduce((s,x)=>s+x.abs,0),totalHours=tr.reduce((s,x)=>s+x.h,0);
+    syncSelectors();const{sr,tr,scope,m}=settleData(),totalRevenue=sr.reduce((s,x)=>s+x.amount,0),totalPayroll=tr.reduce((s,x)=>s+x.amount,0),{totalLessons,leaveCount:totalAbsences}=settlementSummaryTotals(sr),totalHours=tr.reduce((s,x)=>s+x.h,0);
     const summary=$('settlementExecutiveSummary');if(summary)summary.innerHTML=`<div class="settlement-summary-card good"><span>本月應收</span><b>${money(totalRevenue)}</b></div><div class="settlement-summary-card"><span>老師薪資</span><b>${money(totalPayroll)}</b></div><div class="settlement-summary-card"><span>課表總堂數</span><b>${totalLessons} 堂</b></div><div class="settlement-summary-card"><span>老師總工時</span><b>${fmtHours(totalHours)} hr</b></div><div class="settlement-summary-card warn"><span>學生請假</span><b>${totalAbsences} 次</b></div>`;
     $('studentSettleRows').innerHTML=sr.map(x=>{const familyIds=billingFamilyStudents(x.s.id).map(s=>s.id);return`<tr><td><b>${esc(x.s.name)}</b>${x.campAmount?`<br><span class="small">含冬／夏令營 ${money(x.campAmount)}</span>`:''}</td><td>${esc(x.s.parent)}</td><td>${x.total}</td><td>${x.charged} 堂／${fmtHours(x.h)} hr</td><td>${x.abs}</td><td>${x.rate.toFixed(1)}%</td><td>${money(x.amount)}</td><td><button class="btn line-billing-btn" onclick="copyStudentLineBilling('${x.s.id}','${m}','${scope}','${encodeURIComponent(familyIds.join(','))}')">複製家庭 LINE</button></td></tr>`}).join('')||'<tr><td colspan="8" class="small">此校區本月沒有學生收入資料。</td></tr>';
     $('teacherSettleRows').innerHTML=tr.map(x=>`<tr><td><b>${esc(x.t.name)}</b></td><td>${esc(workDayNames(x.t.workDays))}</td><td>${fmtHours(x.t.minWeeklyHours)} hr</td><td>${fmtHours(x.expected)} hr</td><td>${fmtHours(x.h)} hr</td><td class="${diffClass(x.diff)}"><b>${diffText(x.diff)}</b></td><td>${x.payroll.mode==='fixed'?`超時 ${x.payroll.overtimeRate===null?'未設定':money(x.payroll.overtimeRate)}<br><span class="small">不足 ${x.payroll.deductionRate===null?'未設定':money(x.payroll.deductionRate)}</span>`:money(x.payroll.hourlyRate||0)}</td><td>${money(x.revenue)}</td><td>${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="9" class="small">目前沒有老師工時資料。</td></tr>';
@@ -148,8 +148,8 @@
 
   window.saveMonthlySettlement=function(){
     const month=$('settleMonth').value||monthNow(),scope=allowedScope(scopes.settlement),data=settleData();
-    const totalLessons=data.sr.reduce((n,x)=>n+x.charged,0),totalHours=data.tr.reduce((n,x)=>n+x.h,0),totalRevenue=data.sr.reduce((n,x)=>n+x.amount,0),leaveCount=data.sr.reduce((n,x)=>n+x.abs,0),payroll=data.tr.reduce((n,x)=>n+x.amount,0);
-    const record={id:`${month}::${scope}`,month,branchId:scope,savedAt:new Date().toISOString(),totalLessons,totalHours,totalRevenue,leaveCount,leaveRate:totalLessons?leaveCount/totalLessons*100:0,payroll};
+    const {totalLessons,leaveCount,leaveRate}=settlementSummaryTotals(data.sr),totalHours=data.tr.reduce((n,x)=>n+x.h,0),totalRevenue=data.sr.reduce((n,x)=>n+x.amount,0),payroll=data.tr.reduce((n,x)=>n+x.amount,0);
+    const record={id:`${month}::${scope}`,month,branchId:scope,savedAt:new Date().toISOString(),totalLessons,totalHours,totalRevenue,leaveCount,leaveRate,payroll};
     db.settlementRecords||=[];const i=db.settlementRecords.findIndex(x=>(x.id||`${x.month}::${x.branchId||'all'}`)===record.id);snapshot();
     if(i>=0)db.settlementRecords[i]=record;else db.settlementRecords.push(record);saveDB();renderSettlementHistory();toast(`${monthLabel(month)}｜${scopeLabel(scope)} 結算紀錄已${i>=0?'更新':'儲存'}`);
   };

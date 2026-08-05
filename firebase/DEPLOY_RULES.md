@@ -2,7 +2,7 @@
 
 V15.26.4 已將「回報延長申請」整合到 `lessonReports/{lessonId}`，不再使用 `lessonReportExtensions` 集合。
 
-目前課堂回報只使用 Firestore，不再提供照片上傳。部署：
+課堂回報使用 Firestore。部署：
 
 ```bash
 firebase deploy --only firestore:rules

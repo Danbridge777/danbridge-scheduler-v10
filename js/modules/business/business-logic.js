@@ -170,6 +170,8 @@ function diffText(n){return Math.abs(n)<.001?'剛好':n>0?`多 ${fmtHours(n)} hr
 
 function settleData(){const m=$('settleMonth').value||monthNow(),ls=db.lessons.filter(l=>!l.isDraft&&l.date.startsWith(m));const sr=db.students.map(s=>{const x=ls.filter(l=>l.studentId===s.id),chargedLessons=studentChargeableTutoringLessons(s.id,m,'all',ls),abs=x.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status)),lessonAmount=chargedLessons.reduce((a,l)=>a+lessonCharge(l),0),campAmount=studentSummerCampRevenue(s.id,m);return{s,total:x.length,charged:chargedLessons.length,h:chargedLessons.reduce((a,l)=>a+hours(l.start,l.end),0),abs:abs.length,rate:x.length?abs.length/x.length*100:0,lessonAmount,campAmount,amount:lessonAmount+campAmount}}).filter(x=>x.total||x.campAmount);const tr=db.teachers.map(t=>{const paid=teacherPaidLessons(t,m),payroll=calculateTeacherPayroll(t,m,paid),weeks=teacherWeekBreakdown(t,m);return{t,count:paid.length,h:payroll.actualHours,expected:payroll.expectedHours,diff:payroll.diff,weeks,amount:payroll.amount,revenue:teacherCompanyRevenue(t,m,ls),payroll}});return{sr,tr}}
 
+function settlementSummaryTotals(studentRows){const rows=studentRows||[],totalLessons=rows.reduce((n,x)=>n+(+x.total||0),0),leaveCount=rows.reduce((n,x)=>n+(+x.abs||0),0);return{totalLessons,leaveCount,leaveRate:totalLessons?Math.min(100,leaveCount/totalLessons*100):0}}
+
 function monthlySettlementSnapshot(m){
   const ls=db.lessons.filter(l=>l.date.startsWith(m));
   const actualLessons=ls.filter(lessonCountsAsTaught);

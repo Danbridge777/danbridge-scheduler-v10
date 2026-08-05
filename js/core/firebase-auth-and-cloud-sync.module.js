@@ -417,8 +417,6 @@ function setTeacherReportReadOnly(readOnly,message=''){
 function applyReportToLesson(lesson,report){
  if(!lesson||!report)return false;
  const next={teacherReportStatus:report.status||'',teacherReportContent:report.content||'',teacherReportHomework:report.homework||'',teacherReportFeedback:report.feedback||'',teacherReportNote:report.note||'',teacherReportUpdatedAt:report.updatedAtClient||'',teacherReportBy:report.teacherName||'',teacherReportEmail:report.teacherEmail||''};
- // 新版不再寫入照片；若舊回報仍帶有照片，只保留為唯讀歷史資料。
- if(Array.isArray(report.photos))next.teacherReportPhotos=report.photos;
  let changed=false;
  for(const [k,v] of Object.entries(next)){if((lesson[k]||'')!==v){lesson[k]=v;changed=true}}
  const mapped=REPORT_TO_LESSON_STATUS[report.status];

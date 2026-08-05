@@ -60,6 +60,9 @@ context.db.lessons = matrix.map(([, row], index) => ({ ...row, id: `matrix-${ind
 context.db.teachers = [];
 const settlement = context.monthlySettlementSnapshot('2026-08');
 assert.ok(settlement.leaveRate >= 0 && settlement.leaveRate <= 100, 'leave rate stays within 0..100');
+const branchSettlement = context.settlementSummaryTotals([{ total: 2, charged: 1, abs: 2 }]);
+assert.equal(branchSettlement.totalLessons, 2, 'branch settlement counts all formal lessons');
+assert.equal(branchSettlement.leaveRate, 100, 'branch settlement leave rate cannot exceed 100%');
 
 context.db.makeups = [];
 const source = lesson({ id: 'leave-source', status: '學生請假', teacherReportStatus: 'student_leave', branchId: 'a' });
@@ -119,4 +122,4 @@ assert.match(notificationRules, /recipientEmail == emailKey\(\)/);
 assert.doesNotMatch(notificationRules, /teacherId == ownTeacherId\(\)/);
 assert.match(cloudSource, /roleAccessSignature\(access\)===cloudRoleAccessSignature/);
 
-console.log(`PASS: ${matrix.length} accounting states, leave/makeup lifecycle, role scopes, teacher replacement notifications, and live access guards.`);
+console.log(`PASS: ${matrix.length} accounting states, settlement rates, leave/makeup lifecycle, role scopes, teacher replacement notifications, and live access guards.`);
