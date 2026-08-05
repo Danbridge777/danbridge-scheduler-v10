@@ -41,6 +41,15 @@
     $$('.table-wrap').forEach(wrap=>{const table=$('table',wrap);if(table)wrap.classList.toggle('v1819-sticky-first-column',table.scrollWidth>wrap.clientWidth+2)});
   }
 
+  function decorateMobileCalendarDates(){
+    $$('#calendarCanvas .month-grid .day-cell').forEach(cell=>{
+      const header=$('.day-num',cell),parts=String(cell.dataset.date||'').split('-').map(Number);
+      if(!header||parts.length!==3||parts.some(Number.isNaN))return;
+      const date=new Date(parts[0],parts[1]-1,parts[2]);
+      header.dataset.mobileDateLabel=`${parts[1]}月${parts[2]}日・星期${['日','一','二','三','四','五','六'][date.getDay()]}`;
+    });
+  }
+
   function updateEmptyStates(){
     Object.entries(emptyTargets).forEach(([id,label])=>{
       const body=document.getElementById(id),wrap=body?.closest('.table-wrap');if(!body||!wrap)return;
@@ -71,7 +80,7 @@
   }
 
   function observeDynamicUi(){
-    let queued=false;const refresh=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorateScrollableTables();updateEmptyStates();installModalActions()})};
+    let queued=false;const refresh=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorateScrollableTables();decorateMobileCalendarDates();updateEmptyStates();installModalActions()})};
     new MutationObserver(refresh).observe(document.body,{childList:true,subtree:true});window.addEventListener('resize',refresh,{passive:true});refresh();
   }
   function init(){installFilterMemory();installDayFocus();installBackToTop();observeDynamicUi()}

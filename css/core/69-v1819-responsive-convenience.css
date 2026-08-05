@@ -34,8 +34,11 @@ body:not(.auth-locked)>.floating-actions{right:104px!important;bottom:24px!impor
 }
 @media(max-width:760px){
   #calendarCanvas .month-grid .day-cell.v1819-day-focus{display:block!important;min-height:0!important;margin:8px 0 14px!important;padding:11px!important}
-  #calendarCanvas .month-grid .day-cell .day-num span:first-child::after{content:' 點按查看';opacity:1}
-  #calendarCanvas .month-grid .day-cell.v1819-day-focus .day-num span:first-child::after{content:' 收合'}
+  #calendarCanvas .month-grid .day-cell .day-num{justify-content:space-between!important;min-height:38px!important;padding:0 2px 8px!important}
+  #calendarCanvas .month-grid .day-cell .day-num::before{content:attr(data-mobile-date-label);color:#172033;font-size:16px;font-weight:900;letter-spacing:.01em}
+  #calendarCanvas .month-grid .day-cell .day-num span:first-child{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+  #calendarCanvas .month-grid .day-cell .day-num::after{content:'點按查看';margin-left:8px;color:#7890a4;font-size:10px;font-weight:750}
+  #calendarCanvas .month-grid .day-cell.v1819-day-focus .day-num::after{content:'收合';color:#17618f}
   body:not(.auth-locked)>.floating-actions{left:10px!important;right:auto!important;bottom:calc(var(--mobile-nav-h,72px) + 10px + env(safe-area-inset-bottom))!important}
   .v1819-back-to-top{right:18px;bottom:calc(var(--mobile-nav-h,72px) + 78px + env(safe-area-inset-bottom));width:42px;height:42px}
   .calendar-context-menu{width:min(248px,calc(100vw - 24px))!important}
