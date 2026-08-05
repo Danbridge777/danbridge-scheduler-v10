@@ -5,12 +5,10 @@
 function addMakeupForLesson(lesson, reason = '學生請假') {
   db.makeups ||= [];
 
-  const hasOpenMakeup = db.makeups.some(
-    makeup => makeup.sourceLessonId === lesson.id && makeup.status !== 'done'
-  );
-  if (hasOpenMakeup) return;
+  const existingMakeup = db.makeups.find(makeup => makeup.sourceLessonId === lesson.id);
+  if (existingMakeup) return existingMakeup;
 
-  db.makeups.push({
+  const makeup = {
     id: uid(),
     sourceLessonId: lesson.id,
     studentId: lesson.studentId,
@@ -24,7 +22,9 @@ function addMakeupForLesson(lesson, reason = '學生請假') {
     status: 'pending',
     scheduledLessonId: '',
     createdAt: new Date().toISOString()
-  });
+  };
+  db.makeups.push(makeup);
+  return makeup;
 }
 
 function renderMakeups() {
@@ -41,10 +41,10 @@ function renderMakeups() {
       <td>${makeup.originalDate} ${makeup.originalStart}–${makeup.originalEnd}</td>
       <td>${makeup.hours} hr</td>
       <td>${esc(makeup.reason)}</td>
-      <td>${makeup.status === 'pending' ? '待安排' : makeup.status === 'scheduled' ? '已安排' : '已完成'}</td>
+      <td>${makeup.status === 'pending' ? '待安排' : makeup.status === 'scheduled' ? '已安排' : makeup.status === 'cancelled' ? '已取消' : '已完成'}</td>
       <td class="row-actions">
         ${makeup.status === 'pending' ? `<button class="btn primary" onclick="scheduleMakeup('${makeup.id}')">安排補課</button>` : ''}
-        ${makeup.status !== 'done' ? `<button class="btn ok" onclick="finishMakeup('${makeup.id}')">完成</button>` : ''}
+        ${makeup.status === 'scheduled' ? '<span class="small">等待補課老師完成回報</span>' : ''}
       </td>
     </tr>
   `).join('') || '<tr><td colspan="6" class="small">目前沒有符合條件的補課。</td></tr>';
@@ -60,15 +60,49 @@ function scheduleMakeup(id) {
   $('lessonTitle').value = '補課';
   $('lessonStatus').value = '補課';
   $('lessonNote').value = `補 ${makeup.originalDate} 的課程｜MAKEUP:${makeup.id}`;
-  makeup.status = 'scheduled';
-  saveDB();
+  window.__danbridgePendingMakeupId = makeup.id;
 }
 
 function finishMakeup(id) {
   const makeup = db.makeups.find(item => item.id === id);
   if (!makeup) return;
-
-  makeup.status = 'done';
-  saveDB();
-  toast('補課已標記完成');
+  const lesson = db.lessons.find(item => item.id === makeup.scheduledLessonId);
+  if (!lesson || !lessonCountsAsTaught(lesson)) return alert('補課必須由補課老師在實際補課課程中完成回報，不能直接手動結案。');
+  completeMakeupForLesson(lesson);
+  saveDB();toast('補課已完成');
 }
+
+function completeMakeupForLesson(lesson){
+  const makeupId=lessonMakeupId(lesson),makeup=(db.makeups||[]).find(item=>item.id===makeupId||item.scheduledLessonId===lesson.id);
+  if(!makeup||lesson.teacherReportStatus!=='makeup_completed')return false;
+  const teacherId=lesson.teacherId||lessonTeacherIds(lesson)[0]||makeup.teacherId,completedAt=lesson.teacherReportUpdatedAt||makeup.completedAt||new Date().toISOString();
+  if(makeup.status==='done'&&makeup.scheduledLessonId===lesson.id&&makeup.teacherId===teacherId&&makeup.completedAt===completedAt)return false;
+  makeup.status='done';makeup.scheduledLessonId=lesson.id;makeup.teacherId=teacherId;makeup.completedAt=completedAt;return true;
+}
+window.completeMakeupForLesson=completeMakeupForLesson;
+
+function cancelOpenMakeupForSourceLesson(lesson){
+  const makeup=(db.makeups||[]).find(item=>item.sourceLessonId===lesson.id&&!['done','cancelled'].includes(item.status));
+  if(!makeup)return false;
+  const scheduled=(db.lessons||[]).find(item=>item.id===makeup.scheduledLessonId);
+  if(scheduled){scheduled.status='取消';scheduled.payTeacher='no';scheduled.chargeStudent='no';scheduled.cancelledBecauseSourceRestored=true;}
+  makeup.status='cancelled';makeup.cancelledAt=new Date().toISOString();return true;
+}
+window.cancelOpenMakeupForSourceLesson=cancelOpenMakeupForSourceLesson;
+
+const saveLessonBeforeMakeupLink=window.saveLesson;
+window.saveLesson=function(){
+  const makeupId=String(window.__danbridgePendingMakeupId||'');
+  const lessonIdsBefore=new Set((db.lessons||[]).map(item=>String(item.id)));
+  const result=saveLessonBeforeMakeupLink?.apply(this,arguments);
+  if(!makeupId)return result;
+  const makeup=(db.makeups||[]).find(item=>item.id===makeupId);
+  const lesson=(db.lessons||[]).find(item=>lessonMakeupId(item)===makeupId)||(db.lessons||[]).find(item=>!lessonIdsBefore.has(String(item.id)));
+  if(!makeup||!lesson)return result;
+  lesson.makeupId=makeup.id;lesson.sourceLessonId=makeup.sourceLessonId;lesson.isMakeup=true;lesson.chargeStudent='no';lesson.payTeacher='yes';
+  makeup.scheduledLessonId=lesson.id;makeup.teacherId=lesson.teacherId||lessonTeacherIds(lesson)[0]||makeup.teacherId;makeup.branchId=lesson.branchId||makeup.branchId;makeup.status='scheduled';
+  window.__danbridgePendingMakeupId='';saveDB();return result;
+};
+
+const closeLessonModalBeforeMakeup=window.closeLessonModal;
+window.closeLessonModal=function(){window.__danbridgePendingMakeupId='';return closeLessonModalBeforeMakeup?.apply(this,arguments)};

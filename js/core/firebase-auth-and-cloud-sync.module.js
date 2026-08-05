@@ -169,7 +169,7 @@ function filteredTeacherDB(source,teacherId){
  const lessonIds=new Set(lessons.map(l=>String(l.id)));
  const students=(source.students||[]).filter(s=>studentIds.has(s.id)).map(s=>({id:s.id,name:s.name||'',courseType:s.courseType||'',preferredTeacherId:String(s.preferredTeacherId||'')===String(teacherId)?String(teacherId):''}));
  const teachers=(source.teachers||[]).filter(t=>String(t.id)===String(teacherId)).map(t=>({id:t.id,name:t.name||'',displayName:t.displayName||'',color:t.color||'',type:t.type||'',subjects:t.subjects||''}));
- return {...emptyDB(),students,teachers,lessons:safeLessons,makeups:(source.makeups||[]).filter(m=>String(m.teacherId)===String(teacherId)||lessonIds.has(String(m.sourceLessonId||m.lessonId||''))).map(m=>{const {amount,rate,paymentStatus,...safe}=m;return safe}),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[]};
+ return {...emptyDB(),students,teachers,lessons:safeLessons,makeups:(source.makeups||[]).filter(m=>String(m.teacherId)===String(teacherId)||lessonIds.has(String(m.sourceLessonId||m.lessonId||''))||lessonIds.has(String(m.scheduledLessonId||''))).map(m=>{const {amount,rate,paymentStatus,...safe}=m;return safe}),changes:[],teacherGroups:[],winterTeacherGroups:[],summerCampClasses:[],summerCampRegistrations:[],winterCampRegistrations:[],winterCampClasses:[],settlementRecords:[],fixedExpenses:[],oneTimeExpenses:[],collectionRecords:[]};
 }
 
 function lessonBranchId(l){return l?.branchId||window.DanbridgeAccess?.branchIdFromLocation?.(l?.location||'')||'art_museum'}
@@ -375,7 +375,7 @@ async function removeCloudBranchManagerAccess(email){
 
 
 const REPORT_STATUS_LABELS={completed:'已完成',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'};
-const REPORT_TO_LESSON_STATUS={completed:'已上課',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課'};
+const REPORT_TO_LESSON_STATUS={completed:'已上課',student_leave:'學生請假',teacher_leave:'老師請假',no_show:'缺席',makeup_completed:'補課完成'};
 function reportStatusLabel(v){return REPORT_STATUS_LABELS[v]||'尚未回報'}
 function lessonBelongsToTeacher(l,teacherId){return (Array.isArray(l?.teacherIds)?l.teacherIds:[l?.teacherId]).filter(Boolean).includes(teacherId)}
 function canUseTeacherReporting(){return cloudRole==='owner'||((cloudRole==='teacher'||cloudRole==='branch_manager')&&!!cloudTeacherId)}
@@ -419,6 +419,9 @@ function applyReportToLesson(lesson,report){
  for(const [k,v] of Object.entries(next)){if((lesson[k]||'')!==v){lesson[k]=v;changed=true}}
  const mapped=REPORT_TO_LESSON_STATUS[report.status];
  if(mapped&&lesson.status!==mapped){lesson.status=mapped;changed=true}
+ if(report.status==='student_leave'&&window.addMakeupForLesson){const before=(window.__danbridgeGetDB?.().makeups||[]).length;window.addMakeupForLesson(lesson);if((window.__danbridgeGetDB?.().makeups||[]).length>before)changed=true;}
+ if(report.status!=='student_leave'&&!window.lessonIsLinkedMakeup?.(lesson)&&window.cancelOpenMakeupForSourceLesson?.(lesson))changed=true;
+ if(report.status==='makeup_completed'&&window.completeMakeupForLesson?.(lesson))changed=true;
  return changed;
 }
 

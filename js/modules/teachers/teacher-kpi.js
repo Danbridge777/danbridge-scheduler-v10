@@ -21,7 +21,7 @@
     if(c.role==='teacher'){teachers=teachers.filter(t=>t.id===c.teacherId);lessons=lessons.filter(l=>lessonTeachers(l).includes(c.teacherId))}
     return teachers.map(t=>{
       const ls=lessons.filter(l=>lessonTeachers(l).includes(t.id));
-      const active=ls.filter(l=>!['取消','停課'].includes(l.status));
+      const active=ls.filter(lessonCountsAsTaught);
       const leave=ls.filter(l=>['學生請假','老師請假','取消','停課'].includes(l.status));
       const makeup=ls.filter(l=>l.teacherReportStatus==='makeup_completed'||l.status==='補課完成'||l.isMakeup);
       const reportable=active.filter(l=>l.date<=todayStr());

@@ -9,16 +9,16 @@
     if(role()!=='teacher'||typeof db==='undefined')return;
     const month=typeof monthNow==='function'?monthNow():new Date().toISOString().slice(0,7);
     const rows=(db.lessons||[]).filter(l=>!l.isDraft&&l.date?.startsWith(month)&&!['取消','停課'].includes(l.status));
-    const completed=rows.filter(l=>l.status==='已上課'||l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed');
+    const completed=rows.filter(l=>typeof lessonCountsAsTaught==='function'?lessonCountsAsTaught(l):(l.status==='已上課'||l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed'));
     const reported=rows.filter(l=>l.teacherReportStatus==='completed'||l.teacherReportStatus==='makeup_completed');
     const metric=$('#mTeacherHours');
-    if(metric){metric.textContent=`${lessonHours(rows).toFixed(1)} 小時`;const note=metric.closest('.metric')?.querySelector('small');if(note)note.textContent=`本月 ${rows.length} 堂｜已完成 ${completed.length} 堂`;}
+    if(metric){metric.textContent=`${lessonHours(completed).toFixed(1)} 小時`;const note=metric.closest('.metric')?.querySelector('small');if(note)note.textContent=`實授 ${completed.length} 堂｜排定 ${rows.length} 堂`;}
     if($('#mLessons'))$('#mLessons').textContent=rows.length;
     if($('#v32MonthCompleted'))$('#v32MonthCompleted').textContent=`${completed.length} 堂已完成`;
     const insights=$('#v32Insights');
     if(insights){
       const pending=rows.filter(l=>l.status==='已上課'&&!l.teacherReportStatus).length;
-      insights.innerHTML=`<div class="v32-insight ${pending?'danger':'good'}"><span class="v32-insight-dot"></span><div><b>${pending?`${pending} 堂等待課堂回報`:'本月回報已完成'}</b><span>已回報 ${reported.length} 堂｜本月排定 ${lessonHours(rows).toFixed(1)} 小時</span></div></div>`;
+      insights.innerHTML=`<div class="v32-insight ${pending?'danger':'good'}"><span class="v32-insight-dot"></span><div><b>${pending?`${pending} 堂等待課堂回報`:'本月回報已完成'}</b><span>實授 ${lessonHours(completed).toFixed(1)} 小時｜排定 ${lessonHours(rows).toFixed(1)} 小時</span></div></div>`;
     }
   }
 
