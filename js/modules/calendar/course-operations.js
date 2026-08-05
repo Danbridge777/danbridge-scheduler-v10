@@ -68,21 +68,20 @@ function openCourseDrawer(id){
   activeCourseDrawerId=id;
   const s=student(l.studentId),teachers=lessonTeacherNames(l)||'未指定老師';
   const mode=window.DanbridgeAccess?.deliveryModeFromLesson?.(l)||'onsite';const place=mode==='home'?`${locationLabel(l)}${l.address?'・'+l.address:''}`:mode==='online'?`${locationLabel(l)}${l.onlinePlatform?'・'+l.onlinePlatform:''}`:`${locationLabel(l)}${l.room?'・'+l.room:''}`;
-  const payment=l.paymentStatus==='paid'?'已繳':l.paymentStatus==='waived'?'免收':'未繳';
+  const role=window.currentCloudRole?.()||window.DanbridgeAccess?.getContext?.().role||'',teacherView=role==='teacher',payment=l.paymentStatus==='paid'?'已繳':l.paymentStatus==='waived'?'免收':'未繳';
   $('courseDrawerTitle').textContent=s.name||l.title||'課程';
   $('courseDrawerSubtitle').textContent=`${formatCourseDrawerDate(l.date)}・${l.start}–${l.end}`;
   $('courseDrawerBody').innerHTML=`
     <div class="course-drawer-status-row">
       <span class="course-detail-badge ${courseDrawerStatusClass(l.status)}">${esc(l.status||'未上課')}</span>
-      <span class="course-detail-badge ${l.paymentStatus==='paid'||l.paymentStatus==='waived'?'payment-paid':'payment-unpaid'}">${payment}</span>
+      ${teacherView?'':`<span class="course-detail-badge ${l.paymentStatus==='paid'||l.paymentStatus==='waived'?'payment-paid':'payment-unpaid'}">${payment}</span>`}
     </div>
     <div class="course-detail-grid">
       <div class="course-detail-item"><div class="course-detail-label">上課時間</div><div class="course-detail-value">${esc(l.start)}–${esc(l.end)}<br>${hours(l.start,l.end)} 小時</div></div>
       <div class="course-detail-item"><div class="course-detail-label">課程／班別</div><div class="course-detail-value">${esc(l.title||s.courseType||'一般課程')}</div></div>
       <div class="course-detail-item wide"><div class="course-detail-label">授課老師</div><div class="course-detail-value">${esc(teachers)}</div></div>
       <div class="course-detail-item wide"><div class="course-detail-label">上課地點</div><div class="course-detail-value">${esc(place||'未指定')}</div></div>
-      <div class="course-detail-item"><div class="course-detail-label">課表營收</div><div class="course-detail-value">${money(lessonCharge(l))}</div></div><div class="course-detail-item"><div class="course-detail-label">收費確認</div><div class="course-detail-value">${l.chargeStudent==='no'?'尚未確認':'已確認'}</div></div>
-      <div class="course-detail-item"><div class="course-detail-label">老師薪資</div><div class="course-detail-value">${l.payTeacher==='no'?'不計薪':money(lessonPay(l))}</div></div>
+      ${teacherView?'':`<div class="course-detail-item"><div class="course-detail-label">課表營收</div><div class="course-detail-value">${money(lessonCharge(l))}</div></div><div class="course-detail-item"><div class="course-detail-label">收費確認</div><div class="course-detail-value">${l.chargeStudent==='no'?'尚未確認':'已確認'}</div></div><div class="course-detail-item"><div class="course-detail-label">老師薪資</div><div class="course-detail-value">${l.payTeacher==='no'?'不計薪':money(lessonPay(l))}</div></div>`}
     </div>
     ${l.teacherReportContent||l.teacherReportHomework||l.teacherReportNote?`<div class="course-detail-section-title">老師課堂回報</div><div class="course-detail-note">${l.teacherReportContent?`<b>課程內容</b>\n${esc(l.teacherReportContent)}\n\n`:''}${l.teacherReportHomework?`<b>家庭作業</b>\n${esc(l.teacherReportHomework)}\n\n`:''}${l.teacherReportFeedback?`<b>老師回饋</b>\n${esc(l.teacherReportFeedback)}\n\n`:''}${l.teacherReportNote?`<b>內部備註</b>\n${esc(l.teacherReportNote)}`:''}</div>${Array.isArray(l.teacherReportPhotos)&&l.teacherReportPhotos.length?`<div class="lesson-report-photos">${l.teacherReportPhotos.map(p=>`<a href="${esc(p.url||'')}" target="_blank" rel="noopener"><img src="${esc(p.url||'')}" alt="課堂照片"></a>`).join('')}</div>`:''}`:''}
     <div class="course-detail-section-title">課程備註</div>
@@ -94,7 +93,6 @@ function openCourseDrawer(id){
     reportBtn.onclick=()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();window.openLessonReport?.(lessonId)};
   }
   const editBtn=$('courseDrawerEditBtn');
-  const role=window.currentCloudRole?.()||'';
   const ownerCanEdit=!role||role==='owner';
   editBtn.hidden=!ownerCanEdit;
   editBtn.onclick=ownerCanEdit?()=>{const lessonId=activeCourseDrawerId;closeCourseDrawer();openLessonModal(todayStr(),'16:00',lessonId)}:null;
