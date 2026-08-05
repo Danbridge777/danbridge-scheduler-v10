@@ -27,6 +27,38 @@
     $$('#lessonRows tr').forEach(row=>$$('td',row).forEach((cell,i)=>cell.dataset.label=labels[i]||''));
   }
 
+  function teacherConvenience(){
+    if(role()!=='teacher')return;
+    const calendarHeading=$('#calendar .calendar-workspace-head h2');
+    const calendarCopy=$('#calendar .calendar-workspace-head p');
+    if(calendarHeading)calendarHeading.textContent='我的課表';
+    if(calendarCopy)calendarCopy.textContent='查看自己的課程；可依日期、地點或學生快速篩選。';
+    $('#calendarTeacherFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
+    $('#calendarStateFilter')?.closest('.calendar-field')?.classList.add('teacher-redundant-filter');
+    $('#filterTeacher')?.closest('div')?.classList.add('teacher-redundant-filter');
+
+    const actions=$('#dashboard .v32-header-actions');
+    const scheduleButton=actions?.querySelector('button:not(.owner-only-action)');
+    if(scheduleButton)scheduleButton.textContent='查看我的課表';
+    if(actions&&!$('#teacherReportShortcut',actions)){
+      const button=document.createElement('button');
+      button.type='button';button.id='teacherReportShortcut';button.className='btn primary';
+      button.textContent='填寫課程回報';button.addEventListener('click',()=>window.switchTab?.('lessons'));
+      actions.appendChild(button);
+    }
+
+    const lessonCard=$('#lessons>.card');
+    if(lessonCard){
+      let summary=$('#teacherLessonSummary',lessonCard);
+      if(!summary){summary=document.createElement('div');summary.id='teacherLessonSummary';summary.className='teacher-lesson-summary';lessonCard.querySelector('h2')?.after(summary)}
+      const month=$('#lessonMonth')?.value||(typeof monthNow==='function'?monthNow():'');
+      const rows=(db.lessons||[]).filter(l=>!l.isDraft&&(!month||l.date?.startsWith(month)));
+      const pending=rows.filter(l=>l.status==='已上課'&&!l.teacherReportStatus).length;
+      summary.innerHTML=`<b>${rows.length} 堂課程</b><span>${pending?`${pending} 堂等待回報`:'回報均已完成'}</span>`;
+      summary.classList.toggle('has-pending',pending>0);
+    }
+  }
+
   function apply(){
     const current=role();
     document.body.dataset.roleUx=current;
@@ -37,6 +69,7 @@
       teacherStats();
       $$('#calendar .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|未繳)/g,'')});
       $$('#todayLessons .lesson .meta').forEach(meta=>{meta.textContent=meta.textContent.replace(/｜(?:✓已繳|已繳|未繳)/g,'')});
+      teacherConvenience();
     }
     if(current==='branch_manager'){
       const allowedTabs=new Set(['dashboard','students','teachers','calendar','lessons','makeups','settlement','finance']);
@@ -55,7 +88,7 @@
     if(typeof originalLessons==='function'&&!originalLessons.__roleResponsive){
       const wrapped=function(){originalLessons();apply()};wrapped.__roleResponsive=true;window.renderLessons=wrapped;
     }
-    window.DanbridgeRoleResponsive={apply,teacherStats};
+    window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience};
     document.addEventListener('dragstart',event=>{if(['teacher','branch_manager'].includes(role())&&event.target.closest?.('#calendar .lesson,#calendar .week-event')){event.preventDefault();event.stopImmediatePropagation()}},true);
     document.addEventListener('click',event=>{if(!['teacher','branch_manager'].includes(role()))return;const emptyCell=event.target.closest?.('#calendar .day-cell,#calendar .time-slot');if(emptyCell&&!event.target.closest?.('.lesson,.week-event,button')){event.preventDefault();event.stopImmediatePropagation()}},true);
     apply();
