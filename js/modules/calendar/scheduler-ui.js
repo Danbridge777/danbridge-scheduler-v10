@@ -89,7 +89,7 @@ function deleteSelectedLessons(){
   if(!confirm(`確定刪除已選取的 ${ids.length} 堂課？`))return;
   snapshot();
   const idSet=new Set(ids),removed=db.lessons.filter(l=>idSet.has(l.id));
-  removed.forEach(l=>logChange('刪除選取課程',l,l));
+  removed.forEach(l=>{window.syncMakeupForDeletedLesson?.(l);logChange('刪除選取課程',null,l)});
   db.lessons=db.lessons.filter(l=>!idSet.has(l.id));
   selectedLessonIds.clear();selectionMode=false;saveDB();toast(`已刪除 ${removed.length} 堂課`);
 }

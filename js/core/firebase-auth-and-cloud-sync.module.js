@@ -40,6 +40,7 @@ let cloudUid='';
 let cloudEmailKey='';
 let applyingCloud=false;
 let unsubscribeState=null;
+let unsubscribeAccessGuard=null;
 let syncTimer=null;
 let unsubscribeReports=null;
 let unsubscribeScheduleNotifications=null;
@@ -423,7 +424,7 @@ function applyReportToLesson(lesson,report){
  for(const [k,v] of Object.entries(next)){if((lesson[k]||'')!==v){lesson[k]=v;changed=true}}
  const mapped=REPORT_TO_LESSON_STATUS[report.status];
  if(mapped&&lesson.status!==mapped){lesson.status=mapped;changed=true}
- if(report.status==='student_leave'&&window.addMakeupForLesson){const before=(window.__danbridgeGetDB?.().makeups||[]).length;window.addMakeupForLesson(lesson);if((window.__danbridgeGetDB?.().makeups||[]).length>before)changed=true;}
+ if(report.status==='student_leave'&&window.addMakeupForLesson){const list=window.__danbridgeGetDB?.().makeups||[],before=list.find(m=>m.sourceLessonId===lesson.id),beforeStatus=before?.status||'';const makeup=window.addMakeupForLesson(lesson);if(!before||makeup?.status!==beforeStatus)changed=true;}
  if(report.status!=='student_leave'&&!window.lessonIsLinkedMakeup?.(lesson)&&window.cancelOpenMakeupForSourceLesson?.(lesson))changed=true;
  if(report.status==='makeup_completed'&&window.completeMakeupForLesson?.(lesson))changed=true;
  return changed;
@@ -506,7 +507,7 @@ async function saveTeacherReport(){
    const trustedMeta=await getTrustedLessonMeta(lessonId);
    const uploaded=[];
    const failedPhotoUploads=[];
-   for(const file of photoFiles){
+   await Promise.all(photoFiles.map(async file=>{
      const safeName=String(file.name||'photo.jpg').replace(/[^a-zA-Z0-9._-]+/g,'_');
      const path=`companies/${COMPANY_ID}/lessonReports/${lessonId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeName}`;
      const fileRef=storageRef(storage,path);
@@ -517,7 +518,7 @@ async function saveTeacherReport(){
        console.warn('lesson report photo upload skipped',photoError);
        failedPhotoUploads.push({name:file.name||'課堂照片',code:String(photoError?.code||''),message:String(photoError?.message||'')});
      }
-   }
+   }));
    const lessonTeacherId=(Array.isArray(lesson.teacherIds)?lesson.teacherIds:[lesson.teacherId]).filter(Boolean)[0]||'';
    const reporterName=(document.body.dataset.cloudDisplayName||auth.currentUser?.displayName||auth.currentUser?.email||'').trim();
    const trustedDeadline=trustedMeta.editableUntil?.toDate?.()||null;
@@ -1203,6 +1204,21 @@ async function subscribeTeacher(){
  });
 }
 
+function revokeCurrentRoleAccess(message){
+ applyingCloud=true;window.__danbridgeSetDB(emptyDB());window.renderAll?.();applyingCloud=false;
+ cloudStatus(message,'error');setTimeout(()=>signOut(auth).catch(e=>console.error('forced role sign-out failed',e)),0);
+}
+function subscribeRoleAccessGuard(){
+ unsubscribeAccessGuard?.();unsubscribeAccessGuard=null;
+ if(cloudRole==='owner'||!cloudEmailKey)return;
+ const accessRef=doc(cloud,'companyAccess',cloudEmailKey);
+ unsubscribeAccessGuard=onSnapshot(accessRef,snap=>{
+   const access=snap.exists()?snap.data()||{}:null;
+   const valid=!!access&&access.active===true&&access.companyId===COMPANY_ID&&access.role===cloudRole&&String(access.teacherId||'')===String(cloudTeacherId||'');
+   if(!valid)revokeCurrentRoleAccess('此帳號權限已被移除或變更，系統已安全登出。');
+ },e=>{console.error('role access guard failed',e);cloudStatus('權限狀態暫時無法確認，系統正在重新連線。','pending')});
+}
+
 async function subscribeBranchManager(){
  if(!cloudEmailKey||!cloudBranchIds.length)throw new Error('校區管理者尚未綁定校區。');
  unsubscribeState?.();
@@ -1256,9 +1272,10 @@ installClassFocusMode();
 installBranchManagerAccessEvents();
 onAuthStateChanged(auth,async user=>{
  unsubscribeState?.();unsubscribeState=null;unsubscribeReports?.();unsubscribeReports=null;unsubscribeScheduleNotifications?.();unsubscribeScheduleNotifications=null;scheduleNotificationDocuments=[];lessonReportDocuments=[];lessonMetaSignatureCache=new Map();lessonMetaCacheReady=false;scopedViewHashCache=new Map();
+ unsubscribeAccessGuard?.();unsubscribeAccessGuard=null;
  if(!user){lastPublishedOwnerDB=null;ownerBaselineReady=false;scheduleNotificationDeliveryJobs.forEach(job=>clearTimeout(job.timer));scheduleNotificationDeliveryJobs.clear();clearTimeout(roleViewRetryTimer);roleViewPublishInFlight=false;roleViewPublishQueued=false;roleViewRetryCount=0;cloudRole='';cloudTeacherId='';cloudBranchIds=[];cloudUid='';cloudEmailKey='';window.__danbridgeLessonIdMigrationAuthority=false;window.DanbridgeAccess?.setContext({role:'',branchIds:[],teacherId:'',email:'',readOnly:true});showCloudLogin();cloudStatus('尚未登入');return}
  try{
    cloudStatus('正在載入權限…');const profile=await ensureProfile(user);applyRoleUI(profile,user);showCloudApp();
-   if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeLessonReports();subscribeScheduleNotifications();
+   if(profile.role==='owner'){subscribeOwner();setTimeout(()=>{renderCloudUserManager();renderBranchManagerAccess()},0)}else if(profile.role==='teacher')subscribeTeacher();else if(profile.role==='branch_manager')subscribeBranchManager();else throw new Error('不支援的角色：'+profile.role);subscribeRoleAccessGuard();subscribeLessonReports();subscribeScheduleNotifications();
  }catch(e){console.error(e);await signOut(auth);showCloudLogin();showCloudLoginError(e.message);cloudStatus(e.message,'error')}
 });

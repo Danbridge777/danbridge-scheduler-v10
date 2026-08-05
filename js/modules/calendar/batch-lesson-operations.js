@@ -79,7 +79,7 @@ function applyBatch(){
     const before={...x.old};
     Object.assign(x.old,x.next);
     logChange('批次調整',x.old,before);
-    if(x.old.status==='學生請假')addMakeupForLesson(x.old);
+    window.syncMakeupForLessonStatus?.(x.old,before.status);
     done++;
   }
   selectedLessonIds.clear();closeBatchModal();saveDB();toast(`已批次更新 ${done} 堂課`);

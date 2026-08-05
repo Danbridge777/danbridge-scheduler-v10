@@ -178,7 +178,7 @@ function monthlySettlementSnapshot(m){
   const totalRevenue=ls.reduce((a,l)=>a+timetableRevenueCharge(l),0);
   const leaveStatuses=new Set(['學生請假','老師請假','取消','停課']);
   const leaveCount=ls.filter(l=>leaveStatuses.has(l.status)).length;
-  const leaveRate=totalLessons?leaveCount/totalLessons*100:0;
+  const leaveRate=ls.length?leaveCount/ls.length*100:0;
   const payroll=db.teachers.reduce((sum,t)=>sum+teacherPayrollAmount(t,m),0);
   return{month:m,savedAt:new Date().toISOString(),totalLessons,totalHours,totalRevenue,leaveCount,leaveRate,payroll};
 }

@@ -12,8 +12,10 @@
  function item(data){return {severity:'info',category:'general',...data}}
  function buildNotifications(){
   const c=ctx(),today=todayStr(),tomorrow=addDays(today,1),now=new Date(),currentTime=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,lessons=visibleLessons(),items=[];
-  const incomplete=lessons.filter(l=>l.date===today&&l.end<=currentTime&&!['取消','停課','學生請假'].includes(l.status)&&!['completed','makeup_completed'].includes(l.teacherReportStatus));
-  const overdue=lessons.filter(l=>l.date<today&&!['取消','停課','學生請假'].includes(l.status)&&!['completed','makeup_completed'].includes(l.teacherReportStatus));
+  const terminalStatuses=new Set(['已上課','學生請假','老師請假','缺席','補課完成','取消','停課']);
+  const needsReport=l=>!l.teacherReportStatus&&!terminalStatuses.has(l.status);
+  const incomplete=lessons.filter(l=>l.date===today&&l.end<=currentTime&&needsReport(l));
+  const overdue=lessons.filter(l=>l.date<today&&needsReport(l));
   [...overdue,...incomplete].slice(0,60).forEach(l=>items.push(item({id:`report:${l.id}`,category:'report',severity:'danger',icon:'報',title:`${student(l.studentId).name||l.title||'課程'}尚未完成課堂回報`,detail:`${l.date} ${l.start}–${l.end}｜${lessonTeacherNames(l)}｜${locationLabel(l)}`,sort:`1-${l.date}-${l.start}`,action:{type:(c.role==='branch_manager'&&!lessonTeacherIds(l).includes(c.teacherId))?'lessons':'report',lessonId:l.id}})));
   lessons.filter(l=>l.date===tomorrow&&!['取消','停課'].includes(l.status)).sort((a,b)=>a.start.localeCompare(b.start)).forEach(l=>items.push(item({id:`tomorrow:${l.id}`,category:'tomorrow',severity:'info',icon:'明',title:`明日 ${l.start}｜${student(l.studentId).name||l.title||'課程'}`,detail:`${lessonTeacherNames(l)}｜${locationLabel(l)}${l.room?'｜'+l.room:''}`,sort:`4-${l.start}`,action:{type:'calendar',date:l.date,lessonId:l.id}})));
   if(c.role!=='teacher'){

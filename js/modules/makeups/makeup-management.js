@@ -6,7 +6,12 @@ function addMakeupForLesson(lesson, reason = '學生請假') {
   db.makeups ||= [];
 
   const existingMakeup = db.makeups.find(makeup => makeup.sourceLessonId === lesson.id);
-  if (existingMakeup) return existingMakeup;
+  if (existingMakeup) {
+    if(existingMakeup.status==='cancelled'){
+      existingMakeup.status='pending';existingMakeup.scheduledLessonId='';existingMakeup.teacherId=lesson.teacherId;existingMakeup.branchId=lesson.branchId||window.DanbridgeAccess?.recordBranchId?.(lesson)||existingMakeup.branchId;existingMakeup.cancelledAt='';existingMakeup.reopenedAt=new Date().toISOString();
+    }
+    return existingMakeup;
+  }
 
   const makeup = {
     id: uid(),
@@ -89,6 +94,33 @@ function cancelOpenMakeupForSourceLesson(lesson){
   makeup.status='cancelled';makeup.cancelledAt=new Date().toISOString();return true;
 }
 window.cancelOpenMakeupForSourceLesson=cancelOpenMakeupForSourceLesson;
+
+function syncMakeupForLessonStatus(lesson, previousStatus = ''){
+  if(!lesson)return false;
+  if(lesson.status==='學生請假'){
+    const existing=(db.makeups||[]).find(item=>item.sourceLessonId===lesson.id),before=existing?.status||'';
+    const makeup=addMakeupForLesson(lesson);
+    return !existing||makeup?.status!==before;
+  }
+  if(previousStatus==='學生請假')return cancelOpenMakeupForSourceLesson(lesson);
+  return false;
+}
+window.syncMakeupForLessonStatus=syncMakeupForLessonStatus;
+
+function syncMakeupForDeletedLesson(lesson){
+  if(!lesson)return false;
+  let changed=false;
+  if(lesson.status==='學生請假')changed=cancelOpenMakeupForSourceLesson(lesson)||changed;
+  const makeupId=lessonMakeupId(lesson);
+  if(makeupId){
+    const makeup=(db.makeups||[]).find(item=>item.id===makeupId||item.scheduledLessonId===lesson.id);
+    if(makeup){
+      makeup.status='pending';makeup.scheduledLessonId='';makeup.completedAt='';makeup.rescheduledAt=new Date().toISOString();changed=true;
+    }
+  }
+  return changed;
+}
+window.syncMakeupForDeletedLesson=syncMakeupForDeletedLesson;
 
 const saveLessonBeforeMakeupLink=window.saveLesson;
 window.saveLesson=function(){
