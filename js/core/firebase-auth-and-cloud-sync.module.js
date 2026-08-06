@@ -1090,15 +1090,23 @@ async function uploadOwnerState(force=false){
    if(ownerUploadQueued&&navigator.onLine){clearTimeout(syncTimer);if(ownerRetryCount)scheduleOwnerRetry();else syncTimer=setTimeout(()=>uploadOwnerState(),80);}
  }
 }
+function queueOwnerCloudSave(){
+ if(cloudRole!=='owner')return;
+ localMutationVersion++;
+ localDirtyHash=dataHash(window.__danbridgeGetDB());
+ ownerUploadQueued=true;
+ cloudStatus(navigator.onLine?'變更已儲存，準備同步…':'變更已保存在本機；恢復網路後自動同步。',navigator.onLine?'pending':'offline');
+ clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),120);
+}
 function installCloudSave(){
+ window.__danbridgeQueueCloudSave=queueOwnerCloudSave;
  window.saveDB=function(){
    if(cloudRole==='teacher'||cloudRole==='branch_manager'){alert(cloudRole==='teacher'?'老師帳號目前為唯讀，只能查看自己的課表。':'校區管理者目前為唯讀，只能查看指定校區資料。');return}
-   originalSaveDB?.();
-   localMutationVersion++;
-   localDirtyHash=dataHash(window.__danbridgeGetDB());
-   ownerUploadQueued=true;
-   cloudStatus(navigator.onLine?'變更已儲存，準備同步…':'變更已保存在本機；恢復網路後自動同步。',navigator.onLine?'pending':'offline');
-   clearTimeout(syncTimer);syncTimer=setTimeout(()=>uploadOwnerState(),120);
+   let saveError=null;
+   try{originalSaveDB?.()}
+   catch(error){saveError=error;console.error('Local save failed before cloud scheduling:',error)}
+   finally{queueOwnerCloudSave()}
+   if(saveError)throw saveError;
  };
 }
 function subscribeOwner(){

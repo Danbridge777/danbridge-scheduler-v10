@@ -697,3 +697,9 @@
 - The calendar now rerenders unconditionally at the start of every full render, including while its section is hidden.
 - A failure in an unrelated view renderer is logged but can no longer abort the cloud dirty guard or upload scheduling after local data has been saved.
 - Backup and undo controls update in a `finally` block after every successful local persistence write.
+
+## V20.5.5 — Guaranteed Owner cloud scheduling
+
+- Owner dirty-state hashing and cloud upload scheduling now run in a `finally` block around local persistence.
+- Calendar updates continue to upload the main database, publish teacher and branch views, and create schedule notifications even if a local view renderer reports an error.
+- Exposed the same guarded cloud queue for direct persistence workflows that do not call the standard save wrapper.
