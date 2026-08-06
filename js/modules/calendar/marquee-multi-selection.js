@@ -51,14 +51,39 @@
   }
 
   function bindCleanMarquee(){
-    const oldCanvas=document.getElementById('calendarCanvas');
-    if(!oldCanvas)return;
+    const canvas=document.getElementById('calendarCanvas');
+    if(!canvas||canvas.dataset.cleanInteractionBound==='1')return;
+    canvas.dataset.cleanInteractionBound='1';
 
-    // Calendar rendering replaces its contents. Cloning once removes listeners
-    // attached to the previous render without accumulating window-level handlers.
-    const canvas=oldCanvas.cloneNode(true);
-    oldCanvas.replaceWith(canvas);
-    attachDragHandlers();
+    canvas.addEventListener('dragstart',event=>{
+      const item=event.target.closest('[data-id]');
+      if(!item)return;
+      event.stopImmediatePropagation();
+      if(selectionMode||pasteClickMode){event.preventDefault();return}
+      dragState=item.dataset.id;item.classList.add('dragging');
+      event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dragState);
+    },true);
+    canvas.addEventListener('dragover',event=>{
+      if(!dragState)return;
+      const target=event.target.closest('[data-date]');
+      if(!target)return;
+      event.preventDefault();event.stopImmediatePropagation();event.dataTransfer.dropEffect='move';
+      canvas.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));
+      target.classList.add('drop-target');
+    },true);
+    canvas.addEventListener('drop',event=>{
+      if(!dragState)return;
+      const target=event.target.closest('[data-date]'),id=event.dataTransfer.getData('text/plain')||dragState;
+      event.preventDefault();event.stopImmediatePropagation();
+      canvas.querySelectorAll('.drop-target,.dragging').forEach(el=>el.classList.remove('drop-target','dragging'));
+      dragState=null;
+      if(target&&id)moveLessonTo(id,target.dataset.date,target.dataset.time||'');
+    },true);
+    canvas.addEventListener('dragend',event=>{
+      event.target.closest('[data-id]')?.classList.remove('dragging');
+      canvas.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));
+      dragState=null;
+    },true);
 
     canvas.addEventListener('contextmenu',event=>{
       event.preventDefault();
