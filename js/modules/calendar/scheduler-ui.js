@@ -44,9 +44,7 @@ function updateSelectionCount(){
   if(btn)btn.textContent=(selectionMode||count)?'多選中':'部分選取';
 }
 function toggleSelectionMode(force){
-  const next=typeof force==='boolean'?force:!selectionMode;
-  if(next&&pasteClickMode)cancelPasteClickMode(false);
-  selectionMode=next;
+  selectionMode=typeof force==='boolean'?force:!selectionMode;
   if(!selectionMode)selectedLessonIds.clear();
   updateSelectionCount();
   renderCalendar();
@@ -69,15 +67,6 @@ function clearLessonSelection(){
   selectionMode=false;
   updateSelectionCount();
   renderCalendar();
-}
-function clearCalendarSelectionState(){
-  selectedLessonIds.clear();
-  selectionMode=false;
-  updateSelectionCount();
-  document.querySelectorAll('#calendarCanvas [data-id].selected,#calendarCanvas [data-id].marquee-hit').forEach(el=>{
-    el.classList.remove('selected','marquee-hit');
-    el.setAttribute('draggable','true');
-  });
 }
 function copySelectedLessons(){
   const source=db.lessons.filter(l=>selectedLessonIds.has(l.id)&&!['取消','停課'].includes(l.status));
@@ -116,12 +105,13 @@ function cancelSelectionAndPaste(clearClipboard=false){
   updateSelectionCount();
   cancelPasteClickMode(clearClipboard);
 }
-function cancelSelectionForNewAction(keepPaste=false){
-  if(selectionMode||selectedLessonIds.size)clearCalendarSelectionState();
-  if(pasteClickMode&&!keepPaste)cancelPasteClickMode(false);
+function cancelSelectionForNewAction(){
+  if(selectionMode||selectedLessonIds.size||pasteClickMode){
+    cancelSelectionAndPaste(false);
+  }
 }
 function calendarActionChanged(){
-  cancelSelectionForNewAction(true);
+  cancelSelectionForNewAction();
   renderCalendar();
 }
 function calendarTeacherTargetChanged(){
@@ -187,8 +177,6 @@ function copyCurrentSelection(){
   try{localStorage.removeItem('danbridge_lesson_clipboard')}catch{}
   lessonClipboard=rows.map(l=>JSON.parse(JSON.stringify(l))).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   try{localStorage.setItem('danbridge_lesson_clipboard',JSON.stringify(lessonClipboard))}catch{}
-  contextPasteTarget=null;
-  clearCalendarSelectionState();
   lastSelectionCopyAt=Date.now();
   beginPasteClickMode(lessonClipboard.length);
   return true;
@@ -198,7 +186,7 @@ function contextCopyLessons(){
   hideCalendarContextMenu();
 }
 function getLessonClipboard(){if(lessonClipboard.length)return lessonClipboard;try{return JSON.parse(localStorage.getItem('danbridge_lesson_clipboard')||'[]')}catch{return[]}}
-function exitSelectionAfterPaste(){clearCalendarSelectionState();const bar=$('selectionBar'),btn=$('selectionModeBtn');bar?.classList.add('hidden');if(btn)btn.textContent='部分選取'}
+function exitSelectionAfterPaste(){selectedLessonIds.clear();selectionMode=false;const bar=$('selectionBar'),btn=$('selectionModeBtn');bar?.classList.add('hidden');if(btn)btn.textContent='部分選取';updateSelectionCount()}
 function contextPasteLessons(){
   const rows=getLessonClipboard();
   if(!rows.length){hideCalendarContextMenu();return alert('目前沒有已複製的課程。')}
@@ -213,33 +201,30 @@ function contextPasteLessons(){
     timeDelta=toMin(contextPasteTarget.time)-toMin(first.start);
   }
   snapshot();
-  const keys=new Set(db.lessons.filter(l=>typeof lessonBlocksScheduling!=='function'||lessonBlocksScheduling(l)).map(keyOf));
+  const keys=new Set(db.lessons.map(keyOf));
   const targetTeacherId=$('calendarTeacherFilter')?.value||'';
-  let added=0,skipped=0,teacherWarnings=0;const skipDetails=[];
+  let added=0,skipped=0,teacherWarnings=0;
   for(const old of rows){
     const targetDateStr=shiftDate(old.date,dateDelta);
     const ns=shiftTime(old.start,timeDelta),ne=shiftTime(old.end,timeDelta);
-    if(!ns||!ne){skipped++;skipDetails.push(`${targetDateStr}：時間超出當日範圍`);continue}
+    if(!ns||!ne){skipped++;continue}
     const targetTeacherIds=targetTeacherId?[targetTeacherId]:[...lessonTeacherIds(old)];
     const n={...old,id:createLessonId(),date:targetDateStr,start:ns,end:ne,status:'未上課',paymentStatus:'unpaid',teacherId:targetTeacherIds[0]||'',teacherIds:targetTeacherIds};
-    if(keys.has(keyOf(n))){skipped++;skipDetails.push(`${targetDateStr} ${ns}：已有完全相同課程`);continue}
-    const conflict=conflictDetail(n,'');
-    if(conflict){skipped++;skipDetails.push(`${targetDateStr} ${ns}：${conflict.type}撞課 ${conflict.name}（既有 ${conflict.lesson.date} ${conflict.lesson.start}–${conflict.lesson.end}）`);continue}
+    if(keys.has(keyOf(n))||conflictDetail(n,'')){skipped++;continue}
     if(teacherConflictDetail(n,''))teacherWarnings++;
     db.lessons.push(n);keys.add(keyOf(n));logChange('依日期間距貼上課程',n,old);added++;
   }
   hideCalendarContextMenu();exitSelectionAfterPaste();cancelPasteClickMode(true);saveDB();
   const targetLabel=targetTeacherId?`給 ${teacher(targetTeacherId).name||'目標老師'}`:'';
-  const result=`已${targetLabel}貼上 ${added} 堂，略過 ${skipped} 堂${teacherWarnings?`，老師重疊 ${teacherWarnings} 堂已標紅`:''}`;
-  if(!added&&skipDetails.length)alert(`${result}\n\n${skipDetails.slice(0,8).join('\n')}`);else toast(result)
+  toast(`已${targetLabel}貼上 ${added} 堂，略過 ${skipped} 堂${teacherWarnings?`，老師重疊 ${teacherWarnings} 堂已標紅`:''}`)
 }
 function enableDesktopMarquee(){const canvas=$('calendarCanvas');if(!canvas||canvas.dataset.marqueeBound==='1')return;canvas.dataset.marqueeBound='1';canvas.addEventListener('mousemove',e=>{const cell=e.target.closest('[data-date]');if(cell){contextPasteTarget={date:cell.dataset.date||'',time:cell.dataset.time||''};setPasteHoverTarget(cell)}else if(pasteClickMode)setPasteHoverTarget(null)});canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});canvas.addEventListener('contextmenu',e=>{e.preventDefault();const item=e.target.closest('[data-id]');if(item&&!selectedLessonIds.has(item.dataset.id)){selectedLessonIds.clear();selectedLessonIds.add(item.dataset.id);selectionMode=true;updateSelectionCount();renderCalendar();setTimeout(()=>showCalendarContextMenu(e.clientX,e.clientY,{date:e.target.closest('[data-date]')?.dataset.date||db.lessons.find(l=>l.id===item.dataset.id)?.date,time:e.target.closest('[data-time]')?.dataset.time||''}),0);return}const cell=e.target.closest('[data-date]');showCalendarContextMenu(e.clientX,e.clientY,{date:cell?.dataset.date||'',time:cell?.dataset.time||''})});canvas.addEventListener('mousedown',e=>{if(pasteClickMode)return;if(e.button!==0||e.target.closest('[data-id],button,input,select'))return;const rect=canvas.getBoundingClientRect();marqueeState={x:e.clientX,y:e.clientY,moved:false};selectionMode=true;$('selectionModeBtn').textContent='多選中';canvas.classList.add('marquee-active');const box=$('marqueeBox');box.style.left=e.clientX+'px';box.style.top=e.clientY+'px';box.style.width='0';box.style.height='0';box.style.display='block';e.preventDefault()});window.addEventListener('mousemove',e=>{if(!marqueeState)return;const x=Math.min(marqueeState.x,e.clientX),y=Math.min(marqueeState.y,e.clientY),w=Math.abs(e.clientX-marqueeState.x),h=Math.abs(e.clientY-marqueeState.y);if(w>4||h>4)marqueeState.moved=true;const box=$('marqueeBox');box.style.left=x+'px';box.style.top=y+'px';box.style.width=w+'px';box.style.height=h+'px';const sel={left:x,top:y,right:x+w,bottom:y+h};document.querySelectorAll('#calendarCanvas [data-id]').forEach(el=>{const r=el.getBoundingClientRect(),hit=!(r.right<sel.left||r.left>sel.right||r.bottom<sel.top||r.top>sel.bottom);el.classList.toggle('marquee-hit',hit)});});window.addEventListener('mouseup',()=>{if(!marqueeState)return;const hits=[...document.querySelectorAll('#calendarCanvas [data-id].marquee-hit')],wasMoved=marqueeState.moved;if(wasMoved){hits.forEach(el=>selectedLessonIds.add(el.dataset.id));updateSelectionCount()}document.querySelectorAll('.marquee-hit').forEach(el=>el.classList.remove('marquee-hit'));$('marqueeBox').style.display='none';canvas.classList.remove('marquee-active');marqueeState=null;if(wasMoved&&hits.length)renderCalendar();else if(!wasMoved&&(selectionMode||selectedLessonIds.size)){cancelSelectionAndPaste(false);renderCalendar()}})}
 function resolveKeyboardPasteTarget(){
+  if(contextPasteTarget?.date)return contextPasteTarget;
   const hovered=document.querySelector('#calendarCanvas [data-date]:hover');
   if(hovered)return{date:hovered.dataset.date||'',time:hovered.dataset.time||''};
   const focused=document.activeElement?.closest?.('[data-date]');
   if(focused)return{date:focused.dataset.date||'',time:focused.dataset.time||''};
-  if(contextPasteTarget?.date)return contextPasteTarget;
   return null;
 }
 function handleCalendarShortcuts(e){
@@ -263,10 +248,6 @@ function handleCalendarShortcuts(e){
   if(!mod)return;
   const key=e.key.toLowerCase();
   if(key==='c'){
-    if(!selectedLessonIds.size){
-      const hovered=document.querySelector('#calendarCanvas [data-id]:hover');
-      if(hovered){selectedLessonIds.add(hovered.dataset.id);selectionMode=true;updateSelectionCount()}
-    }
     if(!selectedLessonIds.size)return;
     e.preventDefault();
     e.stopPropagation();
@@ -311,7 +292,8 @@ function attachDragHandlers(){
       if(selectionMode){toggleLessonSelection(el.dataset.id);return}
       editLesson(el.dataset.id)
     });
-    el.addEventListener('dragstart',e=>{if(selectionMode){e.preventDefault();return}dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
+    if(selectionMode)return;
+    el.addEventListener('dragstart',e=>{dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
     el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragState=null;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))});
     el.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse'||selectionMode)return;
@@ -369,6 +351,7 @@ function attachDragHandlers(){
       };
     },{passive:true});
   });
+  if(selectionMode)return;
   document.querySelectorAll('[data-date]').forEach(c=>{
     c.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';c.classList.add('drop-target')});
     c.addEventListener('dragleave',()=>c.classList.remove('drop-target'));
