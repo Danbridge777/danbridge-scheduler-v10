@@ -44,7 +44,9 @@ function updateSelectionCount(){
   if(btn)btn.textContent=(selectionMode||count)?'多選中':'部分選取';
 }
 function toggleSelectionMode(force){
-  selectionMode=typeof force==='boolean'?force:!selectionMode;
+  const next=typeof force==='boolean'?force:!selectionMode;
+  if(next&&pasteClickMode)cancelPasteClickMode(false);
+  selectionMode=next;
   if(!selectionMode)selectedLessonIds.clear();
   updateSelectionCount();
   renderCalendar();
@@ -189,7 +191,6 @@ function copyCurrentSelection(){
   clearCalendarSelectionState();
   lastSelectionCopyAt=Date.now();
   beginPasteClickMode(lessonClipboard.length);
-  renderCalendar();
   return true;
 }
 function contextCopyLessons(){
@@ -306,8 +307,7 @@ function attachDragHandlers(){
       if(selectionMode){toggleLessonSelection(el.dataset.id);return}
       editLesson(el.dataset.id)
     });
-    if(selectionMode)return;
-    el.addEventListener('dragstart',e=>{dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
+    el.addEventListener('dragstart',e=>{if(selectionMode){e.preventDefault();return}dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
     el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragState=null;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))});
     el.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse'||selectionMode)return;
@@ -365,7 +365,6 @@ function attachDragHandlers(){
       };
     },{passive:true});
   });
-  if(selectionMode)return;
   document.querySelectorAll('[data-date]').forEach(c=>{
     c.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';c.classList.add('drop-target')});
     c.addEventListener('dragleave',()=>c.classList.remove('drop-target'));

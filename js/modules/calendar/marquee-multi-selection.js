@@ -78,7 +78,17 @@
     });
 
     canvas.addEventListener('pointerdown',event=>{
-      if(pasteClickMode||event.pointerType==='touch'||event.button!==0)return;
+      if(pasteClickMode){
+        const target=event.target.closest('[data-date]');
+        if(target&&!event.target.closest('[data-id],button,input,select,textarea,a')){
+          event.preventDefault();event.stopImmediatePropagation();
+          contextPasteTarget={date:target.dataset.date||'',time:target.dataset.time||''};
+          contextPasteLessons();
+          return;
+        }
+        if(event.target.closest('[data-id]'))cancelPasteClickMode(false);
+      }
+      if(event.pointerType==='touch'||event.button!==0)return;
       if(event.target.closest('[data-id],button,input,select,textarea,a'))return;
       const box=document.getElementById('marqueeBox');
       const items=selectionItems(canvas).map(element=>({element,rect:element.getBoundingClientRect(),hit:false}));
@@ -137,15 +147,6 @@
 
     canvas.addEventListener('click',event=>{
       if(Date.now()<suppressClickUntil){event.preventDefault();event.stopPropagation();return}
-      if(pasteClickMode){
-        const target=event.target.closest('[data-date]');
-        if(target&&!event.target.closest('[data-id],button,input,select,textarea,a')){
-          event.preventDefault();event.stopImmediatePropagation();
-          contextPasteTarget={date:target.dataset.date||'',time:target.dataset.time||''};
-          contextPasteLessons();
-        }
-        return;
-      }
       const item=event.target.closest('[data-id]');
       if(item&&(event.ctrlKey||event.metaKey)){
         event.preventDefault();event.stopPropagation();
