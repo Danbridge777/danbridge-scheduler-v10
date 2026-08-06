@@ -40,16 +40,6 @@ function renderMonth(date,f){const y=date.getFullYear(),m=date.getMonth(),first=
 /* V13.11 restored calendar multi-selection controls */
 function moveCalendar(n){cancelSelectionForNewAction(true);const d=new Date($('calendarDate').value+'T00:00:00');if($('calendarMode').value==='month')d.setMonth(d.getMonth()+n);else d.setDate(d.getDate()+7*n);$('calendarDate').value=localDate(d);renderCalendar()}
 let lastSelectionCopyAt=0;
-document.addEventListener('click',e=>{if(!e.target.closest('#calendarContextMenu'))hideCalendarContextMenu()});
-document.addEventListener('change',e=>{if(!e.target.closest('#calendar .toolbar'))return;const id=e.target.id||'';if(['calendarMode','calendarDate','calendarTeacherFilter','calendarLocationFilter','calendarStudentFilter','calendarRoomFilter'].includes(id))cancelSelectionForNewAction(true)});
-document.addEventListener('keydown',handleCalendarShortcuts,true);
-document.addEventListener('copy',e=>{
-  const tag=(e.target?.tagName||'').toLowerCase();
-  if(['input','textarea','select'].includes(tag)||e.target?.isContentEditable||!selectedLessonIds.size)return;
-  /* 某些瀏覽器第一次 Ctrl+C 只送出 copy 事件；這裡做原生事件備援。 */
-  e.preventDefault();
-  if(Date.now()-lastSelectionCopyAt>120)copyCurrentSelection();
-});
 
 
 

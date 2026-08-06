@@ -1,6 +1,6 @@
 /* Danbridge desktop calendar interactions: one controller, one event layer. */
 (()=>{
-  const controller={canvas:null,marquee:null,dragCard:null,suppressClickUntil:0,observer:null};
+  const controller={canvas:null,marquee:null,dragCard:null,lastTarget:null,suppressClickUntil:0,observer:null,documentBound:false};
   const cards=()=>[...controller.canvas.querySelectorAll('[data-id]')];
   const isControl=target=>!!target.closest('button,input,select,textarea,a');
   const cardOf=target=>target.closest('[data-id]');
@@ -88,8 +88,10 @@
 
   function onPointerMove(event){
     if(controller.marquee){moveMarquee(event);return}
+    const target=targetOf(event.target);
+    controller.lastTarget=target?{date:target.date,time:target.time}:null;
     if(!pasteClickMode)return;
-    const target=targetOf(event.target);contextPasteTarget=target?{date:target.date,time:target.time}:null;setPasteHoverTarget(target?.element||null);
+    contextPasteTarget=controller.lastTarget;setPasteHoverTarget(target?.element||null);
   }
 
   function onClick(event){
@@ -130,6 +132,57 @@
   }
   function onDragEnd(event){event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.remove('dragging');controller.dragCard=null;dragState=null;finishAction()}
 
+  function keyboardTarget(){
+    const hovered=document.querySelector('#calendarCanvas [data-date]:hover');
+    if(hovered)return{date:hovered.dataset.date||'',time:hovered.dataset.time||''};
+    const card=document.querySelector('#calendarCanvas [data-id]:hover'),lesson=card&&db.lessons.find(row=>row.id===card.dataset.id);
+    if(lesson)return{date:lesson.date,time:lesson.start||''};
+    const focused=document.activeElement?.closest?.('[data-date]');
+    if(focused)return{date:focused.dataset.date||'',time:focused.dataset.time||''};
+    return controller.lastTarget||contextPasteTarget||null;
+  }
+
+  function onKeyDown(event){
+    const tag=(event.target?.tagName||'').toLowerCase();
+    if(['input','textarea','select'].includes(tag)||event.target?.isContentEditable)return;
+    if(event.key==='Escape'){
+      if(pasteClickMode||selectionMode||selectedLessonIds.size){event.preventDefault();cancelSelectionAndPaste(false);renderCalendar();toast('已取消多選／貼上模式')}
+      return;
+    }
+    if((event.key==='Delete'||event.key==='Backspace')&&selectedLessonIds.size){event.preventDefault();deleteSelectedLessons();return}
+    if(!(event.ctrlKey||event.metaKey))return;
+    const key=event.key.toLowerCase();
+    if(key==='c'){
+      if(!selectedLessonIds.size){const card=document.querySelector('#calendarCanvas [data-id]:hover');if(card)selectedLessonIds.add(card.dataset.id)}
+      if(!selectedLessonIds.size)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      selectionMode=true;updateSelectionCount();controller.lastTarget=null;copyCurrentSelection();
+      return;
+    }
+    if(key==='v'){
+      const rows=getLessonClipboard();if(!rows.length)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      const target=keyboardTarget();
+      if(!target?.date){beginPasteClickMode(rows.length);toast('請把滑鼠移到目標日期／時間，再按 Ctrl+V，或直接點一下貼上');return}
+      contextPasteTarget=target;contextPasteLessons();
+    }
+  }
+
+  function onCopy(event){
+    const tag=(event.target?.tagName||'').toLowerCase();
+    if(['input','textarea','select'].includes(tag)||event.target?.isContentEditable||!selectedLessonIds.size)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    if(Date.now()-lastSelectionCopyAt>120)copyCurrentSelection();
+  }
+
+  function bindDocument(){
+    if(controller.documentBound)return;controller.documentBound=true;
+    document.addEventListener('keydown',onKeyDown,true);
+    document.addEventListener('copy',onCopy,true);
+    document.addEventListener('click',event=>{if(!event.target.closest('#calendarContextMenu'))hideCalendarContextMenu()});
+    document.addEventListener('change',event=>{if(!event.target.closest('#calendar .toolbar'))return;const id=event.target.id||'';if(['calendarMode','calendarDate','calendarTeacherFilter','calendarLocationFilter','calendarStudentFilter','calendarRoomFilter'].includes(id))cancelSelectionForNewAction(true)});
+  }
+
   function bind(canvas){
     controller.canvas=canvas;canvas.dataset.calendarController='2';
     canvas.addEventListener('pointerdown',onPointerDown,true);
@@ -143,10 +196,14 @@
     canvas.addEventListener('drop',onDrop,true);
     canvas.addEventListener('dragend',onDragEnd,true);
     canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});
-    controller.observer=new MutationObserver(refresh);controller.observer.observe(canvas,{childList:true,subtree:true});refresh();
+    controller.observer=new MutationObserver(()=>{
+      controller.lastTarget=null;contextPasteTarget=null;refresh();
+    });
+    controller.observer.observe(canvas,{childList:true,subtree:true});refresh();
   }
 
   function install(){
+    bindDocument();
     const old=document.getElementById('calendarCanvas');if(!old)return;
     if(old.dataset.calendarController==='2'){controller.canvas=old;refresh();return}
     /* Replace once to remove every anonymous legacy listener already attached by older modules. */
