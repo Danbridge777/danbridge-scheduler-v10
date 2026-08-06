@@ -1102,11 +1102,7 @@ function installCloudSave(){
  window.__danbridgeQueueCloudSave=queueOwnerCloudSave;
  window.saveDB=function(){
    if(cloudRole==='teacher'||cloudRole==='branch_manager'){alert(cloudRole==='teacher'?'老師帳號目前為唯讀，只能查看自己的課表。':'校區管理者目前為唯讀，只能查看指定校區資料。');return}
-   let saveError=null;
-   try{originalSaveDB?.()}
-   catch(error){saveError=error;console.error('Local save failed before cloud scheduling:',error)}
-   finally{queueOwnerCloudSave()}
-   if(saveError)throw saveError;
+   return originalSaveDB?.();
  };
 }
 function subscribeOwner(){

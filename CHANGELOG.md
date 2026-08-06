@@ -703,3 +703,9 @@
 - Owner dirty-state hashing and cloud upload scheduling now run in a `finally` block around local persistence.
 - Calendar updates continue to upload the main database, publish teacher and branch views, and create schedule notifications even if a local view renderer reports an error.
 - Exposed the same guarded cloud queue for direct persistence workflows that do not call the standard save wrapper.
+
+## V20.5.6 — Single persistence-to-cloud handoff
+
+- Every successful calendar mutation now schedules cloud synchronization from the shared persistence endpoint used by drag, paste, delete, batch edit, and lesson editing.
+- The Firebase wrapper remains responsible for role enforcement but no longer owns a second, order-sensitive cloud scheduling call.
+- Updated the data, cloud module, and Service Worker versions so a deployed client can replace stale schedule code immediately.
