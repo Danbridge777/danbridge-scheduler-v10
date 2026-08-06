@@ -263,6 +263,10 @@ function handleCalendarShortcuts(e){
   if(!mod)return;
   const key=e.key.toLowerCase();
   if(key==='c'){
+    if(!selectedLessonIds.size){
+      const hovered=document.querySelector('#calendarCanvas [data-id]:hover');
+      if(hovered){selectedLessonIds.add(hovered.dataset.id);selectionMode=true;updateSelectionCount()}
+    }
     if(!selectedLessonIds.size)return;
     e.preventDefault();
     e.stopPropagation();
