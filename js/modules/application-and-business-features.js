@@ -96,7 +96,7 @@ function copyVisibleWeekToNextWeek(){
   snapshot();
   const existingKeys=new Set(db.lessons.map(keyOf));let added=0,duplicates=0,conflicts=0;const conflictRows=[];
   for(const lesson of source){const candidate={...lesson,id:createLessonId(),date:shiftDate(lesson.date,7),status:'未上課',paymentStatus:'unpaid',teacherIds:[...lessonTeacherIds(lesson)]};const key=keyOf(candidate);if(existingKeys.has(key)){duplicates++;continue}const conflict=conflictDetail(candidate,'');if(conflict){conflicts++;conflictRows.push(`${candidate.date} ${candidate.start}｜${student(candidate.studentId).name||candidate.title||'課程'}：${conflict.type}撞課 ${conflict.name||''}`);continue}const teacherWarning=teacherConflictDetail(candidate,'');if(teacherWarning)conflictRows.push(`${candidate.date} ${candidate.start}｜老師時間重複 ${teacherWarning.name}（已允許並標紅）`);db.lessons.push(candidate);existingKeys.add(key);logChange('複製目前顯示週到下一週',candidate,lesson);added++}
-  selectedLessonIds.clear();saveDB();if(added>0){$('calendarMode').value='week';$('calendarDate').value=targetFrom;renderCalendar()}
+  clearCalendarSelectionState();cancelPasteClickMode(false);saveDB();if(added>0){$('calendarMode').value='week';$('calendarDate').value=targetFrom;renderCalendar()}
   let message=`已複製 ${added} 堂到下一週（${targetFrom}～${targetTo}）。${added>0?'\n畫面已自動切換，可再次複製到下下週。':''}`;if(duplicates)message+=`\n略過 ${duplicates} 堂完全重複課程。`;if(conflicts)message+=`\n略過 ${conflicts} 堂撞課。`;if(conflictRows.length)message+=`\n\n明細：\n${conflictRows.slice(0,10).join('\n')}${conflictRows.length>10?'\n……':''}`;alert(message)
 }
 

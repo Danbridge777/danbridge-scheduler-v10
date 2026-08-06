@@ -68,6 +68,15 @@ function clearLessonSelection(){
   updateSelectionCount();
   renderCalendar();
 }
+function clearCalendarSelectionState(){
+  selectedLessonIds.clear();
+  selectionMode=false;
+  updateSelectionCount();
+  document.querySelectorAll('#calendarCanvas [data-id].selected,#calendarCanvas [data-id].marquee-hit').forEach(el=>{
+    el.classList.remove('selected','marquee-hit');
+    el.setAttribute('draggable','true');
+  });
+}
 function copySelectedLessons(){
   const source=db.lessons.filter(l=>selectedLessonIds.has(l.id)&&!['取消','停課'].includes(l.status));
   if(!source.length)return alert('請先框選或按住 Control／Command 點選要複製的課程。');
@@ -178,6 +187,7 @@ function copyCurrentSelection(){
   lessonClipboard=rows.map(l=>JSON.parse(JSON.stringify(l))).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   try{localStorage.setItem('danbridge_lesson_clipboard',JSON.stringify(lessonClipboard))}catch{}
   contextPasteTarget=null;
+  clearCalendarSelectionState();
   lastSelectionCopyAt=Date.now();
   beginPasteClickMode(lessonClipboard.length);
   return true;
@@ -187,7 +197,7 @@ function contextCopyLessons(){
   hideCalendarContextMenu();
 }
 function getLessonClipboard(){if(lessonClipboard.length)return lessonClipboard;try{return JSON.parse(localStorage.getItem('danbridge_lesson_clipboard')||'[]')}catch{return[]}}
-function exitSelectionAfterPaste(){selectedLessonIds.clear();selectionMode=false;const bar=$('selectionBar'),btn=$('selectionModeBtn');bar?.classList.add('hidden');if(btn)btn.textContent='部分選取';updateSelectionCount()}
+function exitSelectionAfterPaste(){clearCalendarSelectionState();const bar=$('selectionBar'),btn=$('selectionModeBtn');bar?.classList.add('hidden');if(btn)btn.textContent='部分選取'}
 function contextPasteLessons(){
   const rows=getLessonClipboard();
   if(!rows.length){hideCalendarContextMenu();return alert('目前沒有已複製的課程。')}
