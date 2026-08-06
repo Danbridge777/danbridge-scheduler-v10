@@ -1,4 +1,8 @@
 /* V20.0.14 — permission-clean mobile/tablet experience. */
+#calendarCanvas,#calendarCanvas *{-webkit-user-select:none;user-select:none}
+#calendarCanvas .lesson,#calendarCanvas .week-event{cursor:grab}
+#calendarCanvas .lesson:active,#calendarCanvas .week-event:active{cursor:grabbing}
+body.lesson-paste-mode #calendarCanvas [data-date]{cursor:copy!important}
 body[data-role-ux="teacher"] .owner-only-action,
 body[data-role-ux="teacher"] .owner-v33-only,
 body[data-role-ux="teacher"] #dashboard .branch-scope-bar,

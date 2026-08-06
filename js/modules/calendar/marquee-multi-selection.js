@@ -98,7 +98,15 @@
     });
 
     canvas.addEventListener('pointermove',event=>{
-      if(!state||event.pointerId!==state.pointerId)return;
+      if(!state){
+        if(pasteClickMode){
+          const target=event.target.closest('[data-date]');
+          contextPasteTarget=target?{date:target.dataset.date||'',time:target.dataset.time||''}:null;
+          setPasteHoverTarget(target);
+        }
+        return;
+      }
+      if(event.pointerId!==state.pointerId)return;
       scheduleMarqueePaint(event.clientX,event.clientY);
       event.preventDefault();
     });
@@ -125,6 +133,7 @@
     };
     canvas.addEventListener('pointerup',finishMarquee);
     canvas.addEventListener('pointercancel',finishMarquee);
+    canvas.addEventListener('pointerleave',()=>{if(pasteClickMode){contextPasteTarget=null;setPasteHoverTarget(null)}});
 
     canvas.addEventListener('click',event=>{
       if(Date.now()<suppressClickUntil){event.preventDefault();event.stopPropagation();return}

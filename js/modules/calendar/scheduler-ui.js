@@ -189,6 +189,7 @@ function copyCurrentSelection(){
   clearCalendarSelectionState();
   lastSelectionCopyAt=Date.now();
   beginPasteClickMode(lessonClipboard.length);
+  renderCalendar();
   return true;
 }
 function contextCopyLessons(){
@@ -211,7 +212,7 @@ function contextPasteLessons(){
     timeDelta=toMin(contextPasteTarget.time)-toMin(first.start);
   }
   snapshot();
-  const keys=new Set(db.lessons.map(keyOf));
+  const keys=new Set(db.lessons.filter(l=>typeof lessonBlocksScheduling!=='function'||lessonBlocksScheduling(l)).map(keyOf));
   const targetTeacherId=$('calendarTeacherFilter')?.value||'';
   let added=0,skipped=0,teacherWarnings=0;const skipDetails=[];
   for(const old of rows){
@@ -222,7 +223,7 @@ function contextPasteLessons(){
     const n={...old,id:createLessonId(),date:targetDateStr,start:ns,end:ne,status:'未上課',paymentStatus:'unpaid',teacherId:targetTeacherIds[0]||'',teacherIds:targetTeacherIds};
     if(keys.has(keyOf(n))){skipped++;skipDetails.push(`${targetDateStr} ${ns}：已有完全相同課程`);continue}
     const conflict=conflictDetail(n,'');
-    if(conflict){skipped++;skipDetails.push(`${targetDateStr} ${ns}：${conflict.type}撞課 ${conflict.name}`);continue}
+    if(conflict){skipped++;skipDetails.push(`${targetDateStr} ${ns}：${conflict.type}撞課 ${conflict.name}（既有 ${conflict.lesson.date} ${conflict.lesson.start}–${conflict.lesson.end}）`);continue}
     if(teacherConflictDetail(n,''))teacherWarnings++;
     db.lessons.push(n);keys.add(keyOf(n));logChange('依日期間距貼上課程',n,old);added++;
   }
