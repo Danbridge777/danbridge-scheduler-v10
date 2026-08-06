@@ -26,10 +26,11 @@ function teacherConflictDetail(o,ignore=''){
 }
 
 function lessonTeacherConflictNames(l){
+  if(!lessonBlocksScheduling(l))return [];
   const names=new Set();
   const ids=new Set(lessonTeacherIds(l));
   for(const x of db.lessons){
-    if(x.id===l.id||x.date!==l.date||!(l.start<x.end&&l.end>x.start)||['取消','停課'].includes(x.status))continue;
+    if(x.id===l.id||!lessonBlocksScheduling(x)||x.date!==l.date||!(l.start<x.end&&l.end>x.start))continue;
     lessonTeacherIds(x).forEach(id=>{if(ids.has(id))names.add(teacher(id).name||'未命名老師')});
   }
   return [...names];
