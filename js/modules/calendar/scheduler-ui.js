@@ -178,6 +178,14 @@ function copyCurrentSelection(){
   lessonClipboard=rows.map(l=>JSON.parse(JSON.stringify(l))).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
   try{localStorage.setItem('danbridge_lesson_clipboard',JSON.stringify(lessonClipboard))}catch{}
   lastSelectionCopyAt=Date.now();
+  /* 複製完成後立刻離開多選；剪貼簿保留，下一個動作可直接貼上或拖曳。 */
+  selectedLessonIds.clear();
+  selectionMode=false;
+  updateSelectionCount();
+  document.querySelectorAll('#calendarCanvas [data-id]').forEach(el=>{
+    el.classList.remove('selected','marquee-hit');
+    el.setAttribute('draggable','true');
+  });
   beginPasteClickMode(lessonClipboard.length);
   return true;
 }
@@ -271,7 +279,10 @@ function handleCalendarShortcuts(e){
 }
 function attachDragHandlers(){
   const DRAG_HOLD_MS=550, MOVE_CANCEL_PX=12;
-  document.querySelectorAll('[data-id]').forEach(el=>{
+  const role=document.body.dataset.cloudRole||window.DanbridgeAccess?.getContext?.().role||window.currentCloudRole?.()||'';
+  const canMove=!role||role==='owner';
+  document.querySelectorAll('#calendarCanvas [data-id]').forEach(el=>{
+    el.setAttribute('draggable',canMove&&!selectionMode?'true':'false');
     let pointerId=null,startX=0,startY=0,dragStarted=false,suppressClick=false;
     let globalPointerCleanup=null;
     const removeGlobalPointerListeners=()=>{
@@ -292,8 +303,9 @@ function attachDragHandlers(){
       if(selectionMode){toggleLessonSelection(el.dataset.id);return}
       editLesson(el.dataset.id)
     });
-    if(selectionMode)return;
-    el.addEventListener('dragstart',e=>{dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
+    if(!canMove)return;
+    /* 即使目前正在多選也先綁定；複製退出多選後不必重畫就能立刻拖曳。 */
+    el.addEventListener('dragstart',e=>{if(selectionMode){e.preventDefault();return}dragState=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragState)});
     el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragState=null;document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))});
     el.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse'||selectionMode)return;
@@ -351,8 +363,9 @@ function attachDragHandlers(){
       };
     },{passive:true});
   });
-  if(selectionMode)return;
-  document.querySelectorAll('[data-date]').forEach(c=>{
+  /* 放下區永遠註冊；拖曳中途若選取狀態改變也不會失去 drop。 */
+  if(!canMove)return;
+  document.querySelectorAll('#calendarCanvas [data-date]').forEach(c=>{
     c.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';c.classList.add('drop-target')});
     c.addEventListener('dragleave',()=>c.classList.remove('drop-target'));
     c.addEventListener('drop',e=>{e.preventDefault();c.classList.remove('drop-target');moveLessonTo(e.dataTransfer.getData('text/plain'),c.dataset.date,c.dataset.time)})

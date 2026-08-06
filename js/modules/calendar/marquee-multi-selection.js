@@ -51,14 +51,18 @@
   }
 
   function bindCleanMarquee(){
-    const oldCanvas=document.getElementById('calendarCanvas');
-    if(!oldCanvas)return;
+    const canvas=document.getElementById('calendarCanvas');
+    if(!canvas||canvas.dataset.cleanMarqueeBound==='1')return;
+    canvas.dataset.cleanMarqueeBound='1';
 
-    // Calendar rendering replaces its contents. Cloning once removes listeners
-    // attached to the previous render without accumulating window-level handlers.
-    const canvas=oldCanvas.cloneNode(true);
-    oldCanvas.replaceWith(canvas);
-    attachDragHandlers();
+    canvas.addEventListener('mousemove',event=>{
+      const cell=event.target.closest('[data-date]');
+      if(cell){
+        contextPasteTarget={date:cell.dataset.date||'',time:cell.dataset.time||''};
+        setPasteHoverTarget(cell);
+      }else if(pasteClickMode)setPasteHoverTarget(null);
+    });
+    canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});
 
     canvas.addEventListener('contextmenu',event=>{
       event.preventDefault();
@@ -146,6 +150,7 @@
     },true);
   }
 
+  /* 固定使用同一個 calendarCanvas；innerHTML 更新不會移除容器上的委派事件。 */
   window.enableDesktopMarquee=bindCleanMarquee;
   setTimeout(()=>renderCalendar(),0);
 })();

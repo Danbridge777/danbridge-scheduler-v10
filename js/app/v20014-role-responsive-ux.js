@@ -142,7 +142,7 @@
     }
     installMobileCalendarClipboard();
     window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience,installCampDateScroller,installMobileCalendarClipboard};
-    document.addEventListener('dragstart',event=>{if(['teacher','branch_manager'].includes(role())&&event.target.closest?.('#calendar .lesson,#calendar .week-event')){event.preventDefault();event.stopImmediatePropagation()}},true);
+    /* 可否拖曳由課程卡建立時依即時角色決定，避免舊角色在全頁捕獲階段誤擋老闆。 */
     document.addEventListener('click',event=>{if(!['teacher','branch_manager'].includes(role()))return;const emptyCell=event.target.closest?.('#calendar .day-cell,#calendar .time-slot');if(emptyCell&&!event.target.closest?.('.lesson,.week-event,button')){event.preventDefault();event.stopImmediatePropagation()}},true);
     apply();
   }
