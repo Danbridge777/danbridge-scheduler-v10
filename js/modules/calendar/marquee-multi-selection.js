@@ -1,195 +1,161 @@
+/* Danbridge desktop calendar interactions: one controller, one event layer. */
 (()=>{
-  let state=null;
-  let suppressClickUntil=0;
+  const controller={canvas:null,marquee:null,dragCard:null,suppressClickUntil:0,observer:null};
+  const cards=()=>[...controller.canvas.querySelectorAll('[data-id]')];
+  const isControl=target=>!!target.closest('button,input,select,textarea,a');
+  const cardOf=target=>target.closest('[data-id]');
 
-  function selectionItems(canvas){return [...canvas.querySelectorAll('[data-id]')]}
+  function targetOf(target){
+    const cell=target?.closest?.('[data-date]');
+    if(cell)return{element:cell,date:cell.dataset.date||'',time:cell.dataset.time||''};
+    const card=cardOf(target);
+    const lesson=card&&db.lessons.find(row=>row.id===card.dataset.id);
+    return lesson?{element:card,date:lesson.date,time:lesson.start||''}:null;
+  }
 
-  function syncSelectionVisuals(canvas){
+  function refresh(){
+    if(!controller.canvas)return;
     const selecting=selectionMode||selectedLessonIds.size>0;
-    selectionItems(canvas).forEach(element=>{
-      element.classList.toggle('selected',selectedLessonIds.has(element.dataset.id));
-      element.classList.remove('marquee-hit');
-      element.setAttribute('draggable',selecting?'false':'true');
+    cards().forEach(card=>{
+      card.classList.toggle('selected',selectedLessonIds.has(card.dataset.id));
+      card.classList.remove('marquee-hit');
+      card.draggable=!selecting&&!pasteClickMode;
     });
   }
 
-  function cancelMultiSelection(canvas){
-    selectedLessonIds.clear();
-    selectionMode=false;
+  function finishAction(){
+    selectedLessonIds.clear();selectionMode=false;dragState=null;
     updateSelectionCount();
-    syncSelectionVisuals(canvas);
+    controller.canvas.querySelectorAll('.selected,.marquee-hit,.dragging,.drop-target').forEach(el=>el.classList.remove('selected','marquee-hit','dragging','drop-target'));
+    refresh();
   }
 
-  function marqueeArea(current){
-    const left=Math.min(state.startX,current.x),top=Math.min(state.startY,current.y);
-    const width=Math.abs(current.x-state.startX),height=Math.abs(current.y-state.startY);
-    return{left,top,width,height,right:left+width,bottom:top+height};
+  function toggleCard(card){
+    const id=card?.dataset.id;if(!id)return;
+    if(selectedLessonIds.has(id))selectedLessonIds.delete(id);else selectedLessonIds.add(id);
+    selectionMode=selectedLessonIds.size>0;updateSelectionCount();refresh();
   }
 
-  function paintMarquee(){
-    if(!state)return;
-    state.frame=0;
-    const area=marqueeArea(state.latest);
-    if(area.width>4||area.height>4)state.moved=true;
-    if(state.box){
-      state.box.style.transform=`translate3d(${area.left}px,${area.top}px,0)`;
-      state.box.style.width=area.width+'px';
-      state.box.style.height=area.height+'px';
+  function beginMarquee(event){
+    if(event.pointerType==='touch'||event.button!==0||pasteClickMode||cardOf(event.target)||isControl(event.target))return;
+    const box=document.getElementById('marqueeBox');
+    controller.marquee={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,moved:false,additive:event.ctrlKey||event.metaKey,box,items:cards().map(element=>({element,rect:element.getBoundingClientRect()}))};
+    if(box){box.style.display='block';box.style.left=event.clientX+'px';box.style.top=event.clientY+'px';box.style.width='0';box.style.height='0'}
+    controller.canvas.classList.add('marquee-active');
+    try{controller.canvas.setPointerCapture(event.pointerId)}catch{}
+    event.preventDefault();event.stopImmediatePropagation();
+  }
+
+  function moveMarquee(event){
+    const state=controller.marquee;
+    if(!state||event.pointerId!==state.pointerId)return;
+    state.x=event.clientX;state.y=event.clientY;
+    const left=Math.min(state.startX,state.x),top=Math.min(state.startY,state.y),right=Math.max(state.startX,state.x),bottom=Math.max(state.startY,state.y);
+    state.moved=state.moved||right-left>4||bottom-top>4;
+    if(state.box){state.box.style.left=left+'px';state.box.style.top=top+'px';state.box.style.width=right-left+'px';state.box.style.height=bottom-top+'px'}
+    state.items.forEach(item=>{const r=item.rect;item.element.classList.toggle('marquee-hit',r.right>=left&&r.left<=right&&r.bottom>=top&&r.top<=bottom)});
+    event.preventDefault();event.stopImmediatePropagation();
+  }
+
+  function endMarquee(event){
+    const state=controller.marquee;
+    if(!state||event.pointerId!==state.pointerId)return;
+    if(state.moved){
+      if(!state.additive)selectedLessonIds.clear();
+      state.items.filter(item=>item.element.classList.contains('marquee-hit')).forEach(item=>selectedLessonIds.add(item.element.dataset.id));
+      selectionMode=selectedLessonIds.size>0;updateSelectionCount();controller.suppressClickUntil=Date.now()+300;
     }
-    for(const item of state.items){
-      const rect=item.rect;
-      const hit=rect.right>=area.left&&rect.left<=area.right&&rect.bottom>=area.top&&rect.top<=area.bottom;
-      if(hit===item.hit)continue;
-      item.hit=hit;
-      item.element.classList.toggle('marquee-hit',hit);
+    if(state.box)state.box.style.display='none';
+    controller.canvas.classList.remove('marquee-active');controller.marquee=null;refresh();
+    event.preventDefault();event.stopImmediatePropagation();
+  }
+
+  function pasteAt(target,event){
+    if(!pasteClickMode||!target?.date)return false;
+    contextPasteTarget={date:target.date,time:target.time||''};
+    event?.preventDefault();event?.stopImmediatePropagation();
+    contextPasteLessons();
+    return true;
+  }
+
+  function onPointerDown(event){
+    if(pasteClickMode){
+      const target=targetOf(event.target);
+      if(target&&!isControl(event.target)){pasteAt(target,event);return}
+    }
+    beginMarquee(event);
+  }
+
+  function onPointerMove(event){
+    if(controller.marquee){moveMarquee(event);return}
+    if(!pasteClickMode)return;
+    const target=targetOf(event.target);contextPasteTarget=target?{date:target.date,time:target.time}:null;setPasteHoverTarget(target?.element||null);
+  }
+
+  function onClick(event){
+    if(Date.now()<controller.suppressClickUntil){event.preventDefault();event.stopImmediatePropagation();return}
+    const card=cardOf(event.target);
+    if(card&&(event.ctrlKey||event.metaKey||selectionMode)){
+      event.preventDefault();event.stopImmediatePropagation();toggleCard(card);return;
+    }
+    if(card&&!pasteClickMode){event.preventDefault();event.stopImmediatePropagation();editLesson(card.dataset.id);return}
+    if(!card&&!isControl(event.target)&&(selectionMode||selectedLessonIds.size)){
+      event.preventDefault();event.stopImmediatePropagation();finishAction();
     }
   }
 
-  function scheduleMarqueePaint(x,y){
-    state.latest={x,y};
-    if(!state.frame)state.frame=requestAnimationFrame(paintMarquee);
+  function onContextMenu(event){
+    event.preventDefault();event.stopImmediatePropagation();
+    const card=cardOf(event.target),target=targetOf(event.target);
+    if(card&&!selectedLessonIds.has(card.dataset.id)){selectedLessonIds.clear();selectedLessonIds.add(card.dataset.id);selectionMode=true;updateSelectionCount();refresh()}
+    showCalendarContextMenu(event.clientX,event.clientY,{date:target?.date||'',time:target?.time||''});
   }
 
-  function bindCleanMarquee(){
-    const canvas=document.getElementById('calendarCanvas');
-    if(!canvas||canvas.dataset.cleanInteractionBound==='1')return;
-    canvas.dataset.cleanInteractionBound='1';
+  function clearDrop(){controller.canvas.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'))}
+  function onDragStart(event){
+    const card=cardOf(event.target);
+    if(!card||selectionMode||selectedLessonIds.size||pasteClickMode){event.preventDefault();return}
+    dragState=card.dataset.id;controller.dragCard=card;card.classList.add('dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dragState);event.stopImmediatePropagation();
+  }
+  function onDragOver(event){
+    if(!dragState)return;
+    const target=targetOf(event.target);if(!target?.date)return;
+    event.preventDefault();event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.add('dragging');target.element.classList.add('drop-target');event.dataTransfer.dropEffect='move';
+  }
+  function onDrop(event){
+    const id=event.dataTransfer.getData('text/plain')||dragState,target=targetOf(event.target);
+    if(!id||!target?.date)return;
+    event.preventDefault();event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.remove('dragging');controller.dragCard=null;dragState=null;
+    moveLessonTo(id,target.date,target.time||'');finishAction();
+  }
+  function onDragEnd(event){event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.remove('dragging');controller.dragCard=null;dragState=null;finishAction()}
 
-    canvas.addEventListener('dragstart',event=>{
-      const item=event.target.closest('[data-id]');
-      if(!item)return;
-      event.stopImmediatePropagation();
-      if(selectionMode||pasteClickMode){event.preventDefault();return}
-      dragState=item.dataset.id;item.classList.add('dragging');
-      event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dragState);
-    },true);
-    canvas.addEventListener('dragover',event=>{
-      if(!dragState)return;
-      const target=event.target.closest('[data-date]');
-      if(!target)return;
-      event.preventDefault();event.stopImmediatePropagation();event.dataTransfer.dropEffect='move';
-      canvas.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));
-      target.classList.add('drop-target');
-    },true);
-    canvas.addEventListener('drop',event=>{
-      if(!dragState)return;
-      const target=event.target.closest('[data-date]'),id=event.dataTransfer.getData('text/plain')||dragState;
-      event.preventDefault();event.stopImmediatePropagation();
-      canvas.querySelectorAll('.drop-target,.dragging').forEach(el=>el.classList.remove('drop-target','dragging'));
-      dragState=null;
-      if(target&&id)moveLessonTo(id,target.dataset.date,target.dataset.time||'');
-    },true);
-    canvas.addEventListener('dragend',event=>{
-      event.target.closest('[data-id]')?.classList.remove('dragging');
-      canvas.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));
-      dragState=null;
-    },true);
-
-    canvas.addEventListener('contextmenu',event=>{
-      event.preventDefault();
-      const item=event.target.closest('[data-id]');
-      if(item&&!selectedLessonIds.has(item.dataset.id)){
-        selectedLessonIds.clear();
-        selectedLessonIds.add(item.dataset.id);
-        selectionMode=true;
-        updateSelectionCount();
-        syncSelectionVisuals(canvas);
-      }
-      const cell=event.target.closest('[data-date]');
-      showCalendarContextMenu(event.clientX,event.clientY,{
-        date:cell?.dataset.date||db.lessons.find(lesson=>lesson.id===item?.dataset.id)?.date||'',
-        time:event.target.closest('[data-time]')?.dataset.time||''
-      });
-    });
-
-    canvas.addEventListener('pointerdown',event=>{
-      if(pasteClickMode){
-        const target=event.target.closest('[data-date]');
-        if(target&&!event.target.closest('[data-id],button,input,select,textarea,a')){
-          event.preventDefault();event.stopImmediatePropagation();
-          contextPasteTarget={date:target.dataset.date||'',time:target.dataset.time||''};
-          contextPasteLessons();
-          return;
-        }
-        if(event.target.closest('[data-id]'))cancelPasteClickMode(false);
-      }
-      if(event.pointerType==='touch'||event.button!==0)return;
-      if(event.target.closest('[data-id],button,input,select,textarea,a'))return;
-      const box=document.getElementById('marqueeBox');
-      const items=selectionItems(canvas).map(element=>({element,rect:element.getBoundingClientRect(),hit:false}));
-      state={
-        startX:event.clientX,startY:event.clientY,latest:{x:event.clientX,y:event.clientY},
-        pointerId:event.pointerId,moved:false,additive:event.ctrlKey||event.metaKey,
-        items,box,frame:0
-      };
-      if(box){
-        box.style.display='block';
-        box.style.left='0';box.style.top='0';box.style.width='0';box.style.height='0';
-        box.style.transform=`translate3d(${event.clientX}px,${event.clientY}px,0)`;
-      }
-      canvas.classList.add('marquee-active');
-      try{canvas.setPointerCapture(event.pointerId)}catch{}
-      event.preventDefault();
-    });
-
-    canvas.addEventListener('pointermove',event=>{
-      if(!state){
-        if(pasteClickMode){
-          const target=event.target.closest('[data-date]');
-          contextPasteTarget=target?{date:target.dataset.date||'',time:target.dataset.time||''}:null;
-          setPasteHoverTarget(target);
-        }
-        return;
-      }
-      if(event.pointerId!==state.pointerId)return;
-      scheduleMarqueePaint(event.clientX,event.clientY);
-      event.preventDefault();
-    });
-
-    const finishMarquee=event=>{
-      if(!state||event.pointerId!==state.pointerId)return;
-      state.latest={x:event.clientX,y:event.clientY};
-      if(state.frame)cancelAnimationFrame(state.frame);
-      paintMarquee();
-      const current=state;
-      const hits=current.items.filter(item=>item.hit).map(item=>item.element.dataset.id);
-      if(current.box){current.box.style.display='none';current.box.style.transform='none'}
-      canvas.classList.remove('marquee-active');
-      state=null;
-      if(current.moved){
-        if(!current.additive)selectedLessonIds.clear();
-        hits.forEach(id=>selectedLessonIds.add(id));
-        selectionMode=selectedLessonIds.size>0;
-        suppressClickUntil=Date.now()+250;
-        updateSelectionCount();
-        syncSelectionVisuals(canvas);
-      }else current.items.forEach(item=>item.element.classList.remove('marquee-hit'));
-      event.preventDefault();
-    };
-    canvas.addEventListener('pointerup',finishMarquee);
-    canvas.addEventListener('pointercancel',finishMarquee);
-    canvas.addEventListener('pointerleave',()=>{if(pasteClickMode){contextPasteTarget=null;setPasteHoverTarget(null)}});
-
-    canvas.addEventListener('click',event=>{
-      if(Date.now()<suppressClickUntil){event.preventDefault();event.stopPropagation();return}
-      const item=event.target.closest('[data-id]');
-      if(item&&(event.ctrlKey||event.metaKey)){
-        event.preventDefault();event.stopPropagation();
-        if(selectedLessonIds.has(item.dataset.id))selectedLessonIds.delete(item.dataset.id);
-        else selectedLessonIds.add(item.dataset.id);
-        selectionMode=selectedLessonIds.size>0;
-        updateSelectionCount();
-        syncSelectionVisuals(canvas);
-        return;
-      }
-      const blank=!event.target.closest('[data-id],button,input,select,textarea,a');
-      if(blank&&(selectionMode||selectedLessonIds.size)){
-        event.preventDefault();event.stopPropagation();
-        cancelMultiSelection(canvas);
-      }
-    },true);
+  function bind(canvas){
+    controller.canvas=canvas;canvas.dataset.calendarController='2';
+    canvas.addEventListener('pointerdown',onPointerDown,true);
+    canvas.addEventListener('pointermove',onPointerMove,true);
+    canvas.addEventListener('pointerup',endMarquee,true);
+    canvas.addEventListener('pointercancel',endMarquee,true);
+    canvas.addEventListener('click',onClick,true);
+    canvas.addEventListener('contextmenu',onContextMenu,true);
+    canvas.addEventListener('dragstart',onDragStart,true);
+    canvas.addEventListener('dragover',onDragOver,true);
+    canvas.addEventListener('drop',onDrop,true);
+    canvas.addEventListener('dragend',onDragEnd,true);
+    canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});
+    controller.observer=new MutationObserver(refresh);controller.observer.observe(canvas,{childList:true,subtree:true});refresh();
   }
 
-  window.enableDesktopMarquee=bindCleanMarquee;
-  setTimeout(()=>renderCalendar(),0);
+  function install(){
+    const old=document.getElementById('calendarCanvas');if(!old)return;
+    if(old.dataset.calendarController==='2'){controller.canvas=old;refresh();return}
+    /* Replace once to remove every anonymous legacy listener already attached by older modules. */
+    controller.observer?.disconnect();
+    const fresh=old.cloneNode(true);old.replaceWith(fresh);bind(fresh);
+  }
+
+  window.DanbridgeCalendarInteractions={install,refresh,finishAction};
+  window.enableDesktopMarquee=install;
+  window.attachDragHandlers=refresh;
+  install();
 })();

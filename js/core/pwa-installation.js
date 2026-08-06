@@ -48,6 +48,7 @@
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(reg=>{
         reg.update().catch(()=>{});
+        if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
       }).catch(err=>console.warn('Service Worker 註冊失敗：',err));
     }
   });
