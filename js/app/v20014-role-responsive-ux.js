@@ -94,18 +94,6 @@
       button.addEventListener('click',()=>window.contextCopyLessons?.());
       selectionBar.querySelector('button')?.after(button);
     }
-    const canvas=$('#calendarCanvas');
-    if(canvas&&canvas.dataset.directPasteBound!=='1'){
-      canvas.dataset.directPasteBound='1';
-      canvas.addEventListener('click',event=>{
-        if(typeof pasteClickMode==='undefined'||!pasteClickMode||event.target.closest('.lesson,.week-event,button'))return;
-        const target=event.target.closest('[data-date]');
-        if(!target)return;
-        event.preventDefault();event.stopImmediatePropagation();
-        contextPasteTarget={date:target.dataset.date||'',time:target.dataset.time||''};
-        contextPasteLessons();
-      },true);
-    }
     const base=$('#calendarDate')?.value;
     if(!base)return;
     const date=new Date(`${base}T00:00:00`),day=date.getDay(),monday=new Date(date);
@@ -114,14 +102,6 @@
       const target=new Date(monday);target.setDate(monday.getDate()+index);
       const dateString=typeof localDate==='function'?localDate(target):target.toISOString().slice(0,10);
       card.dataset.date=dateString;
-      if(card.dataset.mobilePasteBound==='1')return;
-      card.dataset.mobilePasteBound='1';
-      card.addEventListener('click',event=>{
-        if(typeof pasteClickMode==='undefined'||!pasteClickMode||event.target.closest('.lesson,button'))return;
-        event.preventDefault();event.stopPropagation();
-        contextPasteTarget={date:card.dataset.date||dateString,time:''};
-        window.contextPasteLessons?.();
-      });
     });
   }
 
