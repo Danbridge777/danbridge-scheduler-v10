@@ -686,3 +686,8 @@
 
 - Calendar mutations now detect the active calendar from both the section class and the navigation state on `body`.
 - Drag, paste, and other saved calendar changes rerender immediately instead of waiting for a refresh or tab round trip.
+
+## V20.5.3 — Calendar-first rendering and focused selection
+
+- Active calendars now rerender before unrelated dashboards and reports, so another renderer cannot delay visible schedule changes.
+- Selected and dragged lessons use an inset card highlight; destination cells use a quiet background cue instead of a heavy outer frame.
