@@ -1,6 +1,6 @@
 /* Danbridge desktop calendar interactions: one controller, one event layer. */
 (()=>{
-  const controller={canvas:null,marquee:null,dragCard:null,lastTarget:null,suppressClickUntil:0,observer:null,documentBound:false};
+  const controller={canvas:null,marquee:null,pointerDrag:null,dragCard:null,lastTarget:null,suppressClickUntil:0,observer:null,documentBound:false};
   const cards=()=>[...controller.canvas.querySelectorAll('[data-id]')];
   const isControl=target=>!!target.closest('button,input,select,textarea,a');
   const cardOf=target=>target.closest('[data-id]');
@@ -19,7 +19,8 @@
     cards().forEach(card=>{
       card.classList.toggle('selected',selectedLessonIds.has(card.dataset.id));
       card.classList.remove('marquee-hit');
-      card.draggable=!selecting&&!pasteClickMode;
+      /* Safari native drag can create a ghost but never deliver drop. Pointer drag owns desktop movement. */
+      card.draggable=false;
     });
   }
 
@@ -44,6 +45,36 @@
     controller.canvas.classList.add('marquee-active');
     try{controller.canvas.setPointerCapture(event.pointerId)}catch{}
     event.preventDefault();event.stopImmediatePropagation();
+  }
+
+  function beginPointerDrag(event){
+    const card=cardOf(event.target);
+    if(!card||event.pointerType==='touch'||event.button!==0||event.ctrlKey||event.metaKey||selectionMode||selectedLessonIds.size||pasteClickMode)return false;
+    controller.pointerDrag={pointerId:event.pointerId,id:card.dataset.id,card,startX:event.clientX,startY:event.clientY,moved:false,target:null};
+    try{controller.canvas.setPointerCapture(event.pointerId)}catch{}
+    return true;
+  }
+
+  function movePointerDrag(event){
+    const state=controller.pointerDrag;if(!state||event.pointerId!==state.pointerId)return false;
+    if(!state.moved&&Math.hypot(event.clientX-state.startX,event.clientY-state.startY)<6)return true;
+    state.moved=true;state.card.classList.add('dragging');clearDrop();
+    const element=document.elementFromPoint(event.clientX,event.clientY),target=targetOf(element);
+    state.target=target?.date?target:null;
+    if(state.target)state.target.element.classList.add('drop-target');
+    event.preventDefault();event.stopImmediatePropagation();return true;
+  }
+
+  function endPointerDrag(event){
+    const state=controller.pointerDrag;if(!state||event.pointerId!==state.pointerId)return false;
+    if(state.moved){
+      const element=document.elementFromPoint(event.clientX,event.clientY),target=targetOf(element)||state.target;
+      clearDrop();state.card.classList.remove('dragging');controller.pointerDrag=null;controller.suppressClickUntil=Date.now()+350;
+      event.preventDefault();event.stopImmediatePropagation();
+      if(target?.date)moveLessonTo(state.id,target.date,target.time||'');else finishAction();
+      return true;
+    }
+    controller.pointerDrag=null;return false;
   }
 
   function moveMarquee(event){
@@ -83,10 +114,12 @@
       const target=targetOf(event.target);
       if(target&&!isControl(event.target)){pasteAt(target,event);return}
     }
+    if(beginPointerDrag(event))return;
     beginMarquee(event);
   }
 
   function onPointerMove(event){
+    if(controller.pointerDrag){movePointerDrag(event);return}
     if(controller.marquee){moveMarquee(event);return}
     const target=targetOf(event.target);
     controller.lastTarget=target?{date:target.date,time:target.time}:null;
@@ -187,14 +220,13 @@
     controller.canvas=canvas;canvas.dataset.calendarController='2';
     canvas.addEventListener('pointerdown',onPointerDown,true);
     canvas.addEventListener('pointermove',onPointerMove,true);
-    canvas.addEventListener('pointerup',endMarquee,true);
-    canvas.addEventListener('pointercancel',endMarquee,true);
+    canvas.addEventListener('pointerup',event=>{if(!endPointerDrag(event))endMarquee(event)},true);
+    canvas.addEventListener('pointercancel',event=>{
+      if(controller.pointerDrag){clearDrop();controller.pointerDrag.card.classList.remove('dragging');controller.pointerDrag=null;finishAction()}
+      endMarquee(event);
+    },true);
     canvas.addEventListener('click',onClick,true);
     canvas.addEventListener('contextmenu',onContextMenu,true);
-    canvas.addEventListener('dragstart',onDragStart,true);
-    canvas.addEventListener('dragover',onDragOver,true);
-    canvas.addEventListener('drop',onDrop,true);
-    canvas.addEventListener('dragend',onDragEnd,true);
     canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});
     controller.observer=new MutationObserver(()=>{
       controller.lastTarget=null;contextPasteTarget=null;refresh();
