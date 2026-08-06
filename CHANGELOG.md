@@ -709,3 +709,9 @@
 - Every successful calendar mutation now schedules cloud synchronization from the shared persistence endpoint used by drag, paste, delete, batch edit, and lesson editing.
 - The Firebase wrapper remains responsible for role enforcement but no longer owns a second, order-sensitive cloud scheduling call.
 - Updated the data, cloud module, and Service Worker versions so a deployed client can replace stale schedule code immediately.
+
+## V20.5.7 — Calendar-independent immediate rendering
+
+- Calendar rendering no longer runs settlement-month setup before drawing the month or week view.
+- Full application rendering now paints the calendar before initializing unrelated sections, so their errors cannot leave the current schedule DOM stale.
+- Drag, paste, delete, and lesson edits therefore display from the mutated in-memory database before cloud synchronization begins.

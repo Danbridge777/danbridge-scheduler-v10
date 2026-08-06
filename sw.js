@@ -1,4 +1,4 @@
-const CACHE_NAME='danbridge-v20-calendar-controller-9';
+const CACHE_NAME='danbridge-v20-calendar-controller-10';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{

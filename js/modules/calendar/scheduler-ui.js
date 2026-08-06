@@ -35,7 +35,7 @@ function renderCalendarAnalysis(){
   gapRows.sort((a,b)=>b.gap-a.gap||a.date.localeCompare(b.date));
   box.innerHTML=`<div class="analysis-panel"><h3>教室使用率</h3><div class="small">以目前顯示範圍 08:00–22:00 計算。</div>${roomRows.length?`<table class="analysis-table"><thead><tr><th>教室</th><th>使用時數</th><th>使用率</th></tr></thead><tbody>${roomRows.map(x=>`<tr><td><b>${esc(x.room)}</b></td><td>${fmtHours(x.mins/60)} hr</td><td>${x.pct.toFixed(1)}%<div class="usage-bar"><span style="width:${x.pct}%"></span></div></td></tr>`).join('')}</tbody></table>`:'<div class="small" style="padding:10px 0">目前範圍沒有已指定教室的課程。</div>'}</div><div class="analysis-panel"><h3>老師空堂分析</h3><div class="small">${gapRange.start}～${gapRange.end}；只列出同一天兩堂課之間至少 30 分鐘的空檔。基準日為週日時改算下一週。</div><div class="gap-list">${gapRows.length?gapRows.slice(0,100).map(x=>`<div class="gap-item"><b>${esc(x.teacher)}</b>｜${x.date}｜${x.start}–${x.end}<span class="pill red" style="margin-left:6px">${fmtHours(x.gap/60)} hr</span></div>`).join(''):'<div class="small">本週沒有符合條件的空堂。</div>'}</div></div>`;
 }
-function renderCalendar(){setDefaults();const mode=$('calendarMode').value,date=new Date($('calendarDate').value+'T00:00:00'),f=calendarFilterState();if(mode==='month')renderMonth(date,f);else renderWeek(date,f);renderCalendarAnalysis();setTimeout(enableDesktopMarquee,0)}
+function renderCalendar(){ensureCalendarDefaults();const mode=$('calendarMode').value,date=new Date($('calendarDate').value+'T00:00:00'),f=calendarFilterState();if(mode==='month')renderMonth(date,f);else renderWeek(date,f);renderCalendarAnalysis();setTimeout(enableDesktopMarquee,0)}
 function updateSelectionCount(){
   const count=selectedLessonIds.size;
   const bar=$('selectionBar'),label=$('selectionCount'),btn=$('selectionModeBtn');
