@@ -681,3 +681,8 @@
 - Replaced desktop HTML5 `draggable`/`dataTransfer` movement with one pointer-driven controller so Safari and other desktop browsers resolve the drop date consistently.
 - Restored the missing shared calendar-selection cleanup function that previously stopped a move after the lesson object changed but before save and rerender.
 - Kept marquee selection, copy/paste, drag completion, and selection exit in the same delegated calendar controller.
+
+## V20.5.2 — Immediate calendar rerender
+
+- Calendar mutations now detect the active calendar from both the section class and the navigation state on `body`.
+- Drag, paste, and other saved calendar changes rerender immediately instead of waiting for a refresh or tab round trip.
