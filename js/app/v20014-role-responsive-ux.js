@@ -94,6 +94,18 @@
       button.addEventListener('click',()=>window.contextCopyLessons?.());
       selectionBar.querySelector('button')?.after(button);
     }
+    const canvas=$('#calendarCanvas');
+    if(canvas&&canvas.dataset.directPasteBound!=='1'){
+      canvas.dataset.directPasteBound='1';
+      canvas.addEventListener('click',event=>{
+        if(typeof pasteClickMode==='undefined'||!pasteClickMode||event.target.closest('.lesson,.week-event,button'))return;
+        const target=event.target.closest('[data-date]');
+        if(!target)return;
+        event.preventDefault();event.stopImmediatePropagation();
+        contextPasteTarget={date:target.dataset.date||'',time:target.dataset.time||''};
+        contextPasteLessons();
+      },true);
+    }
     const base=$('#calendarDate')?.value;
     if(!base)return;
     const date=new Date(`${base}T00:00:00`),day=date.getDay(),monday=new Date(date);
