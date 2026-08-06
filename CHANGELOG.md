@@ -691,3 +691,9 @@
 
 - Active calendars now rerender before unrelated dashboards and reports, so another renderer cannot delay visible schedule changes.
 - Selected and dragged lessons use an inset card highlight; destination cells use a quiet background cue instead of a heavy outer frame.
+
+## V20.5.4 — Resilient save and immediate schedule DOM
+
+- The calendar now rerenders unconditionally at the start of every full render, including while its section is hidden.
+- A failure in an unrelated view renderer is logged but can no longer abort the cloud dirty guard or upload scheduling after local data has been saved.
+- Backup and undo controls update in a `finally` block after every successful local persistence write.
