@@ -1,7 +1,7 @@
 /* Danbridge calendar interactions — one stable delegated controller. */
 (()=>{
   'use strict';
-  const controller={canvas:null,marquee:null,dragCard:null,suppressClickUntil:0};
+  const controller={canvas:null,marquee:null,pointerDrag:null,suppressClickUntil:0};
   const cards=()=>controller.canvas?[...controller.canvas.querySelectorAll('[data-id]')]:[];
   const cardOf=target=>target?.closest?.('[data-id]')||null;
   const isControl=target=>!!target?.closest?.('button,input,select,textarea,a');
@@ -21,7 +21,7 @@
     cards().forEach(card=>{
       card.classList.toggle('selected',selectedLessonIds.has(card.dataset.id));
       card.classList.remove('marquee-hit');
-      card.draggable=canEdit()&&!selecting&&!pasteClickMode;
+      card.draggable=false;
     });
   }
 
@@ -46,6 +46,39 @@
     controller.canvas.classList.add('marquee-active');
     try{controller.canvas.setPointerCapture(event.pointerId)}catch{}
     event.preventDefault();event.stopImmediatePropagation();
+  }
+
+  function beginPointerDrag(event){
+    const card=cardOf(event.target);
+    if(!card||!canEdit()||event.pointerType==='touch'||event.button!==0||selectionMode||selectedLessonIds.size||pasteClickMode||isControl(event.target))return false;
+    controller.pointerDrag={pointerId:event.pointerId,id:card.dataset.id,card,startX:event.clientX,startY:event.clientY,moved:false};
+    try{controller.canvas.setPointerCapture(event.pointerId)}catch{}
+    return true;
+  }
+
+  function clearPointerDrag(){
+    const state=controller.pointerDrag;if(!state)return;
+    clearDrop();state.card.classList.remove('dragging');controller.pointerDrag=null;dragState=null;
+  }
+
+  function movePointerDrag(event){
+    const state=controller.pointerDrag;if(!state||event.pointerId!==state.pointerId)return false;
+    if(!state.moved&&Math.hypot(event.clientX-state.startX,event.clientY-state.startY)>6){state.moved=true;dragState=state.id;state.card.classList.add('dragging')}
+    if(!state.moved)return true;
+    event.preventDefault();event.stopImmediatePropagation();clearDrop();
+    const target=targetOf(document.elementFromPoint(event.clientX,event.clientY));
+    if(target?.date)target.element.classList.add('drop-target');
+    return true;
+  }
+
+  function endPointerDrag(event){
+    const state=controller.pointerDrag;if(!state||event.pointerId!==state.pointerId)return false;
+    const target=state.moved?targetOf(document.elementFromPoint(event.clientX,event.clientY)):null;
+    const lesson=db.lessons.find(row=>row.id===state.id);
+    if(state.moved){event.preventDefault();event.stopImmediatePropagation();controller.suppressClickUntil=Date.now()+350}
+    clearPointerDrag();
+    if(state.moved&&target?.date&&lesson&&(target.date!==lesson.date||(target.time&&target.time!==lesson.start))){moveLessonTo(state.id,target.date,target.time||'');finishSelection()}
+    return true;
   }
 
   function moveMarquee(event){
@@ -85,10 +118,12 @@
   function onPointerDown(event){
     /* 在 click 之前立即貼上，不讓舊 click 攔截器吃掉日期格事件。 */
     if(pasteClickMode){const target=targetOf(event.target);if(target&&!isControl(event.target)&&pasteAt(target,event))return}
+    if(beginPointerDrag(event))return;
     beginMarquee(event);
   }
 
   function onPointerMove(event){
+    if(controller.pointerDrag){movePointerDrag(event);return}
     if(controller.marquee){moveMarquee(event);return}
     if(!pasteClickMode)return;
     const target=targetOf(event.target);contextPasteTarget=target?{date:target.date,time:target.time}:null;setPasteHoverTarget(target?.element||null);
@@ -115,27 +150,6 @@
   }
 
   function clearDrop(){controller.canvas?.querySelectorAll('.drop-target').forEach(element=>element.classList.remove('drop-target'))}
-  function onDragStart(event){
-    const card=cardOf(event.target);
-    if(!canEdit()||!card||selectionMode||selectedLessonIds.size||pasteClickMode){event.preventDefault();return}
-    dragState=card.dataset.id;controller.dragCard=card;card.classList.add('dragging');
-    event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dragState);event.stopImmediatePropagation();
-  }
-  function onDragOver(event){
-    if(!dragState)return;
-    const target=targetOf(event.target);if(!target?.date)return;
-    event.preventDefault();event.stopImmediatePropagation();clearDrop();target.element.classList.add('drop-target');event.dataTransfer.dropEffect='move';
-  }
-  function onDrop(event){
-    /* Safari 可能拿不到 dataTransfer 文字，永遠以 dragState 作備援。 */
-    const id=event.dataTransfer?.getData('text/plain')||dragState,target=targetOf(event.target);
-    if(!id||!target?.date)return;
-    event.preventDefault();event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.remove('dragging');controller.dragCard=null;
-    moveLessonTo(id,target.date,target.time||'');dragState=null;finishSelection();
-  }
-  function onDragEnd(event){
-    event.stopImmediatePropagation();clearDrop();controller.dragCard?.classList.remove('dragging');controller.dragCard=null;dragState=null;refresh();
-  }
 
   function install(){
     const canvas=document.getElementById('calendarCanvas');if(!canvas)return;
@@ -143,14 +157,10 @@
     controller.canvas=canvas;canvas.dataset.calendarController='3';
     canvas.addEventListener('pointerdown',onPointerDown,true);
     canvas.addEventListener('pointermove',onPointerMove,true);
-    canvas.addEventListener('pointerup',endMarquee,true);
-    canvas.addEventListener('pointercancel',endMarquee,true);
+    canvas.addEventListener('pointerup',event=>{if(!endPointerDrag(event))endMarquee(event)},true);
+    canvas.addEventListener('pointercancel',event=>{if(controller.pointerDrag&&event.pointerId===controller.pointerDrag.pointerId){clearPointerDrag();return}endMarquee(event)},true);
     canvas.addEventListener('click',onClick,true);
     canvas.addEventListener('contextmenu',onContextMenu,true);
-    canvas.addEventListener('dragstart',onDragStart,true);
-    canvas.addEventListener('dragover',onDragOver,true);
-    canvas.addEventListener('drop',onDrop,true);
-    canvas.addEventListener('dragend',onDragEnd,true);
     canvas.addEventListener('mouseleave',()=>{if(pasteClickMode)setPasteHoverTarget(null)});
     refresh();
   }

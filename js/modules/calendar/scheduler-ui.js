@@ -43,6 +43,12 @@ function updateSelectionCount(){
   if(bar)bar.classList.toggle('hidden',!selectionMode&&!count);
   if(btn)btn.textContent=(selectionMode||count)?'多選中':'部分選取';
 }
+function clearCalendarSelectionState(){
+  selectedLessonIds.clear();selectionMode=false;dragState=null;
+  updateSelectionCount();
+  document.querySelectorAll('#calendarCanvas .selected,#calendarCanvas .marquee-hit,#calendarCanvas .dragging,#calendarCanvas .drop-target').forEach(element=>element.classList.remove('selected','marquee-hit','dragging','drop-target'));
+  window.DanbridgeCalendarInteractions?.refresh?.();
+}
 function toggleSelectionMode(force){
   selectionMode=typeof force==='boolean'?force:!selectionMode;
   if(!selectionMode)selectedLessonIds.clear();

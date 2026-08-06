@@ -676,3 +676,8 @@
 - 拖曳放下以瀏覽器剪貼資料或內部課程 ID 任一者為準，修正 Safari 能拉起但放不下。
 - 貼上改在日期格 pointerdown 當下執行，不再依賴可能被權限攔截的 click。
 - 移除老師／校區管理者的全頁日期點擊攔截；單一控制器仍依即時角色維持唯讀。
+## V20.5.1 — Reliable desktop calendar completion
+
+- Replaced desktop HTML5 `draggable`/`dataTransfer` movement with one pointer-driven controller so Safari and other desktop browsers resolve the drop date consistently.
+- Restored the missing shared calendar-selection cleanup function that previously stopped a move after the lesson object changed but before save and rerender.
+- Kept marquee selection, copy/paste, drag completion, and selection exit in the same delegated calendar controller.
