@@ -282,6 +282,13 @@ body[data-role-ux="teacher"] header .danbridge-language-toggle:hover{background:
   #calendar .mobile-week-lessons>.lesson{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:10px 11px!important;font-size:13px!important;line-height:1.45!important;box-sizing:border-box!important;overflow:hidden!important;white-space:normal!important}
   #calendar .mobile-week-lessons>.lesson b{display:block!important;font-size:14px!important;line-height:1.4!important;white-space:normal!important}
   #calendar .mobile-week-lessons>.lesson .meta{display:block!important;margin-top:3px!important;font-size:12px!important;line-height:1.45!important;white-space:normal!important;overflow-wrap:anywhere!important}
+
+  #camps .camp-registration-card{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box!important}
+  #camps .camp-date-scroll{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0 0 12px!important;padding:0 0 8px!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;scroll-snap-type:x proximity!important;box-sizing:border-box!important}
+  #camps .camp-date-scroll .camp-date-grid{display:grid!important;grid-template-columns:repeat(7,minmax(104px,1fr))!important;width:776px!important;min-width:776px!important;max-width:none!important;margin:0!important;padding:0 4px 4px 0!important;overflow:visible!important;box-sizing:border-box!important}
+  #camps .camp-date-scroll .camp-date-weekday,#camps .camp-date-scroll .camp-date-empty,#camps .camp-date-scroll .camp-date-check{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;scroll-snap-align:start!important}
+  #camps #summerRegistrationMonth,#lessons #lessonMonth{width:100%!important;max-width:100%!important;text-align:center!important;text-align-last:center!important;font-variant-numeric:tabular-nums!important;box-sizing:border-box!important}
+  #camps .camp-registration-form>div:has(#summerRegistrationMonth)>label,#lessons .toolbar>div:has(#lessonMonth)>label{width:100%!important;text-align:center!important}
 }
 
 @media (max-width:420px){

@@ -79,6 +79,13 @@
     }
   }
 
+  function installCampDateScroller(){
+    const grid=$('#summerRegistrationDates');
+    if(!grid||grid.parentElement?.classList.contains('camp-date-scroll'))return;
+    const scroll=document.createElement('div');scroll.className='camp-date-scroll';scroll.setAttribute('role','region');scroll.setAttribute('aria-label','報名日期，可左右滑動');
+    grid.parentNode.insertBefore(scroll,grid);scroll.appendChild(grid);
+  }
+
   function apply(){
     const current=role();
     document.body.dataset.roleUx=current;
@@ -101,6 +108,7 @@
   }
 
   function install(){
+    installCampDateScroller();
     const original=window.renderDashboard;
     if(typeof original==='function'&&!original.__roleResponsive){
       const wrapped=function(){original();apply()};wrapped.__roleResponsive=true;window.renderDashboard=wrapped;
@@ -109,7 +117,7 @@
     if(typeof originalLessons==='function'&&!originalLessons.__roleResponsive){
       const wrapped=function(){originalLessons();apply()};wrapped.__roleResponsive=true;window.renderLessons=wrapped;
     }
-    window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience};
+    window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience,installCampDateScroller};
     document.addEventListener('dragstart',event=>{if(['teacher','branch_manager'].includes(role())&&event.target.closest?.('#calendar .lesson,#calendar .week-event')){event.preventDefault();event.stopImmediatePropagation()}},true);
     document.addEventListener('click',event=>{if(!['teacher','branch_manager'].includes(role()))return;const emptyCell=event.target.closest?.('#calendar .day-cell,#calendar .time-slot');if(emptyCell&&!event.target.closest?.('.lesson,.week-event,button')){event.preventDefault();event.stopImmediatePropagation()}},true);
     apply();
