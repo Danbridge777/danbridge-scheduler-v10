@@ -86,6 +86,33 @@
     grid.parentNode.insertBefore(scroll,grid);scroll.appendChild(grid);
   }
 
+  function installMobileCalendarClipboard(){
+    const selectionBar=$('#selectionBar');
+    if(selectionBar&&!$('#mobileCopySelectedLessons',selectionBar)){
+      const button=document.createElement('button');
+      button.id='mobileCopySelectedLessons';button.type='button';button.className='btn primary';button.textContent='複製選取';
+      button.addEventListener('click',()=>window.contextCopyLessons?.());
+      selectionBar.querySelector('button')?.after(button);
+    }
+    const base=$('#calendarDate')?.value;
+    if(!base)return;
+    const date=new Date(`${base}T00:00:00`),day=date.getDay(),monday=new Date(date);
+    monday.setDate(date.getDate()-((day+6)%7));
+    $$('#calendarCanvas .mobile-week-day').forEach((card,index)=>{
+      const target=new Date(monday);target.setDate(monday.getDate()+index);
+      const dateString=typeof localDate==='function'?localDate(target):target.toISOString().slice(0,10);
+      card.dataset.date=dateString;
+      if(card.dataset.mobilePasteBound==='1')return;
+      card.dataset.mobilePasteBound='1';
+      card.addEventListener('click',event=>{
+        if(typeof pasteClickMode==='undefined'||!pasteClickMode||event.target.closest('.lesson,button'))return;
+        event.preventDefault();event.stopPropagation();
+        contextPasteTarget={date:card.dataset.date||dateString,time:''};
+        window.contextPasteLessons?.();
+      });
+    });
+  }
+
   function apply(){
     const current=role();
     document.body.dataset.roleUx=current;
@@ -117,7 +144,12 @@
     if(typeof originalLessons==='function'&&!originalLessons.__roleResponsive){
       const wrapped=function(){originalLessons();apply()};wrapped.__roleResponsive=true;window.renderLessons=wrapped;
     }
-    window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience,installCampDateScroller};
+    const originalCalendar=window.renderCalendar;
+    if(typeof originalCalendar==='function'&&!originalCalendar.__mobileClipboard){
+      const wrapped=function(){originalCalendar();installMobileCalendarClipboard()};wrapped.__mobileClipboard=true;window.renderCalendar=wrapped;
+    }
+    installMobileCalendarClipboard();
+    window.DanbridgeRoleResponsive={apply,teacherStats,teacherConvenience,installCampDateScroller,installMobileCalendarClipboard};
     document.addEventListener('dragstart',event=>{if(['teacher','branch_manager'].includes(role())&&event.target.closest?.('#calendar .lesson,#calendar .week-event')){event.preventDefault();event.stopImmediatePropagation()}},true);
     document.addEventListener('click',event=>{if(!['teacher','branch_manager'].includes(role()))return;const emptyCell=event.target.closest?.('#calendar .day-cell,#calendar .time-slot');if(emptyCell&&!event.target.closest?.('.lesson,.week-event,button')){event.preventDefault();event.stopImmediatePropagation()}},true);
     apply();
